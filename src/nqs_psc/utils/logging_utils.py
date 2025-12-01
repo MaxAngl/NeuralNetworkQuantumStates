@@ -199,7 +199,7 @@ def runtime_log_to_jsonable(log_obj):
     return {key: to_jsonable(series) for key, series in log_obj.data.items()}
 
 
-def save_run(log, meta: dict, vstate_dict, base_dir="logs"):
+def save_run(log, meta: dict, base_dir="logs"):
     """
     Sauvegarde un run NetKet :
       - crée un dossier horodaté dans base_dir
@@ -219,8 +219,5 @@ def save_run(log, meta: dict, vstate_dict, base_dir="logs"):
     json_log = runtime_log_to_jsonable(log)
     with open(os.path.join(run_dir, "log.json"), "w", encoding="utf-8") as f:
         json.dump(json_log, f, indent=2)
-
-    with open(os.path.join(run_dir, "vstate.json"), "w", encoding="utf-8") as f:
-        json.dump(vstate_dict, f, indent=2)
 
     return run_dir
