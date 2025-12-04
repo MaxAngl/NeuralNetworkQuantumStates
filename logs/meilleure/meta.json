@@ -4,7 +4,9 @@
   "n_dim": 2,
   "pbc": true,
   "hamiltonian": {
-    "type": "Heisenberg"
+    "type": "Ising",
+    "J": -5,
+    "h": 1
   },
   "model": "RBM",
   "alpha": 3,
@@ -19,6 +21,6 @@
     "diag_shift": "?"
   },
   "n_iter": 300,
-  "exact": -15.876006999714084,
+  "exact": -90.22504695400221,
   "operators_list": "spins"
 }
