@@ -4,9 +4,9 @@ import netket as nk
 import numpy as np
 import jax
 import jax.numpy as jnp
-import nqs_psc.ansatz as ans
-from nqs_psc.optimizer import optimize_NGD, optimize_SGD
-from nqs_psc.utils import save_runtime_log
+import ansatz as ans
+from optimizer import optimize_NGD, optimize_SGD
+from utils import save_runtime_log
 
 L = 4
 g = nk.graph.Hypercube(length=L, n_dim=2, pbc=True)

@@ -220,7 +220,7 @@ def plot_energy_by_meta(run_dir, meta_key, cmap_name="viridis"):
 
 
 plot_energy_by_meta(
-    r"C:\Users\mouts\OneDrive\Bureau\X\2A\PSC\NQS\logs\alpha_test",
-    "alpha",
+    r"C:/Users/nathandupuy/Desktop/PSC/NeuralNetworkQuantumStates/runs",
+    "L",
     cmap_name="viridis",
 )

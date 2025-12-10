@@ -141,5 +141,5 @@ def plot_energy_from_run(run_dir):
 
 
 plot_energy_from_run(
-    r"C:\Users\mouts\OneDrive\Bureau\X\2A\PSC\NQS\logs\run_2025-12-03_13-32-36"
+    r"/Users/nathandupuy/Desktop/PSC/NeuralNetworkQuantumStates/logs/run_2025-12-03_15-45-43"
 )
