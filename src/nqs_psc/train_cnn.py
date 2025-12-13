@@ -29,7 +29,15 @@ vstate = nk.vqs.MCState(sampler, model, n_samples=1000, seed=12345)
 # Optimisation
 lr = 0.01
 op = nk.optimizer.Sgd(learning_rate=lr)
-gs = nk.driver.VMC_SR(ham, op, variational_state=vstate, diag_shift=1e-3)
+sr = nk.optimizer.SR(diag_shift=1e-3)
+
+gs = nk.driver.VMC(
+    hamiltonian=ham,
+    optimizer=op,
+    variational_state=vstate,
+    preconditioner=sr,
+)
+
 
 
 # création du logger
