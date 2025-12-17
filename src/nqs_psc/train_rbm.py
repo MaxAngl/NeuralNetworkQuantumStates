@@ -9,7 +9,7 @@ import jax.numpy as jnp
 
 # Taille du système
 
-L = 3
+L = 4
 a1 = np.array([1.0, 0.0])
 a2 = np.array([0.0, 1.0])
 J = -5
@@ -36,12 +36,6 @@ def expect_operator_callback(fs_state, operator_list):
 
 operator_list = [nk.operator.spin.sigmaz(hi, i) for i in range(g.n_nodes)]
 
-from scipy.sparse.linalg import eigsh
-
-e_gs, psi_gs = eigsh(ham.to_sparse(), k=2, which="SA")
-e_gs = e_gs[0]
-psi_gs = psi_gs.reshape(-1)
-print(e_gs)
 
 # ---- Seul changement ici ----
 alpha = 3
@@ -77,7 +71,7 @@ model = nk.models.RBM(
 
 sampler = nk.sampler.MetropolisLocal(hi, n_chains=300)
 vstate = nk.vqs.MCState(sampler, model, n_samples=1000, seed=451)
-fs_state = nk.vqs.FullSumState(hi, model)
+#fs_state = nk.vqs.FullSumState(hi, model)
 
 
 # Optimisation
@@ -96,7 +90,7 @@ log = nk.logging.RuntimeLog()
 
 # One or more logger objects must be passed to the keyword argument `out`.
 gs.run(
-    n_iter=300, out=log, callback=(expect_operator_callback(fs_state, operator_list),)
+    n_iter=300, out=log
 )
 
 # meta identique
@@ -111,7 +105,6 @@ meta = {
     "sampler": {"type": "MetropolisLocal", "n_chains": 300, "n_samples": 1000},
     "optimizer": {"type": "SGD", "lr": 0.01, "diag_shift": "?"},
     "n_iter": 300,
-    "exact": e_gs,
     "operators_list": "spins",
 }
 

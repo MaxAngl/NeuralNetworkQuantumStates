@@ -5,7 +5,7 @@ import numpy as np
 
 
 # Taille du système
-L = 3
+L = 5
 a1 = np.array([1.0, 0.0])
 a2 = np.array([0.0, 1.0])
 
@@ -15,7 +15,7 @@ a2 = np.array([0.0, 1.0])
 g = nk.graph.Hypercube(length=L, n_dim=2, pbc=True)
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ham = nk.operator.Heisenberg(hi, g)
-lattice = nk.graph.Lattice(basis_vectors=[a1, a2], extent=(3, 3), pbc=True)
+lattice = nk.graph.Lattice(basis_vectors=[a1, a2], extent=(L, L), pbc=True)
 
 
 # Création de l'état variationnel
@@ -27,15 +27,15 @@ sampler = nk.sampler.MetropolisLocal(hi, n_chains=300)
 vstate = nk.vqs.MCState(sampler, model, n_samples=1000, seed=12345)
 
 # Optimisation
-lr = 0.01
+lr = 0.001
 op = nk.optimizer.Sgd(learning_rate=lr)
-sr = nk.optimizer.SR(diag_shift=1e-3)
 
-gs = nk.driver.VMC(
+
+gs = nk.driver.VMC_SR(
     hamiltonian=ham,
     optimizer=op,
     variational_state=vstate,
-    preconditioner=sr,
+    diag_shift=1e-3
 )
 
 

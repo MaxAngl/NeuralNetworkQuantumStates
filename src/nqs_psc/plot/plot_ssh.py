@@ -30,6 +30,7 @@ def make_subtitle(meta, meta_key=None):
 
     # L
     L = m.get("L")
+    N = L**2
     if L not in (None, "?"):
         parts1.append(f"L={L}")
 
@@ -121,10 +122,14 @@ def plot_energy_from_run(run_dir):
 
     iters_E = energy_list[:, 0].astype(int)
     energy_E = energy_list[:, 1].astype(float)
+    
+    m = dict(meta)
+    L = m.get("L")
+    N = L**2
 
     # ----------- Plot énergie -----------
     plt.figure(figsize=(9, 5))
-    plt.plot(iters_E, energy_E, label="Énergie MC", linewidth=2)
+    plt.plot(iters_E, energy_E/N, label="Énergie MC par site", linewidth=2)
 
     # Sous-titre riches en infos
     subtitle = make_subtitle(meta)
@@ -144,5 +149,5 @@ def plot_energy_from_run(run_dir):
 
 
 plot_energy_from_run(
-    r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/run_2025-12-13_18-20-08"
+    r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/run_2025-12-17_13-33-53"
 )
