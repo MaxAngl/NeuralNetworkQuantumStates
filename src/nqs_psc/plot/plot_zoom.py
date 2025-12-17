@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
+
 def make_subtitle(meta, meta_key=None):
     """
     Construit un sous-titre lisible à partir du meta fourni :
@@ -128,25 +129,53 @@ def plot_energy_from_run(run_dir):
     N = L**2
 
     # ----------- Plot énergie -----------
-    plt.figure(figsize=(9, 5))
-    plt.plot(iters_E, energy_E/N, label="Énergie MC par site", linewidth=2)
+
+    # Figure principale
+    fig, ax = plt.subplots(figsize=(9, 5))
+
+    ax.plot(iters_E, energy_E / N, label="Énergie MC par site", linewidth=2)
 
     # Sous-titre riches en infos
     subtitle = make_subtitle(meta)
 
-    plt.title("Énergie en fonction des itérations")
-    plt.suptitle(subtitle, fontsize=9, y=0.96)
+    ax.set_title("Énergie en fonction des itérations")
+    fig.suptitle(subtitle, fontsize=9, y=0.96)
 
-    plt.xlabel("Itérations")
-    plt.ylabel("Énergie")
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
+    ax.set_xlabel("Itérations")
+    ax.set_ylabel("Énergie")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+
+    # ----------- Zoom sur les 100 dernières itérations -----------
+
+    n_zoom = 100
+    iters_zoom = iters_E[-n_zoom:]
+    energy_zoom = (energy_E / N)[-n_zoom:]
     
+    axin = ax.inset_axes([0.65, 0.5, 0.3, 0.3])
+
+    axin.plot(iters_zoom, energy_zoom, linewidth=2)
+    axin.set_title("Zoom (100 dernières it.)", fontsize=8)
+
+    # Limites automatiques avec petite marge
+    margin_y = 0.05 * (energy_zoom.max() - energy_zoom.min())
+    axin.set_xlim(iters_zoom[0], iters_zoom[-1])
+    axin.set_ylim(
+        energy_zoom.min() - margin_y,
+        energy_zoom.max() + margin_y,
+    )
+
+    axin.grid(True, alpha=0.3)
+
+    ax.indicate_inset_zoom(axin, edgecolor="black")
+
+    # ----------- Sauvegarde -----------
+
+    plt.tight_layout()
     plt.savefig(run_dir / "energy_plot.png", dpi=200)
+    plt.close()
+
     print(f"Graphique sauvegardé dans {run_dir / 'energy_plot.png'}")
-
-
 
 plot_energy_from_run(
     r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/run_2025-12-17_13-50-27"

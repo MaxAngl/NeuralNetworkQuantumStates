@@ -61,10 +61,6 @@ def constant_positive_bias_complex(key, shape, dtype=jnp.complex128):
 # 3. Définition du Modèle RBM
 model = nk.models.RBM(
     alpha=1,
-    # Le 'mauvais' initialiseur, dominant la dynamique initiale
-    kernel_init=mon_initialiseur_mauvais_complexe,
-    # L'initialiseur qui guide vers l'état UP
-    visible_bias_init=constant_positive_bias_complex,
     param_dtype=complex,
 )
 
