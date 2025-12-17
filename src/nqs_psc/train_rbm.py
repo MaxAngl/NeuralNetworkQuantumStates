@@ -8,6 +8,8 @@ import jax
 import jax.numpy as jnp
 import nqxpack
 import time
+import os
+
 
 # Taille du système
 
@@ -78,7 +80,7 @@ run_dir = save_run(log, meta, create_only=True)
 
 # One or more logger objects must be passed to the keyword argument `out`.
 def save_vstate(step, logdata, driver):
-    if step % 50 == 0:
+    if step % 50 == 0 or step == n_iter - 1:
         nqxpack.save(driver.state, f"{run_dir}/vstate_step_{step}")
     return True
 
@@ -91,4 +93,5 @@ execution_time = time.time() - start_time
 meta["execution_time_seconds"] = execution_time
 
 # Sauvegarder les logs finaux
-save_run(log, meta, run_dir=run_dir)
+save_run(log, meta, run_dir=run_dir, base_dir=os.environ['name'])
+
