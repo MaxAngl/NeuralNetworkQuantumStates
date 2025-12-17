@@ -7,6 +7,7 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import nqxpack
+import time
 
 # Taille du système
 
@@ -81,7 +82,13 @@ def save_vstate(step, logdata, driver):
         nqxpack.save(driver.state, f"{run_dir}/vstate_step_{step}")
     return True
 
+# Mesurer le temps d'exécution
+start_time = time.time()
 gs.run(n_iter=n_iter, out=log, callback=(save_vstate,))
+execution_time = time.time() - start_time
+
+# Ajouter le temps d'exécution aux métadonnées
+meta["execution_time_seconds"] = execution_time
 
 # Sauvegarder les logs finaux
 save_run(log, meta, run_dir=run_dir)
