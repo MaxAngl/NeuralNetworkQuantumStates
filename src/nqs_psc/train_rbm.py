@@ -13,16 +13,16 @@ import os
 
 # Taille du système
 
-n_dim= 2
-L = 3
-J = -5
+n_dim= 1
+L = 4
+J = -1
 H = 1
 
 #Paramètres RBM/optimisation
 
 alpha = 3
-lr= 0.01
-diag_shift= 1e-3
+lr= 0.002
+diag_shift= 1e-4
 n_chains = 300
 n_samples =1000
 n_iter =300

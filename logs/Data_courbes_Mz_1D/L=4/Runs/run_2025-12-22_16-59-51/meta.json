@@ -1,0 +1,26 @@
+{
+  "L": 4,
+  "graph": "Hypercube",
+  "n_dim": 1,
+  "pbc": true,
+  "hamiltonian": {
+    "type": "Ising",
+    "J": -1,
+    "h": 1.8
+  },
+  "model": "RBM",
+  "alpha": 1,
+  "sampler": {
+    "type": "MetropolisLocal",
+    "n_chains": 300,
+    "n_samples": 1000
+  },
+  "optimizer": {
+    "type": "SGD",
+    "lr": 0.002,
+    "diag_shift": 0.0001
+  },
+  "n_iter": 300,
+  "exact": "?",
+  "execution_time_seconds": 1.0074524879455566
+}
