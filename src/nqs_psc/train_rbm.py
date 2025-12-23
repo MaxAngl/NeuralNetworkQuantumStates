@@ -10,22 +10,25 @@ import nqxpack
 import time
 import os
 
+# Définition du dossier d'enregistrement des runs
+logs_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Single_Runs"
+os.makedirs(logs_path, exist_ok=True)
 
 # Taille du système
 
 n_dim= 1
-L = 4
+L = 25
 J = -1
 H = 1
 
 #Paramètres RBM/optimisation
 
 alpha = 3
-lr= 0.002
-diag_shift= 1e-4
+lr= 0.006
+diag_shift= 1e-3
 n_chains = 300
 n_samples =1000
-n_iter =300
+n_iter =400
 
 
 # Définition de l'hamiltonien
@@ -93,5 +96,5 @@ execution_time = time.time() - start_time
 meta["execution_time_seconds"] = execution_time
 
 # Sauvegarder les logs finaux
-save_run(log, meta, run_dir=run_dir, base_dir=os.environ['name'])
+save_run(log, meta, run_dir=run_dir, base_dir=logs_path)
 

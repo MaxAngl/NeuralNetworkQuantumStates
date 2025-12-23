@@ -12,13 +12,13 @@ import os
 import pandas as pd
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=4/Runs"
+logs_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=25/Runs"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=4/Résultats.csv"
+output_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=25/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -26,43 +26,43 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 # Taille du système
 
 n_dim= 1
-L = 4
+L = 25
 J = -1
-H_list = [0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.3, 2.6, 3.0]
+H_list = [0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.3, 2.6, 3.0, 3.5, 4.0, 4.5, 5.0]
 
 #Paramètres RBM/optimisation
 
-alpha = 1
-lr= 0.002
-diag_shift= 1e-4
+alpha = 3
+lr= 0.006
+diag_shift= 1e-3
 n_chains = 300
 n_samples =1000
-n_iter =300
+n_iter =400
 
 # Définition de l'hamiltonien
 
 g = nk.graph.Hypercube(length=L, n_dim=n_dim, pbc=True)
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
-# Définition du Modèle RBM
-
-model = nk.models.RBM(
-    alpha=alpha,
-    param_dtype=complex,
-)
-
-sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
-vstate = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=451)
-
 #Définition de la magnétisation
-
 Mz = sum([nk.operator.spin.sigmaz(hi, i) for i in range(g.n_nodes)]) / g.n_nodes
-
+# Magnétisation au carré (|Mz|^2)
+Mz_sq = Mz * Mz
 
 # Boucle sur les valeurs de H
 
 for H in H_list:    
     ham = nk.operator.Ising(hi, g, J=J, h=H)
+
+    # Définition du Modèle RBM
+
+    model = nk.models.RBM(
+        alpha=alpha,
+        param_dtype=complex,
+    )
+
+    sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
+    vstate = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=451)
 
     # Optimisation
 
@@ -116,6 +116,11 @@ for H in H_list:
     mz_stats = vstate.expect(Mz)
     magnetization = mz_stats.mean.real
     magnetization_error = mz_stats.error_of_mean
+
+    # Calcul de la magnétisation carrée <Mz^2>
+    mz_sq_stats = vstate.expect(Mz_sq)
+    magnetization_sq = mz_sq_stats.mean.real
+    magnetization_sq_error = mz_sq_stats.error_of_mean
     
     # Récupération de l'Énergie et Variance (pour le V-score)
     energy_stats = vstate.expect(ham) 
@@ -131,6 +136,8 @@ for H in H_list:
         "H": H,
         "Magnetization": magnetization,
         "Magnetization_Error": magnetization_error,
+        "Magnetization_Sq": magnetization_sq,
+        "Magnetization_Sq_Error": magnetization_sq_error,
         "V_Score": v_score,
         "Energy": energy_mean,
         "Energy_Variance": energy_variance
