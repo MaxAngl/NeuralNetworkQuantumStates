@@ -116,12 +116,33 @@ def plot_energy_from_run(run_dir):
         meta = json.load(f)
 
     # ----------- Extraction énergie -----------
-    # Format : Energy = [[iter, value], [iter, value], ...]
-    energy_list = logger_data["Energy"]
-    energy_list = np.asarray(energy_list)
+    energy_data = logger_data["Energy"]
 
-    iters_E = energy_list[:, 0].astype(int)
-    energy_E = energy_list[:, 1].astype(float)
+    # 1. Extraction de la valeur moyenne (Mean)
+    raw_mean = energy_data["Mean"]
+
+    # DÉTECTION DU FORMAT : Est-ce un dictionnaire {"real":..., "imag":...} ?
+    if isinstance(raw_mean, dict) and "real" in raw_mean:
+        # C'est votre cas actuel !
+        energy_E = np.array(raw_mean["real"])
+    else:
+        # Cas classique (liste simple)
+        temp = np.array(raw_mean)
+        if np.iscomplexobj(temp):
+            energy_E = temp.real
+        else:
+            energy_E = temp
+
+    # 2. Extraction des itérations
+    # Votre fichier contient bien la clé "iters" dans "Energy"
+    if "iters" in energy_data:
+        iters_E = np.array(energy_data["iters"])
+    else:
+        iters_E = np.arange(len(energy_E))
+
+    # Sécurité : on s'assure que ce sont des tableaux 1D (au cas où il n'y a qu'1 point)
+    energy_E = np.atleast_1d(energy_E)
+    iters_E = np.atleast_1d(iters_E)
     
     m = dict(meta)
     L = m.get("L")
@@ -149,5 +170,5 @@ def plot_energy_from_run(run_dir):
 
 
 plot_energy_from_run(
-    r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/logs/run_2025-12-16_16-41-46"
+    r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=4/Runs/run_2025-12-22_16-59-32"
 )

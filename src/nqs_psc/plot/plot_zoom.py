@@ -117,16 +117,39 @@ def plot_energy_from_run(run_dir):
         meta = json.load(f)
 
     # ----------- Extraction énergie -----------
-    # Format : Energy = [[iter, value], [iter, value], ...]
-    energy_list = logger_data["Energy"]
-    energy_list = np.asarray(energy_list)
-
-    iters_E = energy_list[:, 0].astype(int)
-    energy_E = energy_list[:, 1].astype(float)
     
-    m = dict(meta)
-    L = m.get("L")
-    N = L**2
+    energy_data = logger_data["Energy"]
+    
+    # 1. Extraction des valeurs (Mean)
+    # On gère le format dictionnaire {"real": [...], "imag": [...]}
+    raw_mean = energy_data["Mean"]
+
+    if isinstance(raw_mean, dict) and "real" in raw_mean:
+        energy_E = np.array(raw_mean["real"])
+    else:
+        # Ancien format ou liste simple
+        temp = np.array(raw_mean)
+        if np.iscomplexobj(temp):
+            energy_E = temp.real
+        else:
+            energy_E = temp
+
+    # 2. Extraction des itérations (Axe X)
+    if "iters" in energy_data:
+        iters_E = np.array(energy_data["iters"])
+    else:
+        iters_E = np.arange(len(energy_E))
+
+    # 3. Sécurité (Force le format liste même s'il n'y a qu'une seule valeur)
+    energy_E = np.atleast_1d(energy_E)
+    iters_E = np.atleast_1d(iters_E)
+
+    # Récupération de N (Nombre de sites) depuis les métadonnées
+    L = meta.get("L", 1)
+    n_dim = meta.get("n_dim", 1) # On récupère la dimension (1D ou 2D)
+    
+    # Calcul automatique du nombre de sites
+    N = L ** n_dim
 
     # ----------- Plot énergie -----------
 
@@ -178,5 +201,5 @@ def plot_energy_from_run(run_dir):
     print(f"Graphique sauvegardé dans {run_dir / 'energy_plot.png'}")
 
 plot_energy_from_run(
-    r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/run_2025-12-17_13-50-27"
+    r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=4/Runs/run_2025-12-22_16-59-45"
 )

@@ -154,3 +154,5 @@ for H in H_list:
     )
 
     print(f"Données pour H={H} sauvegardées dans le CSV.")
+
+#PYTHONPATH=src python /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/src/nqs_psc/train_rbm.py
