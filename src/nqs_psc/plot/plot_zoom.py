@@ -201,5 +201,5 @@ def plot_energy_from_run(run_dir):
     print(f"Graphique sauvegardé dans {run_dir / 'energy_plot.png'}")
 
 plot_energy_from_run(
-    r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/run_2025-12-23_15-21-43"
+    r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=81/Runs/run_2025-12-24_15-09-40"
 )

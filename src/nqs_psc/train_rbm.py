@@ -17,14 +17,14 @@ os.makedirs(logs_path, exist_ok=True)
 # Taille du système
 
 n_dim= 1
-L = 25
+L = 81
 J = -1
 H = 1
 
 #Paramètres RBM/optimisation
 
-alpha = 3
-lr= 0.006
+alpha = 5
+lr= 0.01
 diag_shift= 1e-3
 n_chains = 300
 n_samples =1000
