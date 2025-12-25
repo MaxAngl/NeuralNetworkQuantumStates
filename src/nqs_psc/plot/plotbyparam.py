@@ -217,15 +217,3 @@ def plot_energy_by_meta(run_dir, meta_key, cmap_name="viridis"):
 
     fig.tight_layout()
     plt.show()
-
-
-plot_energy_by_meta(
-<<<<<<< HEAD:src/nqs_psc/plot/plotbyparam.py
-    r"logs/run_2025-12-13_17-41-25",
-    "L",
-=======
-    r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs",
-    "alpha",
->>>>>>> 8f4e322 (Work in progress: plot modifications):src/nqs_psc/plotbyparam.py
-    cmap_name="viridis",
-)
