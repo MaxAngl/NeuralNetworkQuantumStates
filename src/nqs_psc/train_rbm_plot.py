@@ -12,13 +12,13 @@ import os
 import pandas as pd
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=81/Runs"
+logs_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=100/Runs"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=81/Résultats.csv"
+output_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=100/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -26,18 +26,18 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 # Taille du système
 
 n_dim= 1
-L = 81
+L = 100
 J = -1
-H_list = [0] #, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.3, 2.6, 3.0, 3.5, 4.0, 4.5, 5.0]
+H_list = [0.4]    #[0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.85, 0.875, 0.9, 0.925, 0.9375, 0.95, 0.975, 1.0, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0]   (2.3, 2.6, 3.5, 4.5)
 
 #Paramètres RBM/optimisation
 
 alpha = 5
-lr= 0.01
+lr= 0.012
 diag_shift= 1e-3
 n_chains = 300
 n_samples =1000
-n_iter =350
+n_iter =400
 
 # Définition de l'hamiltonien
 
