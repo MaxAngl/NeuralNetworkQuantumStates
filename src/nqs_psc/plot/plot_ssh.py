@@ -170,5 +170,5 @@ def plot_energy_from_run(run_dir):
 
 
 plot_energy_from_run(
-    r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/run_2025-12-23_13-09-31"
+    r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Runs/run_2025-12-26_19-47-32"
 )

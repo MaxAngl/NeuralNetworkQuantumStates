@@ -111,7 +111,7 @@ def make_subtitle_clean(meta, meta_key=None):
 # ----------------------------------------------------------
 
 
-def plot_energy_by_meta(run_dir, meta_key, cmap_name="viridis"):
+def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
     """
     Analyse un dossier contenant plusieurs runs (run_*/log.json, meta.json)
 
@@ -217,3 +217,12 @@ def plot_energy_by_meta(run_dir, meta_key, cmap_name="viridis"):
 
     fig.tight_layout()
     plt.show()
+ # ----------- Sauvegarde -----------
+
+    plt.tight_layout()
+    plt.savefig(run_dir / "energy_plot_byparam.png", dpi=200)
+    plt.close()
+
+    print(f"Graphique sauvegardé dans {run_dir / 'energy_plot_byparam.png'}")
+
+plot_energy_by_meta(r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Runs")

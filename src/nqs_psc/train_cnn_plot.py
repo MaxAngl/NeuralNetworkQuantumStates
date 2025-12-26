@@ -13,13 +13,13 @@ import pandas as pd
 import ansatz
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=25/Runs"
+logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Runs"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_1D/L=25/Résultats.csv"
+output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -169,5 +169,3 @@ for H in H_list:
     )
 
     print(f"Données pour H={H} sauvegardées dans le CSV.")
-
-#PYTHONPATH=src python /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates/src/nqs_psc/train_rbm.py
