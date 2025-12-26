@@ -13,13 +13,13 @@ import pandas as pd
 import ansatz
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Runs"
+logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/h"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Résultats.csv"
+output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/h/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -31,6 +31,9 @@ L = 5
 a1 = np.array([1.0, 0.0])
 a2 = np.array([0.0, 1.0])
 J = -1
+H = 2.6
+lr = 0.5
+lr_list = [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
 H_list = [0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.3, 2.6, 3.0, 3.5, 4.0, 4.5, 5.0]
 
 #Paramètres CNN/optimisation
@@ -38,11 +41,10 @@ H_list = [0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 
 lattice = nk.graph.Lattice(basis_vectors=[a1, a2], extent=(L, L), pbc=True)
 kernel_size = ((2,2),(2,2))
 channel = (5, 5)
-lr= 0.006
 diag_shift= 1e-3
 n_chains = 300
-n_samples =1000
-n_iter =400
+n_samples = 1000
+n_iter = 400
 
 # Définition de l'hamiltonien
 

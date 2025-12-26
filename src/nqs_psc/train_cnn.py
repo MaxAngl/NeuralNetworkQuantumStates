@@ -39,7 +39,7 @@ H_list = [0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 
 lattice = nk.graph.Lattice(basis_vectors=[a1, a2], extent=(L, L), pbc=True)
 kernel_size = ((2,2),(2,2))
 channel = (5, 5)
-lr= 0.0001
+lr= 0.0125
 diag_shift= 1e-3
 n_chains = 300
 n_samples =1000
