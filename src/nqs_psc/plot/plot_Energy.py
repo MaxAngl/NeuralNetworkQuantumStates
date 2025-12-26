@@ -1,5 +1,5 @@
 """
-Script pour tracer la susceptibilité magnétique dM_z/dH en fonction de H
+Script pour tracer l'énergie moyenne E/L en fonction de H
 avec propagation des erreurs et un gradient de couleur selon L
 """
 
@@ -38,40 +38,16 @@ for L in L_values:
     if csv_file.exists():
         df = pd.read_csv(csv_file)
         
-        # Calculer M_z/L (magnétisation moyenne par spin)
+        # Calculer E/L (énergie moyenne par spin)
         H = df['H'].values
-        Mz_mean = df['Magnetization_Sq'].values
-        Mz_error = df['Magnetization_Sq_Error'].values
+        E_mean = df['Energy'].values / L
+        E_error = np.sqrt(df['Energy_Variance'].values) / L
         
-        # Calculer la dérivée dM_z/dH par différences finies centrées
-        dMz_dH = np.zeros(len(H))
-        dMz_dH_error = np.zeros(len(H))
-        
-        for i in range(len(H)):
-            if i == 0:
-                # Différence avant pour le premier point
-                dH = H[i+1] - H[i]
-                dMz_dH[i] = (Mz_mean[i+1] - Mz_mean[i]) / dH
-                # Propagation d'erreur: sqrt((err1/dH)^2 + (err2/dH)^2)
-                dMz_dH_error[i] = np.sqrt(Mz_error[i]**2 + Mz_error[i+1]**2) / dH
-            elif i == len(H) - 1:
-                # Différence arrière pour le dernier point
-                dH = H[i] - H[i-1]
-                dMz_dH[i] = (Mz_mean[i] - Mz_mean[i-1]) / dH
-                dMz_dH_error[i] = np.sqrt(Mz_error[i]**2 + Mz_error[i-1]**2) / dH
-            else:
-                # Différence centrale pour les points intermédiaires
-                dH = H[i+1] - H[i-1]
-                dMz_dH[i] = (Mz_mean[i+1] - Mz_mean[i-1]) / dH
-                dMz_dH_error[i] = np.sqrt(Mz_error[i-1]**2 + Mz_error[i+1]**2) / dH
-        
-        
-        dMz_dH = abs(dMz_dH)
         # Obtenir la couleur du gradient
         color = cmap(norm(L))
         
         # Tracer avec barres d'erreur
-        ax.errorbar(H, dMz_dH, yerr=dMz_dH_error, 
+        ax.errorbar(H, E_mean, yerr=E_error, 
                    label=f'L={L}', 
                    marker='o', 
                    markersize=4,
@@ -87,8 +63,8 @@ for L in L_values:
 
 # Configuration du graphique
 ax.set_xlabel('Champ magnétique H', fontsize=14, fontweight='bold')
-ax.set_ylabel('$|d{M_z}^{2}/dH|$', fontsize=14, fontweight='bold')
-ax.set_title('Dérivée de la magnétisation en fonction du champ magnétique\npour différentes tailles de système 1D', 
+ax.set_ylabel('Énergie moyenne $E/L$', fontsize=14, fontweight='bold')
+ax.set_title('Énergie moyenne par spin en fonction du champ magnétique\npour différentes tailles de système 1D',
              fontsize=16, fontweight='bold', pad=20)
 ax.grid(True, alpha=0.3, linestyle='--')
 ax.legend(loc='best', framealpha=0.9, fontsize=10)
@@ -102,7 +78,7 @@ cbar.set_label('Nombre de spins L', fontsize=12, fontweight='bold')
 plt.tight_layout()
 
 # Sauvegarder le graphique
-output_file = "dMz^2dH_1D_graph.png"
+output_file = "energy_per_spin_vs_H_gradient.png"
 plt.savefig(output_file, dpi=300, bbox_inches='tight')
 print(f"\nGraphique sauvegardé : {output_file}")
 
