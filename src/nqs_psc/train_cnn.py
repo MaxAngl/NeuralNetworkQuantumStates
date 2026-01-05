@@ -13,13 +13,13 @@ import pandas as pd
 import ansatz
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Runs"
+logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=2/Runs"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Résultats.csv"
+output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=2/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -27,12 +27,12 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 # Taille du système
 
 n_dim= 2
-L = 4
+L = 3
 H = 2.6
 a1 = np.array([1.0, 0.0])
 a2 = np.array([0.0, 1.0])
 J = -1
-H_list = [0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.3, 2.6, 3.0, 3.5, 4.0, 4.5, 5.0]
+
 
 #Paramètres CNN/optimisation
 
@@ -61,6 +61,14 @@ model = ansatz.CNN(
         channels=channel,
         param_dtype=complex
     )
+
+
+
+from scipy.sparse.linalg import eigsh
+e_gs, psi_gs = eigsh(ham.to_sparse(), k=2, which="SA")
+e_gs = e_gs[0]
+psi_gs = psi_gs.reshape(-1)
+print(e_gs/L**n_dim)
 
 sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
 vstate = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=451)

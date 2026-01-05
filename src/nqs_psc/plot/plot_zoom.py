@@ -201,5 +201,5 @@ def plot_energy_from_run(run_dir):
     print(f"Graphique sauvegardé dans {run_dir / 'energy_plot.png'}")
 
 plot_energy_from_run(
-    r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/Runs/run_2025-12-26_19-47-32"
+    r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=2/Runs/run_2026-01-04_16-52-34"
 )

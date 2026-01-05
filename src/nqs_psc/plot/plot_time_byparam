@@ -1,0 +1,95 @@
+import os
+import re
+import matplotlib.pyplot as plt
+
+def get_parameter_from_name(folder_name):
+    """
+    Extrait un nombre (entier ou flottant) du nom du dossier.
+    Exemple: 'run_param_50' -> 50.0
+    """
+    # Cherche un nombre (entier ou décimal) dans le nom
+    match = re.search(r"[-+]?\d*\.\d+|\d+", folder_name)
+    if match:
+        return float(match.group())
+    return None
+
+def get_calculation_time(folder_path):
+    """
+    Cherche le temps de calcul dans un fichier spécifique à l'intérieur du dossier.
+    C'EST LA PARTIE À ADAPTER SELON TES FICHIERS.
+    """
+    # Nom du fichier contenant le temps (ex: log.txt, output.out, slurm-xxx.out)
+    log_filename = "log.txt" 
+    file_path = os.path.join(folder_path, log_filename)
+    
+    if not os.path.exists(file_path):
+        print(f"Attention: Fichier {log_filename} introuvable dans {folder_path}")
+        return None
+
+    try:
+        with open(file_path, 'r') as f:
+            content = f.read()
+            
+            # EXEMPLE 1: Si le temps est sur une ligne type "Total time: 123.45 s"
+            # On utilise une expression régulière (Regex)
+            # Adapte le motif r"..." selon ce qui est écrit dans tes fichiers
+            match = re.search(r"Total time:\s*(\d+\.?\d*)", content)
+            
+            if match:
+                return float(match.group(1))
+            else:
+                print(f"Pas de temps trouvé dans {folder_path}")
+                return None
+                
+    except Exception as e:
+        print(f"Erreur de lecture dans {folder_path}: {e}")
+        return None
+
+def main():
+    root_dir = "."  # Le dossier où se trouvent tes dossiers de simulation
+    data = []
+
+    # 1. Parcours des dossiers
+    for folder_name in os.listdir(root_dir):
+        folder_path = os.path.join(root_dir, folder_name)
+
+        # On ne traite que les dossiers
+        if os.path.isdir(folder_path):
+            param = get_parameter_from_name(folder_name)
+            
+            if param is not None:
+                time_val = get_calculation_time(folder_path)
+                
+                if time_val is not None:
+                    data.append((param, time_val))
+                    print(f"Dossier: {folder_name} -> Param: {param}, Temps: {time_val}")
+
+    # 2. Tri des données (crucial pour que la ligne du graphique ne fasse pas des zigzags)
+    # On trie selon le paramètre (x)
+    data.sort(key=lambda x: x[0])
+
+    if not data:
+        print("Aucune donnée valide trouvée pour le graphique.")
+        return
+
+    # Séparation x et y
+    x = [item[0] for item in data]
+    y = [item[1] for item in data]
+
+    # 3. Tracé du graphique
+    plt.figure(figsize=(10, 6))
+    plt.plot(x, y, marker='o', linestyle='-', color='b', label='Temps de calcul')
+    
+    # Esthétique
+    plt.title("Temps de calcul en fonction du paramètre")
+    plt.xlabel("Valeur du paramètre (extrait du dossier)")
+    plt.ylabel("Temps (secondes)")
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend()
+    
+    # Affichage
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == "__main__":
+    main()
