@@ -14,13 +14,13 @@ import ansatz
 
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/kernel_size/Runs"
+logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/channel/Runs"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/kernel_sizeRésultats.csv"
+output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/channel/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -45,7 +45,8 @@ diag_shift= 1e-3
 n_chains = 300
 n_samples =1000
 n_iter =400
-kernel_sizes_list = [((2,2),(2,2)), ((3,3),(3,3)), ((2,3),(2,3)), ((3,2),(3,2))]
+kernel_sizes_list = [(5,5), (3,7),(10,10)]
+channel_list = [(5,5), (5,10), (10,5), (10,10), (15,15)]
 
 # Définition de l'hamiltonien
 
@@ -55,7 +56,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Boucle sur les valeurs du paramètre
 
-for kernel_size in kernel_sizes_list:    
+for i in [1]:    
     ham = nk.operator.Ising(hi, g, J=J, h=H)
 
     # Définition du Modèle CNN
@@ -91,8 +92,8 @@ for kernel_size in kernel_sizes_list:
         "pbc": True,
         "hamiltonian": {"type": "Ising", "J": J, "h": H},
         "model": "CNN",
-        "kernel_size": "kernel_size",
-        "channels": "channel",
+        "kernel_size": kernel_size,
+        "channels": channel,
         "sampler": {"type": "MetropolisLocal", "n_chains": n_chains, "n_samples": n_samples},
         "optimizer": {"type": "SGD", "lr": lr, "diag_shift": diag_shift},
         "n_iter": n_iter,

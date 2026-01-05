@@ -94,7 +94,7 @@ class CNN(nn.Module):
             x = nn.Conv(
                 features=c,
                 kernel_size=k,
-                padding="CIRCULAR",
+                padding="SAME",
                 param_dtype=self.param_dtype,
                 kernel_init=nn.initializers.xavier_normal(),
                 use_bias=True,

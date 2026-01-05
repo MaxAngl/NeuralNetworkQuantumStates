@@ -1,0 +1,39 @@
+{
+  "L": 5,
+  "graph": "Hypercube",
+  "n_dim": 2,
+  "pbc": true,
+  "hamiltonian": {
+    "type": "Ising",
+    "J": -1,
+    "h": 2.6
+  },
+  "model": "CNN",
+  "kernel_size": [
+    [
+      3,
+      2
+    ],
+    [
+      3,
+      2
+    ]
+  ],
+  "channels": [
+    5,
+    5
+  ],
+  "sampler": {
+    "type": "MetropolisLocal",
+    "n_chains": 300,
+    "n_samples": 1000
+  },
+  "optimizer": {
+    "type": "SGD",
+    "lr": 0.0125,
+    "diag_shift": 0.001
+  },
+  "n_iter": 400,
+  "exact": "?",
+  "execution_time_seconds": 21.853802919387817
+}
