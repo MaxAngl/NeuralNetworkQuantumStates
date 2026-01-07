@@ -28,20 +28,41 @@ for log_dir in log_dirs:
                 meta = json.load(f)
                 
                 L = meta.get('L')
-                alpha = meta.get('alpha')
+                model_type = meta.get('model', 'RBM')
                 exec_time = meta.get('execution_time_seconds')
                 n_iter = meta.get('n_iter')
                 
-                if L and alpha and exec_time and n_iter and n_iter > 0:
-                    # Calculer le nombre de paramètres: visible + hidden + weights
-                    # RBM: L visible units, alpha*L hidden units
-                    # params = L (bias visible) + alpha*L (bias hidden) + L*alpha*L (weights)
-                    nb_params = L * (2 * alpha + 1)
+                # Calculer le nombre de paramètres selon le type de modèle
+                nb_params = None
+                alpha = None
+                
+                if model_type == 'RBM':
+                    alpha = meta.get('alpha')
+                    if L and alpha:
+                        # RBM: L visible units, alpha*L hidden units
+                        # params = L (bias visible) + alpha*L (bias hidden) + L*alpha*L (weights)
+                        nb_params = L * (2 * alpha + 1)
+                
+                elif model_type == 'CNN':
+                    # Pour CNN, essayer de lire les paramètres du modèle
+                    # Si disponible dans meta, sinon on peut estimer
+                    nb_params = meta.get('nb_params')  # Si stocké directement
+                    if not nb_params and L:
+                        # Estimation pour un CNN simple (à ajuster selon votre architecture)
+                        # Par exemple: conv layers + dense layers
+                        # Ceci est une estimation, idéalement il faudrait le nombre exact
+                        features = meta.get('features', [16, 32])  # valeurs par défaut
+                        if isinstance(features, list) and len(features) > 0:
+                            # Estimation simplifiée (à adapter selon votre CNN)
+                            nb_params = sum(features) * L  # très approximatif
+                
+                if L and nb_params and exec_time and n_iter and n_iter > 0:
                     time_per_iter = exec_time / n_iter
                     
                     data_points.append({
                         'L': L,
-                        'alpha': alpha,
+                        'alpha': alpha if alpha else 0,
+                        'model': model_type,
                         'nb_params': nb_params,
                         'time_per_iter': time_per_iter,
                         'file': str(meta_file)

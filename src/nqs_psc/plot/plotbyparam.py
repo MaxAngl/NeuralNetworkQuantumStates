@@ -118,12 +118,43 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
     - Coloration selon meta_key
     - Sous-titre = tout le meta sauf meta_key et les champs '?'
     - Légende = uniquement meta_key = valeur
+    
+    meta_key peut être:
+    - Une clé simple: "alpha", "L", etc.
+    - Une clé imbriquée avec point: "hamiltonian.h", "optimizer.lr"
     """
 
     run_dir = Path(run_dir)
     runs = []
     metas = []
     values = []
+    
+    def get_nested_value(d, key):
+        """Récupère une valeur potentiellement imbriquée (ex: 'optimizer.lr')"""
+        keys = key.split('.')
+        val = d
+        for k in keys:
+            if isinstance(val, dict) and k in val:
+                val = val[k]
+            else:
+                return None
+        return val
+    
+    def format_value_for_display(val):
+        """Convertit les valeurs complexes en chaînes lisibles"""
+        if isinstance(val, (list, tuple)):
+            # Pour kernel_size comme [[1,1],[1,1]] ou channels comme [5,5]
+            if all(isinstance(v, (list, tuple)) for v in val):
+                # Nested list: [[1,1],[1,1]] -> "1x1_1x1"
+                return "_".join("x".join(map(str, v)) for v in val)
+            else:
+                # Simple list: [5,5] -> "5_5"
+                return "_".join(map(str, val))
+        elif isinstance(val, dict):
+            # Dict -> "key1=val1_key2=val2"
+            return "_".join(f"{k}={v}" for k, v in val.items())
+        else:
+            return val
 
     # ------------------- Lecture des sous-dossiers -------------------
     for sub in run_dir.iterdir():
@@ -142,8 +173,12 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
             meta = json.load(f)
 
         # Le paramètre doit exister dans meta
-        if meta_key not in meta:
+        param_value = get_nested_value(meta, meta_key)
+        if param_value is None:
             continue
+        
+        # Convertir en format affichable si nécessaire
+        display_value = format_value_for_display(param_value)
 
         # -------- Extraction énergie --------
         energy_block = logger["Energy"]
@@ -169,7 +204,7 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
 
         runs.append((it, E))
         metas.append(meta)
-        values.append(meta[meta_key])
+        values.append(display_value)
 
     if len(runs) == 0:
         print("Aucun run valide trouvé.")
@@ -225,4 +260,4 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
 
     print(f"Graphique sauvegardé dans {run_dir / 'energy_plot_byparam.png'}")
 
-plot_energy_by_meta(r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=4/Runs")
+plot_energy_by_meta(r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/logs/CNN_optimisation/Kernel_size", meta_key="model.kernel_size", cmap_name="viridis")
