@@ -6,4 +6,6 @@ Changer :
 - traitement des bords => Valid moins bonne valeur que circular, mais meilleur que  
 - channels => pas d'impact notable ?
 - diag shift => pas d'impact sur les 4 premiers cs pour L=5
-
+- learning rate => pas d'impact notable
+- batch size
+-

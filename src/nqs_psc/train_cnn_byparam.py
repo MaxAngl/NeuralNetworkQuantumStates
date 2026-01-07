@@ -28,7 +28,7 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 # Taille du système
 
 n_dim= 2
-L = 5
+L = 10
 H = 2.6
 a1 = np.array([1.0, 0.0])
 a2 = np.array([0.0, 1.0])
