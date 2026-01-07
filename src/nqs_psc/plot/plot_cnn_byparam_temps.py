@@ -1,16 +1,20 @@
 import json
-import numpy as np
 import matplotlib
-matplotlib.use('Agg') # Mode sans fenêtre pour serveur/SSH
+matplotlib.use('Agg') # Mode sans affichage (pour cluster/ssh)
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from pathlib import Path
-from mpl_toolkits.axes_grid1.inset_locator import mark_inset
+import numpy as np
 
 # ==============================================================================
-# 1. PARSING ROBUSTE
+# 1. OUTILS DE PARSING
 # ==============================================================================
 def flatten_json(y):
+    """
+    Aplatit un dictionnaire imbriqué.
+    Ex: {"optimizer": {"diag_shift": 0.01}} devient {"optimizer_diag_shift": 0.01}
+    C'est crucial pour trouver vos paramètres imbriqués.
+    """
     out = {}
     def flatten(x, name=''):
         if type(x) is dict:
@@ -19,60 +23,54 @@ def flatten_json(y):
     flatten(y)
     return out
 
-def get_variance_curve(log_path):
+def get_run_data(folder_path, param_name_target):
     """
-    Extrait la courbe de Variance (proxy du V-score) depuis le log.json
+    Lit meta.json pour extraire :
+    1. La valeur du paramètre ciblé (ex: diag_shift)
+    2. Le temps d'exécution (execution_time_seconds)
     """
-    try:
-        with open(log_path, 'r') as f: log_data = json.load(f)
-    except: return None, None
-
-    if "Energy" not in log_data: return None, None
+    meta_path = folder_path / "meta.json"
     
-    # On cherche la Variance (parfois nommée 'Variance', 'var', ou 'Sigma')
-    # C'est la donnée qui permet de calculer le V-score
-    data_block = None
-    keys_to_check = ["Variance", "var", "Sigma"]
-    
-    for k in keys_to_check:
-        if k in log_data["Energy"]:
-            data_block = log_data["Energy"][k]
-            break
-            
-    if data_block is None: return None, None
-    
-    # Extraction NetKet (gestion formats dict/list)
-    if isinstance(data_block, dict) and "real" in data_block:
-        # Format NetKet récent
-        var_vals = np.array(data_block["real"], dtype=float)
-    elif isinstance(data_block, list):
-        # Format liste de dicts ou liste de valeurs
-        vals = [x['real'] if isinstance(x, dict) else x for x in data_block]
-        var_vals = np.array(vals, dtype=float)
-    else: 
+    if not meta_path.exists():
         return None, None
 
-    # Nettoyage des NaNs/Infs
-    var_vals[np.isinf(var_vals)] = np.nan
-    
-    # Si tout est NaN ou vide
-    if np.isnan(var_vals).all() or len(var_vals) < 2: return None, None 
-
-    # Création de l'axe X (itérations)
-    iters = np.arange(len(var_vals))
-    
-    return iters, var_vals
-
-def get_param_val_from_meta(meta_path, target_name):
     try:
-        with open(meta_path, 'r') as f: meta = json.load(f)
+        with open(meta_path, 'r') as f:
+            meta = json.load(f)
+            
+        # 1. RÉCUPÉRATION DU TEMPS
+        # C'est la clé exacte que vous m'avez donnée
+        time_val = meta.get("execution_time_seconds")
+        
+        # 2. RÉCUPÉRATION DU PARAMÈTRE
+        # On aplatit le json pour trouver "diag_shift" même s'il est dans "optimizer"
         flat_meta = flatten_json(meta)
+        
+        param_val = None
+        
+        # On cherche une clé qui FINIT par le nom du paramètre
+        # Ex: si target="diag_shift", on accepte "optimizer_diag_shift" ou "diag_shift"
         for key, val in flat_meta.items():
-            # Cherche la clé exacte ou une fin de clé (ex: "model_kernel_size")
-            if key == target_name or key.endswith(f"_{target_name}"):
-                return val
-    except: pass
-    return "?"
+            if key == param_name_target or key.endswith(f"_{param_name_target}"):
+                param_val = val
+                break
+        
+        # Si on ne trouve pas dans le json, on regarde le nom du dossier (Secours)
+        if param_val is None:
+            # Ex: run_diag_shift=0.001
+            import re
+            match = re.search(r"([0-9]+\.?[0-9]*e?-?[0-9]*)", folder_path.name)
+            if match:
+                try: param_val = float(match.group(1))
+                except: param_val = folder_path.name
+            else:
+                param_val = folder_path.name
+
+        return param_val, time_val
+
+    except Exception as e:
+        print(f"Erreur lecture {meta_path} : {e}")
+        return None, None
 
 # ==============================================================================
 # 2. FONCTION PRINCIPALE
@@ -81,130 +79,75 @@ def main(folder_path):
     root = Path(folder_path)
     if not root.exists(): return print(f"Erreur : Dossier introuvable {root}")
 
-    param_name = root.name # Le nom du paramètre est le nom du dossier parent
-    print(f"--- Paramètre ciblé : {param_name} ---")
+    # Le nom du dossier parent définit quel paramètre on étudie (ex: "diag_shift")
+    param_name = root.name 
+    print(f"--- Paramètre variable : {param_name} ---")
 
-    # Gestion structure dossier (Parfois c'est direct, parfois dans "Runs")
     search_dir = root / "Runs" if (root / "Runs").exists() else root
-    curves = []
+    
+    data_points = []
 
-    # --- CHARGEMENT ---
-    print("Lecture des fichiers...")
+    print("Lecture des fichiers meta.json...")
+    
     for sub in sorted(search_dir.iterdir()):
         if not sub.is_dir(): continue
         
-        log_f = sub / "log.json"
-        meta_f = sub / "meta.json"
+        # Extraction des infos
+        val, runtime = get_run_data(sub, param_name)
+        
+        if val is not None and runtime is not None:
+            data_points.append({
+                "val": val, 
+                "time": runtime,
+                "label": str(val)
+            })
+            print(f"  [OK] {sub.name} -> {param_name}={val} | Time={runtime:.2f}s")
+        else:
+            # Si un run a échoué ou n'a pas fini (pas de meta.json complet)
+            pass
 
-        if log_f.exists():
-            iters, variance = get_variance_curve(log_f)
-            
-            if variance is not None:
-                # Récupération de la valeur du paramètre
-                val = get_param_val_from_meta(meta_f, param_name) if meta_f.exists() else "?"
-                if val == "?":
-                    # Fallback : essayer de trouver la valeur dans le nom du dossier (ex: L=5)
-                    try:
-                        val = float(sub.name.split('=')[-1])
-                    except:
-                        val = sub.name # Garde le nom du dossier si pas de nombre
+    if not data_points: return print("Erreur : Aucune donnée valide trouvée.")
 
-                # Stockage
-                curves.append({
-                    "x": iters, 
-                    "y": variance, 
-                    "val": val, 
-                    "label": f"{param_name}={val}"
-                })
-                print(f"  [OK] {sub.name} -> {param_name}={val}")
+    # --- TRI (Numérique si possible) ---
+    try:
+        data_points.sort(key=lambda d: float(d["val"]))
+    except:
+        data_points.sort(key=lambda d: str(d["val"]))
 
-    if not curves: return print("Erreur : Aucune courbe de variance valide trouvée.")
-
-    # --- TRI ROBUSTE ---
-    # Pour que la légende soit ordonnée numériquement si possible
-    def robust_sort_key(d):
-        try: return (0, float(d["val"]))
-        except: return (1, str(d["val"]))
-    curves.sort(key=robust_sort_key)
+    x_labels = [d["label"] for d in data_points]
+    y_values = [d["time"] for d in data_points]
 
     # ==========================================================================
-    # 3. PRÉPARATION DES COULEURS (MAGMA)
+    # 3. TRACÉ (HISTOGRAMME)
     # ==========================================================================
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Couleurs basées sur la durée (Magma : sombre=court, clair=long)
     cmap = colormaps.get_cmap("magma")
-    N = len(curves)
-    
-    # On évite le noir pur (0.0) et le blanc pur (1.0)
-    if N > 1:
-        color_indices = np.linspace(0.15, 0.85, N)
-    else:
-        color_indices = [0.5]
+    norm = plt.Normalize(min(y_values), max(y_values))
+    colors = cmap(norm(y_values))
 
-    linestyles = ['-', '--', '-.', ':'] 
+    bars = ax.bar(x_labels, y_values, color=colors, edgecolor='black', alpha=0.9, width=0.6)
 
-    for i, c in enumerate(curves):
-        c["color"] = cmap(color_indices[i])
-        c["style"] = linestyles[i % 4]
+    ax.set_xlabel(f"Valeur du paramètre : {param_name}", fontsize=12)
+    ax.set_ylabel("Temps d'exécution (s)", fontsize=12)
+    ax.set_title(f"Temps d'exécution vs {param_name}", fontweight='bold', fontsize=14)
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
 
-    # ==========================================================================
-    # 4. TRACÉ PRINCIPAL
-    # ==========================================================================
-    fig, ax = plt.subplots(figsize=(12, 7))
+    # Affichage de la valeur exacte au-dessus de la barre
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.1f}s',
+                ha='center', va='bottom', fontsize=9, fontweight='bold')
 
-    for c in curves:
-        ax.plot(c["x"], c["y"], 
-                color=c["color"], 
-                linestyle=c["style"], 
-                label=c["label"], 
-                linewidth=1.5, 
-                alpha=0.9)
-
-    # LÉGENDE & ESTHÉTIQUE
-    ax.legend(title=param_name, fontsize='medium', loc='best', frameon=True)
-    
-    ax.set_xlabel("Nombre d'itérations", fontsize=12)
-    ax.set_ylabel("Variance de l'Énergie (Log scale)", fontsize=12)
-    ax.set_title(f"Convergence du V-score (Variance) vs {param_name}", fontweight='bold', fontsize=14)
-    
-    # IMPORTANT : Échelle Logarithmique pour le V-score/Variance
-    ax.set_yscale('log')
-    ax.grid(True, which="both", linestyle='--', alpha=0.4)
-
-    # ==========================================================================
-    # 5. ZOOM INSET (Convergence finale)
-    # ==========================================================================
-    # Position de l'encart : [x, y, width, height] (coordonnées relatives 0-1)
-    axins = ax.inset_axes([0.5, 0.4, 0.45, 0.45]) 
-
-    for c in curves:
-        axins.plot(c["x"], c["y"], 
-                   color=c["color"], 
-                   linestyle=c["style"], 
-                   linewidth=2)
-
-    # Paramètres du zoom : les 150 dernières itérations
-    max_len = max([len(c["y"]) for c in curves])
-    start_zoom = max(0, max_len - 150)
-    
-    axins.set_xlim(start_zoom, max_len)
-    
-    # Ajustement Y du zoom (Log scale aussi)
-    axins.set_yscale('log')
-    axins.grid(True, which="both", linestyle=':', alpha=0.5)
-    axins.set_title("Zoom (Fin de convergence)", fontsize=9)
-    
-    # Masquer les labels des ticks de l'encart pour alléger
-    axins.tick_params(axis='both', which='both', labelsize=8)
-
-    # Lignes reliant le zoom
-    mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5", alpha=0.5)
-
-    # SAUVEGARDE
-    out_file = root / f"convergence_variance_{param_name}.png"
-    plt.savefig(out_file, dpi=300, bbox_inches='tight')
+    out_file = root / f"histogramme_temps_{param_name}.png"
+    plt.tight_layout()
+    plt.savefig(out_file, dpi=300)
     print(f"\nSUCCÈS : Graphique sauvegardé -> {out_file}")
 
-# ==============================================================================
 if __name__ == "__main__":
-    path_logs = "/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/diag_shift"
+    # Chemin vers votre dossier contenant les "Runs"
+    path_logs = "/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=5/channel"
     
     main(path_logs)

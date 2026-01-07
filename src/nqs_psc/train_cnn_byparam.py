@@ -65,7 +65,7 @@ for i in [1]:
         lattice=lattice,
         kernel_size=kernel_size,
         channels=channel,
-        param_dtype=complex
+        param_dtype=np.float64
     )
 
     sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
