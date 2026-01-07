@@ -10,17 +10,17 @@ import nqxpack
 import time
 import os
 import pandas as pd
-import ansatz
+from nqs_psc.ansatz import CNN
 
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_2D/L=5/channel/Runs"
+logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_2D/L=6/h/Runs"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_2D/L=5/channel/Résultats.csv"
+output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_2D/L=6/h/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -29,7 +29,7 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
 n_dim= 2
 L = 10
-H = 2.6
+H_list = [2.3, 2.6, 3.5, 4.5]
 a1 = np.array([1.0, 0.0])
 a2 = np.array([0.0, 1.0])
 J = -1
@@ -45,23 +45,25 @@ diag_shift= 1e-3
 n_chains = 300
 n_samples =1000
 n_iter =400
-kernel_sizes_list = [(5,5), (3,7),(10,10)]
-channel_list = [(5,5), (5,10), (10,5), (10,10), (15,15)]
 
 # Définition de l'hamiltonien
 
 g = nk.graph.Hypercube(length=L, n_dim=n_dim, pbc=True)
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
+#Définition de la magnétisation
+Mz = sum([nk.operator.spin.sigmaz(hi, i) for i in range(g.n_nodes)]) / g.n_nodes
+# Magnétisation au carré (|Mz|^2)
+Mz_sq = Mz * Mz
 
 # Boucle sur les valeurs du paramètre
 
-for i in [1]:    
+for H in H_list:    
     ham = nk.operator.Ising(hi, g, J=J, h=H)
 
     # Définition du Modèle CNN
 
-    model = ansatz.CNN(
+    model = CNN(
         lattice=lattice,
         kernel_size=kernel_size,
         channels=channel,
@@ -120,6 +122,15 @@ for i in [1]:
     # Sauvegarder les logs finaux
     save_run(log, meta, run_dir=run_dir, base_dir=logs_path)
 
+    # Calcul de la Magnétisation sur l'état final
+    mz_stats = vstate.expect(Mz)
+    magnetization = mz_stats.mean.real
+    magnetization_error = mz_stats.error_of_mean
+
+    # Calcul de la magnétisation carrée <Mz^2>
+    mz_sq_stats = vstate.expect(Mz_sq)
+    magnetization_sq = mz_sq_stats.mean.real
+    magnetization_sq_error = mz_sq_stats.error_of_mean
     
     # Récupération de l'Énergie et Variance (pour le V-score)
     energy_stats = vstate.expect(ham) 
@@ -133,6 +144,10 @@ for i in [1]:
     # 1. On crée un dictionnaire pour cette itération seulement
     current_data = {
         "H": H,
+        "Magnetization": magnetization,
+        "Magnetization_Error": magnetization_error,
+        "Magnetization_Sq": magnetization_sq,
+        "Magnetization_Sq_Error": magnetization_sq_error,
         "V_Score": v_score,
         "Energy": energy_mean,
         "Energy_Variance": energy_variance
