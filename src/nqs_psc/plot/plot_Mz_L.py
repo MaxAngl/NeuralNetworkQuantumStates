@@ -8,7 +8,7 @@ import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 
 # Configuration
-data_dir = Path("logs/rami/CNN_2D")
+data_dir = Path("logs/Data_courbes_Mz_2D")
 
 # Extraire toutes les valeurs de L disponibles
 L_values = []
@@ -61,7 +61,7 @@ for L in L_values:
 # Configuration du graphique
 ax.set_xlabel('Champ magnétique H', fontsize=14, fontweight='bold')
 ax.set_ylabel('Magnétisation ${M_{z}}^{2}$', fontsize=14, fontweight='bold')
-ax.set_title('Magnétisation et transition de phase quantique en fonction du champ magnétique\npour différentes tailles de système 1D', 
+ax.set_title('Magnétisation et transition de phase quantique en fonction du champ magnétique\npour différentes tailles de système 2D', 
              fontsize=16, fontweight='bold', pad=20)
 ax.grid(True, alpha=0.3, linestyle='--')
 ax.legend(loc='best', framealpha=0.9, fontsize=10)

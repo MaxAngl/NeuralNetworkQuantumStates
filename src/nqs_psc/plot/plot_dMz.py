@@ -11,7 +11,7 @@ import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 
 # Configuration
-data_dir = Path("logs/Data_courbes_Mz_1D")
+data_dir = Path("logs/Data_courbes_Mz_2D")
 
 # Extraire toutes les valeurs de L disponibles
 L_values = []
@@ -42,6 +42,18 @@ for L in L_values:
         H = df['H'].values
         Mz_mean = df['Magnetization_Sq'].values
         Mz_error = df['Magnetization_Sq_Error'].values
+        
+        # Filtrer les points trop proches pour éviter les oscillations
+        min_dH = 0.05 # Distance minimale entre les points
+        mask = [0]  # Indices des points à garder, commencer avec le premier point
+        for i in range(1, len(H)):
+            if H[i] - H[mask[-1]] >= min_dH:
+                mask.append(i)
+        
+        # Appliquer le filtre
+        H = H[mask]
+        Mz_mean = Mz_mean[mask]
+        Mz_error = Mz_error[mask]
         
         # Calculer la dérivée dM_z/dH par différences finies centrées
         dMz_dH = np.zeros(len(H))

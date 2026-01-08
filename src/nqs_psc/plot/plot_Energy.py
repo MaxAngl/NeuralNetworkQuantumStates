@@ -11,7 +11,7 @@ import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 
 # Configuration
-data_dir = Path("logs/rami/CNN_2D")
+data_dir = Path("logs/Data_courbes_Mz_2D")
 
 # Extraire toutes les valeurs de L disponibles
 L_values = []
@@ -40,8 +40,8 @@ for L in L_values:
         
         # Calculer E/L (énergie moyenne par spin)
         H = df['H'].values
-        E_mean = df['Energy'].values / L
-        E_error = np.sqrt(df['Energy_Variance'].values) / L
+        E_mean = df['Energy'].values/L**2
+        E_error = np.sqrt(df['Energy_Variance'].values) / L**2
         
         # Obtenir la couleur du gradient
         color = cmap(norm(L))
