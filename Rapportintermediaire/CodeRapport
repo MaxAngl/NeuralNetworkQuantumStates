@@ -511,6 +511,7 @@ Le paramètre $\theta$ que nous optimisons au cours de la descente de gradient e
 \subsubsection*{Réseau de neurones convolutifs (CNN)}
 Après la prise en main de la machine de Boltzmann, nous avons décidé d'utiliser une ansatz plus complète. En effet, bien que la machine de boltzmann puisse représenter des interactions plus complexes que Jastrow, comme elle n'a que deux couches de neurones, elle ne peut pas représenter la complexité des interactions entre spins.
 En augmentant le nombre de neurones et le nombre de couches, nous pouvons espérer que plus on avance dans les couches du réseau plus l'information sera subtile et donc puisse saisir une grande partie de la physique du problème. 
+Alors que la machine de Boltzmann envisage toutes les interactions entre spins, la CNN tire parti du fait que les interactions sont essentiellement locales mais elle va étudier avec les différents kernels des schémas d'interaction variés et complexes au fil des couches.
 C'est pour cela que nous avons décidé d'utiliser ces réseaux de neurones convolutifs.
 
  Leur principe repose sur l’utilisation de filtres locaux appelés « kernels », qui parcourent systématiquement les données d’entrée (par exemple une configuration d’état) pour détecter des motifs caractéristiques. Chaque kernel est une petite matrice de poids (dont on peut choisir la taille), qui agit comme un détecteur de motifs locaux : il met en évidence certaines structures physiques, telles que des corrélations ou motifs d’interaction entre sites voisins.
