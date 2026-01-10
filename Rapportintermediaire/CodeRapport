@@ -88,7 +88,7 @@ recherches : c’est ce que l’on appelle la seconde révolution quantique. Cel
 nouvelles technologies exploitant les principes de superposition et d’intrication. Ce domaine repose sur
 quatre piliers principaux : la communication (cryptologie quantique), les ordinateurs quantiques, les
 capteurs et les simulateurs quantiques. Les grandes puissances scientifiques déploient ainsi d’ambitieux
-projets contribuant à cette seconde révolution (par exemple le Plan Quantique en France).
+projets contribuant à cette seconde révolution (par exemple le Plan Quantique en France).\newline
 Dans tous ces travaux, il est crucial de diagonaliser l’Hamiltonien du système afin de déterminer ses
 énergies et états propres, et en particulier l’état fondamental. Il faut donc quantifier, représenter et
 calculer les grandeurs physiques d’intérêt de manière fiable et rapide. Or, la complexité des algorithmes
@@ -421,7 +421,7 @@ METTRE IMAGE
 
 Le vecteur d'entrée de données(qui représente les spins de notre système physique) $X$ subit un produit matriciel par la matrice $W$ avec un biais visible. Après être passé par une fonction d'activation, un biais visible (que l'image ne représente pas) est alors ajouté à l'input.
 
-Nous avons tout d'abord coder une première version sans biais visible. 
+Nous avons tout d'abord codé une première version sans biais visible. 
 \begin{lstlisting}
     class BM(nn.Module):
     alpha: float
@@ -589,7 +589,7 @@ Diapositives de la présentation sur Whatsapp pour les différents paramèttres
 Explique les 5 lignes de code qui font la descente de gradient (naturel)
 
 
-
+\end{document}
 
 
 
