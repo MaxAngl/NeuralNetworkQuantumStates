@@ -14,13 +14,13 @@ import ansatz
 
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_2D/L=5/channel/Runs"
+logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_exp_2D/L=5/channel/Runs"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_2D/L=5/channel/Résultats.csv"
+output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_exp_2D/L=5/channel/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -61,7 +61,7 @@ for i in [1]:
 
     # Définition du Modèle CNN
 
-    model = ansatz.CNN(
+    model = ansatz.CNN_exp(
         lattice=lattice,
         kernel_size=kernel_size,
         channels=channel,

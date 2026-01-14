@@ -96,7 +96,7 @@ class CNN(nn.Module):
                 kernel_size=k,
                 padding="SAME",
                 param_dtype=self.param_dtype,
-                kernel_init=nn.initializers.xavier_normal(),
+                kernel_init=nn.initializers.xavier_normal() * jnp.exp(-jnp.sqrt((jnp.arange(self.kernel_size[0])[:, None] - center_kernel)**2 + (jnp.arange(self.kernel_size[1]) - center_kernel)**2)), 
                 use_bias=True,
             )(x)
 
@@ -104,6 +104,56 @@ class CNN(nn.Module):
                 x = logcosh_expanded_dv(x)
             else:
                 x = logcosh_expanded(x)
+
+        x = jnp.sum(x, axis=range(1, len(lattice_shape) + 1)) / np.sqrt(ns)
+        x = nn.Dense(
+            features=x.shape[-1], param_dtype=self.param_dtype, use_bias=False
+        )(x)
+        x = jnp.sum(x, axis=-1) / np.sqrt(x.shape[-1])
+        return x
+
+class CNN_exp(nn.Module):
+    lattice: Lattice
+    kernel_size: Sequence
+    channels: tuple
+    param_dtype: DType = complex
+
+    def __post_init__(self):
+        self.kernel_size = tuple(self.kernel_size)
+        self.channels = tuple(self.channels)
+        super().__post_init__()
+
+    def setup(self):
+        if isinstance(self.kernel_size[0], int):
+            self.kernels = (self.kernel_size,) * len(self.channels)
+        else:
+            assert len(self.kernel_size) == len(self.channels)
+            self.kernels = self.kernel_size
+
+    @nn.compact
+    def __call__(self, x):
+        lattice_shape = tuple(self.lattice.extent)
+
+        x = x / np.sqrt(2)
+        _, ns = x.shape[:-1], x.shape[-1]
+        x = x.reshape(-1, *lattice_shape, 1)
+        for i, (c, k) in enumerate(zip(self.channels, self.kernels)):
+            center_kernel = (self.kernel_size-1) // 2
+            x = nn.Conv(
+                features=c,
+                kernel_size=k,
+                padding="SAME",
+                param_dtype=self.param_dtype,
+                kernel_init=nn.initializers.xavier_normal()*jnp.exp(-jnp.sqrt((center_kernel**2-k**2))),
+                use_bias=True,
+            )(x)
+
+            if i:
+                x = logcosh_expanded_dv(x)
+            else:
+                x = logcosh_expanded(x)
+                
+        
 
         x = jnp.sum(x, axis=range(1, len(lattice_shape) + 1)) / np.sqrt(ns)
         x = nn.Dense(
