@@ -98,3 +98,19 @@ meta["execution_time_seconds"] = execution_time
 # Sauvegarder les logs finaux
 save_run(log, meta, run_dir=run_dir, base_dir=logs_path)
 
+meta = {
+        "L": L,
+        "graph": "Hypercube",
+        "n_dim": n_dim,
+        "pbc": True,
+        "hamiltonian": {"type": "Ising", "J": J, "h": H},
+        "model": "CNN",
+        "kernel_size": "kernel_size",
+        "channels": "channel",
+        "activation": "ReLU",
+        "depth":len(channel),
+        "sampler": {"type": "MetropolisLocal", "n_chains": n_chains, "n_samples": n_samples},
+        "optimizer": {"type": "SGD", "lr": lr, "diag_shift": diag_shift},
+        "n_iter": n_iter,
+        "exact": "?",
+    }

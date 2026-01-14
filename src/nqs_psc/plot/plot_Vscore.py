@@ -8,7 +8,7 @@ import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 
 # Configuration
-data_dir = Path("logs/rami/CNN_2D")
+data_dir = Path("logs/Data_courbes_Mz_2D")
 
 # Extraire toutes les valeurs de L disponibles
 L_values = []

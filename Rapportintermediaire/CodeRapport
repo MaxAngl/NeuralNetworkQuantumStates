@@ -1,6 +1,4 @@
-% il existe plusieures classes de documents
-% pour des documents plus longs, vous pouvez utiliser
-% book ou report
+
 \documentclass[a4paper]{article} 
 
 
@@ -155,6 +153,7 @@ Cette méthode s’appuie sur trois piliers~:
 \subsection*{Compression de l'état quantique}
 Tout d'abord, afin de régler le problème de la croissance exponentielle de l'espace des états, nous allons compresser l'information. 
 Soit W l'espace complexe des paramètres, on définit alors la fonction :
+
 \[
 \Psi :
 \begin{array}{rcl}
@@ -162,6 +161,9 @@ W & \rightarrow & \mathcal{H}, \\
 \theta & \mapsto & |\psi_\theta\rangle
 \end{array}
 \]
+
+
+
 
 
 On nomme ces fonctions les \emph{ansatz variationnels} (ou ansatz).
@@ -309,6 +311,14 @@ V_{\theta} \bigl( H_{\mathrm{loc}}(x_i) \bigr) = V(\hat{H})
 \]
  Cette formule est intéressante car elle nous dit qu'à l'état fondamentale comme $V(\hat{H})$ est nulle, $V_{\theta} \bigl( H_{\mathrm{loc}}(x_i) \bigr)$ le sera donc notre estimation sera très précise. 
 
+ Finalement, afin de quantifier l'incertitude sur les valeurs d'énergie données par notre descente de gradient, nous tracerons lors de chaque étude, en plus de l'énergie en fonction du nombre d'itérations, le "signal to noise ratio" (SNR) en fonction du nombre d'itérations. Il est défini par :
+
+\[
+\mathrm{SNR}_p(x)[H(x)] = \sqrt{\frac{\mathbb{E}_{p(x)}[H]^2}{\operatorname{Var}_{p(x)}[H]}}
+\]
+
+Il représente le rapport de la quantité d'intérêt (l'espérance dans l'état de distribution $p(x)$ de l'énergie le tout au carré) et du bruit c'est-à-dire la variance de l'énergie.
+
 \begin{lstlisting}[language=Python, caption=Code de la descente de gradient-Code "jouet"]
 
 def optimize_SGD(model, sampler, ham, chain_length, n_iters=1000, learning_rate=1e-2):
@@ -421,7 +431,7 @@ METTRE IMAGE
 
 Le vecteur d'entrée de données(qui représente les spins de notre système physique) $X$ subit un produit matriciel par la matrice $W$ avec un biais visible. Après être passé par une fonction d'activation, un biais visible (que l'image ne représente pas) est alors ajouté à l'input.
 
-Nous avons tout d'abord coder une première version sans biais visible. 
+Nous avons tout d'abord coder une première version sans biais visible afin de nous familiariser avec ce nouvel ansatz et ses spécificités.
 \begin{lstlisting}
     class BM(nn.Module):
     alpha: float
@@ -511,6 +521,7 @@ Le paramètre $\theta$ que nous optimisons au cours de la descente de gradient e
 \subsubsection*{Réseau de neurones convolutifs (CNN)}
 Après la prise en main de la machine de Boltzmann, nous avons décidé d'utiliser une ansatz plus complète. En effet, bien que la machine de boltzmann puisse représenter des interactions plus complexes que Jastrow, comme elle n'a que deux couches de neurones, elle ne peut pas représenter la complexité des interactions entre spins.
 En augmentant le nombre de neurones et le nombre de couches, nous pouvons espérer que plus on avance dans les couches du réseau plus l'information sera subtile et donc puisse saisir une grande partie de la physique du problème. 
+Alors que la machine de Boltzmann envisage toutes les interactions entre spins, la CNN tire parti du fait que les interactions sont essentiellement locales mais elle va étudier avec les différents kernels des schémas d'interaction variés et complexes au fil des couches.
 C'est pour cela que nous avons décidé d'utiliser ces réseaux de neurones convolutifs.
 
  Leur principe repose sur l’utilisation de filtres locaux appelés « kernels », qui parcourent systématiquement les données d’entrée (par exemple une configuration d’état) pour détecter des motifs caractéristiques. Chaque kernel est une petite matrice de poids (dont on peut choisir la taille), qui agit comme un détecteur de motifs locaux : il met en évidence certaines structures physiques, telles que des corrélations ou motifs d’interaction entre sites voisins.
@@ -582,13 +593,137 @@ Nous avons alors codé la CNN :
 \subsection*{Momentum on en parle ?}
 
 \subsection*{Descente de gradient naturel}
-Diapositives de la présentation sur Whatsapp pour les différents paramèttres 
+Une descente de gradient classique effectue une minimisation de l'énergie à travers l’espace des paramètres de l’ansatz, en supposant implicitement que cet espace est muni d’une métrique simple et uniforme. Or, ces paramètres ne possèdent pas de signification physique directe : ils constituent uniquement une manière arbitraire de paramétrer un même état quantique. Par conséquent, deux paramétrisations différentes, bien que décrivant la même famille d’états physiques, peuvent conduire à des gradients et donc à des trajectoires d’optimisation distinctes. Dans un paysage d’énergie généralement non convexe et bruité par l’échantillonnage Monte Carlo, ces trajectoires différentes peuvent mener à des vitesses de convergence et des comportements numériques différents, ce qui est problématique du point de vue physique.
 
-\subsection*{Prise en main de la syntaxe Netket }
-Explique les 5 lignes de code qui font la descente de gradient (naturel)
+Pour résoudre ces problèmes, une analyse de l'état de l'art nous a incités à utiliser la descente de gradient naturelle. Cette descente correspond à un changement de métrique comme représenté sur l'image ci-dessous : nous passons de l'espace de paramères à celui des états quantiques. Nous optimisons l'état quantique en lui-même et non plus les paramètres. En effet, dans la descente de gradient précédente, nous modifions les paramètres en fonction du gradient de l'énergie mais ici au cours de la descente l'objectif est d'obtenir la plus grande baisse d'énergie en modifiant légèrement l'état quantique. Nous modifions alors les paramètres pour que l'état quantique change de façon appropriée. Ainsi, les mises à jour des paramètres correspondent à des variations contrôlées et physiquement pertinentes de l’état quantique, indépendamment de la paramétrisation choisie.
+
+IMAGE !!
+
+Plus théoriquement, en utilisant la dérivée fonctionnelle de l'énergie moyenne on peut déterminer la variation de l'état quantique qui diminue le plus l'énergie. Puis, nous calculons le changement des paramètres qui permet la modification souhaitée de l'état quantique.
+
+Nous obtenons alors que le changement de paramètres est :
+\[
+\theta^{(n+1)} = \theta^{(n)} + \eta\, \dot{\theta}
+\]
+ avec $\eta$ notre pas d'apprentissage et $\dot{\theta}$ est donné par la formule 
+
+ \[
+\dot{\theta} = {S}^{-1} \nabla_\theta E
+\]
+
+où \[
+S_{ij} = \left\langle \frac{\partial \ln \psi_\theta}{\partial \theta_i} \,\middle|\, \frac{\partial \ln \psi_\theta}{\partial \theta_j} \right\rangle
+\]
+
+Nous pouvons réexprimer $\mathbf{S}$ à l'aide de la matrice jacobienne dont nous avions déjà implementé le calcul dans l'algorithme de descente de gradient. 
+En effet, 
+
+\[
+S = J^\dagger J
+\]
+où \[
+J_{ij} = \partial_{\theta_j} \log \psi_{\theta}(x_i)
+\]
+Nous pouvons donc calculer à chaque itération le changement des paramètres adéquats pour notre descente de gradient naturelle en calculant la matrice jacobienne et le gradient de l'énergie.
+
+Cependant, un problème peut apparaître avec l'équation qui définit $\dot{\theta}$. 
+En effet, si les valeurs propres de $S$ sont trop petites, celles de son inverse seront très grandes ce qui peut conduire à des valeurs trop grandes pour $\dot{\theta}$ et donc non convenables. 
+
+Pour remédier à ce problème, nous introduisons un paramètre : le diagonale shift $\lambda$ qui augmente les valeurs propres de $S$. 
+
+Pour avoir $\dot{\theta}$, nous résolvons : 
 
 
+\[
+\dot{\theta} = \left( S + \lambda I \right)^{-1} \nabla_\theta E
+\]
 
+Nous savons calculer $S$ et $\nabla_\theta E$, il nous reste plus d'à inverser la matrice ce que nous pouvons par exemple utiliser la décomposition de cholesky qui décompose $( S + \lambda I)^{-1}$  en un produit de matrices triangulaires supérieurs ce qui nous permet d'obtenir l'inverse après résolution de 2 systèmes triangulaires, facilement implémentable numériquement.
+
+Le code est en annexe.
+
+
+\subsection*{Conclusion}
+Au cours de cette première phase d’appropriation des concepts fondamentaux du Variational Monte Carlo, nous avons exploré en profondeur différents ansatz et affiné notre compréhension des compromis intrinsèques à chaque approche. Les simulations numériques réalisées ont joué un rôle essentiel, non seulement pour valider nos choix méthodologiques, mais aussi pour nous familiariser avec chaque méthode comme la descente de gradient naturelle et pour ancrer nos travaux dans une compréhension physique solide. D'autre part, cette phase exploratoire a aussi constitué un véritable laboratoire d’optimisation, où nous avons testé rigoureusement chaque méthode et ansatz, identifié leurs points faibles et amélioré nos algorithmes.
+
+\vspace{2\baselineskip}
+Ensuite, nous nous sommes attachés à effectuer une étude des hyperparamètres en jeu afin de les ajuster au mieux et ainsi optimiser davantage nos algorithmes.
+
+\appendix
+\section*{Annexes}
+\addcontentsline{toc}{section}{Annexes}
+
+\begin{lstlisting}
+    def compute_S_and_F_and_E(model, parameters, hamiltonian_jax, x):
+
+    x = x.reshape(-1, x.shape[-1])
+    E_loc = compute_local_energies(model, parameters, hamiltonian_jax, x)
+    
+    E_average = jnp.mean(E_loc)
+    E_variance = jnp.var(E_loc)
+    E_error = jnp.sqrt(E_variance / E_loc.size)
+    E = nk.stats.statistics(E_loc)
+    E_average = E.mean
+    E = nk.stats.Stats(mean=E_average, error_of_mean=E_error, variance=E_variance)
+    _, unravel_params_fn = ravel_pytree(parameters)
+  
+
+
+    jacobian = nk.jax.jacobian(
+        model.apply,
+        parameters["params"],
+        x,
+        mode="holomorphic",
+        dense=True,
+        center=False,
+        chunk_size=None,
+    )
+    J = jacobian - jnp.mean(jacobian, axis=0, keepdims=True)
+    S = (jnp.conj(J).T @ J) / J.shape[0]
+    F = (1 / E_loc.size) * jnp.conj(jacobian.T) @ (E_loc - E_average)
+
+    return S, F, E
+
+
+def natural_gradient(model, parameters, hamiltonian_jax, x, diag, method="chol"):
+
+    S, F, E = compute_S_and_F_and_E(model, parameters, hamiltonian_jax, x)
+
+    # Ajout du shift sans construire I ni appeler jnp.diag / jnp.eye
+    S_inv = S + jnp.eye(S.shape[0]) * diag
+
+    # On résout
+    _, unravel_params_fn = ravel_pytree(parameters)
+
+    if method == "chol":
+        L = jnp.linalg.cholesky(S_inv)
+        y = jax.scipy.linalg.solve_triangular(L, -F, lower=True)
+        delta = jax.scipy.linalg.solve_triangular(L.T, y, lower=False)
+        delta = unravel_params_fn(delta)
+    if method == "pinv":
+        #  Décomposition spectrale
+        w, Q = jnp.linalg.eigh(S)
+        # Filtrage des petites valeurs propres (valeurs propres nulles)
+        w_max = jnp.max(jnp.abs(w))
+        mask = jnp.abs(w) > (1e-2 * w_max)
+        w_inv = jnp.where(mask, 1.0 / w, 0.0)
+        # 4. Pseudo-inverse et solution
+        S_pinv = (Q * w_inv) @ Q.T
+        delta = S_pinv @ (-F)
+        delta = unravel_params_fn(delta)
+
+    if method == "diago":
+        w, Q = jnp.linalg.eigh(S_inv)
+        Y = Q @ jnp.diag(1.0 / w) @ Q.T
+        delta = Y @ (-F)
+
+        delta = unravel_params_fn(delta)
+
+    return delta, E
+
+\end{lstlisting}
+Remarques sur le code :
+\end{document}
 
 
 

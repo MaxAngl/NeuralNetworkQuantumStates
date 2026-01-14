@@ -10,15 +10,15 @@ import nqxpack
 
 # Taille du système
 
-n_dim= 2
+n_dim= 1
 L = 3
-J = -5
+J = -1
 H = 1
 
 #Paramètres RBM/optimisation
 
 alpha = 3
-lr= 0.01
+lr= 0.004
 diag_shift= 1e-3
 n_chains = 300
 n_samples =1000

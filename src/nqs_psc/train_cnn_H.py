@@ -14,13 +14,14 @@ from nqs_psc.ansatz import CNN
 
 
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_2D/L=6/h/Runs"
+logs_path = r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_2D/L=8/Runs"
 
-# Crée le dossier pour les logs s'il n'existe pas
+# Crée le dossier pour les logs s'il n'existe pas0
+
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/CNN_2D/L=6/h/Résultats.csv"
+output_path = r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/logs/Data_courbes_Mz_2D/L=8/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -28,8 +29,8 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 # Taille du système
 
 n_dim= 2
-L = 10
-H_list = [2.3, 2.6, 3.5, 4.5]
+L = 8
+H_list =[ 2.76, 2.87, 2.98,2.99,3.01,3.03,3.04,3.05,3.07, 3.09, 3.2, 3.2, 3.9, 4.6, 5.3, 6.0]
 a1 = np.array([1.0, 0.0])
 a2 = np.array([0.0, 1.0])
 J = -1
@@ -39,9 +40,9 @@ J = -1
 
 lattice = nk.graph.Lattice(basis_vectors=[a1, a2], extent=(L, L), pbc=True)
 kernel_size = ((2,2),(2,2))
-channel = (5, 5)
+channel = (12,12)
 lr= 0.0125
-diag_shift= 1e-3
+diag_shift= 1e-2
 n_chains = 300
 n_samples =1000
 n_iter =400
@@ -67,8 +68,8 @@ for H in H_list:
         lattice=lattice,
         kernel_size=kernel_size,
         channels=channel,
-        param_dtype=np.float64
-    )
+        param_dtype=np.float32)
+
 
     sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
     vstate = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=451)

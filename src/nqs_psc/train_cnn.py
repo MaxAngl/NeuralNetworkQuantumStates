@@ -10,16 +10,15 @@ import nqxpack
 import time
 import os
 import pandas as pd
-import ansatz
-
+from nqs_psc.ansatz import CNN
 # Path vers le dossier où on conserve les runs
-logs_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=2/Runs"
+logs_path = r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=2/Runs"
 
 # Crée le dossier pour les logs s'il n'existe pas
 os.makedirs(logs_path, exist_ok=True)
 
 # Path vers le fichier .csv où on conserve le dictionnaire final
-output_path = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=2/Résultats.csv"
+output_path = r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/logs/rami/CNN_2D/L=2/Résultats.csv"
 
 # Crée le dossier pour le fichier CSV s'il n'existe pas (nécessaire !)
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -27,7 +26,7 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 # Taille du système
 
 n_dim= 2
-L = 3
+L = 9
 H = 2.6
 a1 = np.array([1.0, 0.0])
 a2 = np.array([0.0, 1.0])
@@ -55,7 +54,7 @@ ham = nk.operator.Ising(hi, g, J=J, h=H)
 
     # Définition du Modèle CNN
 
-model = ansatz.CNN(
+model = CNN(
         lattice=lattice,
         kernel_size=kernel_size,
         channels=channel,
@@ -64,11 +63,6 @@ model = ansatz.CNN(
 
 
 
-from scipy.sparse.linalg import eigsh
-e_gs, psi_gs = eigsh(ham.to_sparse(), k=2, which="SA")
-e_gs = e_gs[0]
-psi_gs = psi_gs.reshape(-1)
-print(e_gs/L**n_dim)
 
 sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
 vstate = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=451)
