@@ -1,12 +1,19 @@
 
 \documentclass[a4paper]{article} 
 
+\usepackage{subcaption}
 
 \usepackage{graphicx}
 
 \usepackage{xcolor}
 
 \usepackage{listings}
+\lstset{
+    inputencoding=utf8,
+    extendedchars=true,
+    literate={é}{{\'e}}1 {è}{{\`e}}1 {à}{{\`a}}1 {ç}{{\c{c}}}1 {œ}{{\oe}}1 {ù}{{\`u}}1 {É}{{\'E}}1 {È}{{\`E}}1 {À}{{\`A}}1 {Ç}{{\c{C}}}1 {Œ}{{\OE}}1 {Ê}{{\^e}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1
+}
+
 \usepackage{xcolor}
 \lstset{
     basicstyle=\ttfamily\small,       % Police monospace, taille petite
@@ -74,8 +81,8 @@
 	
 	\tableofcontents
 	
-	\section{Motivations}
-		\subsection{Motivations générales}
+	\section{Considérations générales}
+		\subsection{Motivations}
 Depuis son développement au XXe
 siècle, la physique quantique a permis une avancée technologique
 spectaculaire lors de la première révolution quantique. Une grande variété de systèmes physiques a ainsi
@@ -98,6 +105,855 @@ environ 5 × 1014 nombres complexes, soit un vecteur d’état complet pour seul
 De plus, cette capacité ne permet que le stockage, et non les calculs associés.
 Ainsi, afin de tirer parti des opportunités offertes par la seconde révolution quantique, il devient nécessaire de développer de nouvelles méthodes permettant de surmonter l’explosion combinatoire de l’espace
 des états.
+	
+	
+	\subsection{Objectifs et applications de cette étude}
+    
+    Les méthodes variationnelles développées dans ce travail, combinant Monte Carlo variationnel et ansatz neuronaux tels que CNN et RBM, fournissent des références précises pour des systèmes de spins fortement corrélés et faiblement désordonnés. Ces résultats ont deux applications principales en physique quantique contemporaine.
+\subsubsection{Les matériaux supraconducteurs}
+
+    Premièrement, ces avancées computationnelles contribuent directement à la compréhension des supraconducteurs à haute température critique (HTc), tels que les cuprates ou les fermions lourds, où la supraconductivité émerge dans un régime de corrélations électroniques très fortes. Dans ces matériaux, les électrons ne peuvent plus être décrits comme des quasi-particules faiblement interactives : leur comportement collectif domine.
+    Le calcul précis de l’énergie fondamentale et de la structure de l’état fondamental est alors essentiel
+    \begin{itemize}
+    \item pour identifier les phases magnétiques ou paramagnétiques concurrentes, 
+    \item comprendre les mécanismes de couplage
+    \item analyser l’influence du désordre — qu’il s’agisse de dopage, d’impuretés ou de défauts cristallins — omniprésent dans les matériaux réels.
+\end{itemize}
+
+
+
+Cependant, ces modèles deviennent rapidement inaccessibles aux méthodes exactes dès que la taille du système ou le spin effectif augmente, en raison de la croissance exponentielle de l’espace de Hilbert. C’est précisément ici que les méthodes variationnelles modernes, combinant Monte Carlo variationnel et ansatz neuronaux (CNN, RBM), prennent toute leur importance. Elles permettent de réaliser des calculs fiables d’énergies fondamentales et de corrélations pour des systèmes de grande taille avec désordre, fournissant ainsi des outils puissants pour mieux cerner les mécanismes microscopiques complexes à l’origine de la supraconductivité à haute température.
+	
+	\subsubsection{Ordinateur quantique}
+    Ensuite, les résultats obtenus par cette étude constituent des références cruciales pour le "benchmarking" (étalonnage, test de performance) des plateformes quantiques en cours de développement. Avec l’essor des ordinateurs quantiques dits NISQ (noisy intermediate-scale quantum, c'est-à-dire des ordinateurs quantiques de taille intermédiaire et sujets au bruit), il est essentiel de valider leur capacité à simuler des systèmes quantiques complexes. Nos simulations classiques précises de modèles de spins larges et désordonnés offrent des bancs d’essai rigoureux permettant d’évaluer la fidélité des processeurs quantiques à reproduire les propriétés fondamentales de ces systèmes. Ce benchmarking est un levier indispensable pour améliorer la cohérence des qubits, la fidélité des portes logiques et les techniques de correction d’erreur, assurant un lien étroit entre théorie et expérimentation en informatique quantique.
+
+
+Enfin, cette étude éclaire le développement algorithmique autour du Variational Quantum Eigensolver (VQE), un algorithme hybride classique–quantique visant à approximer l’état fondamental de systèmes quantiques. Ces algorithmes utilisant les mêmes principes que ceux décrits dans cette étude sont en cours de développement. L’analyse classique des ansatz neuronaux apporte ainsi des connaissances sur l’efficacité des circuits variationnels susceptibles d’être implémentés sur des dispositifs quantiques, contribuant ainsi à concevoir des protocoles VQE plus performants.
+
+\subsection{Méthodes de travail et répartiton des tâches}
+
+Notre travail sur ce PSC est rythmé par des réunions hebdomadaires d'environ trois heures avec notre tuteur, Filippo Vicentini, et d'Antoine Misery, respectivement enseignant-chercheur et doctorant au \textit{Centre de Physique Théorique (CPHT)} de l'X. Elles consistent en des cours sur les méthodes et outils théoriques ou pratiques que nous devons prendre en main, des présentations de nos travaux et résultats intermédiaires, et des discussions au sujet de nos incompréhensions ou des points délicats du sujet. Entre les réunions, nous avons toujours des simulations à réaliser, des articles à lire, des méthodes à implémenter, ou des courbes à tracer.\newline 
+\newline
+Nous nous répartissons toujours les tâches à réaliser d'une semaine sur l'autre au sein du groupe. Durant les deux premiers mois, lors de la phase d'apprentissage théorique, nous restions néanmoins tous généralistes, pour tous acquérir une bonne vision globale de tous les aspects des méthodes que nous utilisons. En effet, il aurait été prématuré de nous spécialiser à ce stade, et aurait laissé de trop grosses zones d'ombre sur notre démarche pour chacun des membres du groupe.\newline
+Par la suite, nous avons néanmoins commencé à nous répartir plus systématiquement le travail, selon nos appétences personnelles. Ainsi, Adel s'est principalement focalisé sur la compréhension en profondeur des outils physiques et variationnels théoriques que nous employons, tandis que Max s'est occupé de l'optimisation des scripts pour les rendre aussi pratiques et aisés d'utilisation que possible, de la gestion des données produites pas nos nombreuses simulations, et de la mise en forme graphique de ces mêmes données. Nathan s'est pour sa part spécialisé dans le cas de la dimension $1$, ainsi que dans le suivi global du projet (échéances administratives, cohérence, respect des consignes et des attentes), Rami a étudié en détail le fonctionnement des réseaux de neurones convolutionnels et les a appliqués au cas de la dimension $2$, et Nikola a d'abord étudié le rôle de certains hyperparamètres généraux, puis s'est concentré sur le $Transformer$, qui est un type de réseau de neurones très complexe, que nous utiliserons par la suite pour étudier le cas du champ magnétique aléatoire.
+
+    \section{Objets et méthodes théoriques }
+Notre PSC explore une approche prometteuse pour pallier ces limitations de stockage et de calcul dans des systèmes quantiques complexes (systèmes de $N$ spins, atomes de Rydberg\dots). Cette approche repose sur l’utilisation de l’apprentissage machine appliqué aux problèmes de physique quantique.
+
+Cette méthode s’appuie sur trois piliers~:
+\begin{itemize}
+    \item la paramétrisation de l’espace de Hilbert de dimension $2^N$ par un espace réduit, via une compression non linéaire. Les états ainsi représentés sont appelés \emph{états quantiques neuronaux} (NQS) ;
+    \item l’approximation de grandeurs physiques grâce à l’utilisation de méthodes statistiques, comme la méthode de Monte Carlo variationnelle (VMC), pour calculer efficacement ces grandeurs. 
+    \item  L'exploration de l’espace paramétré des NQS grâce à l'optimisation et l'apprentissage via des fonctions de perte et leurs gradients.
+\end{itemize}
+\subsection{Compression de l'état quantique}
+Tout d'abord, afin de régler le problème de la croissance exponentielle de l'espace des états, nous allons compresser l'information. 
+Soit W l'espace complexe des paramètres, on définit alors la fonction :
+
+\[
+\Psi :
+\begin{array}{rcl}
+W & \rightarrow & \mathcal{H}, \\
+\theta & \mapsto & |\psi_\theta\rangle
+\end{array}
+\]
+
+
+
+
+
+On nomme ces fonctions les \emph{ansatz variationnels} (ou ansatz).
+
+
+Si 
+\[
+\dim[W] \sim \text{Poly}(N) \ll \dim[\mathcal{H}]
+\]
+
+
+alors la complexité n'est plus que polynomiale et le problème de complexité est réglée. 
+
+D'autre part, nous savons qu'en dimension finie, notre vecteur d'état peut être décomposée de manière unique sur la base des états qui sont dans notre système de spins $2^N$. 
+La fonction ci-dessus est donc bijective. (Les $xi$ représentant les spins soit en haut ou en bas).
+
+\[
+\begin{array}{rcl}
+B_\mathcal{H} & \rightarrow & \mathbb{C} \\
+|x_1, \dots, x_N\rangle & \mapsto & \langle x_1, \dots, x_N|\psi\rangle := \psi_{x_1, \dots, x_N}
+\end{array}
+\]
+
+A partir de $\theta$, pour pouvoir utiliser efficacement les ansatz, on doit pouvoir connaître la décomposition de l'état $|\psi_\theta\rangle$ dans la base.
+
+C'est pourquoi les ansatz sont généralement donnés sous la forme : 
+
+\[
+\Psi_\theta(x_1, \dots, x_N) = \langle x_1, \dots, x_N | \psi_\theta \rangle
+\]
+
+À chaque $\theta$ est associé un nouvel état car c'est alors une nouvelle décomposition dans la base des états de notre espace de Hilbert.
+
+\subsection{Monte-Carlo Variationnel}
+Notre but principal est de calculer l'énergie fondamentale. Nous devons donc trouver un moyen de calculer cette énergie seulement avec les ansatz variationnels dépendants de $|\psi_\theta \rangle$.
+
+
+Or, on peut montrer, en décomposant l'état $|\psi_\theta \rangle$ dans la base des états, qu'on a :
+
+\[
+\langle E \rangle_\theta
+= \frac{\langle \psi_\theta | \hat{H} | \psi_\theta \rangle}{\langle \psi_\theta | \psi_\theta \rangle}
+= \sum_{x} \frac{|\psi_\theta(x)|^2}{\langle \psi_\theta | \psi_\theta \rangle} \frac{\langle x | \hat{H} | \psi_\theta \rangle}{\langle x | \psi_\theta \rangle}
+= \sum_{x} p_\theta(x) H_{\text{loc}}^\theta(x)
+= \mathbb{E}_{p_\theta(x)} \left[ H_{\text{loc}}^\theta(x) \right]
+\]
+
+
+
+Avec \[
+H_{\text{loc}}^\theta(x) = \frac{\langle x | \hat{H} | \psi_\theta \rangle}{\langle x | \psi_\theta \rangle}
+\]
+\[
+p_\theta(x) = \frac{|\psi_\theta(x)|^2}{\langle \psi_\theta | \psi_\theta \rangle}
+\]
+et \[
+\psi_\theta(x) = \langle x | \psi_\theta \rangle
+\]
+
+Ainsi $\psi_\theta(x)$ représente physiquement la probabilité associée à l'état $x$ pour le paramèttre $\theta$.
+
+Malheureusement, nous nous retrouvons face au même problème qu'initialement car nous ne pouvons pas calculer $|\psi_\theta(x)|^2$ et donc $\psi_\theta(x)$ pour tout élément de la base $x$ à cause de la dimension exponentielle de l'espace de Hilbert.
+
+Pour cela, on va utiliser les méthodes d'approximation de Monte-Carlo, 
+\[
+\langle E \rangle_\theta = \mathbb{E}_{p_\theta(x)} \left[ H_{\text{loc}}^\theta(x) \right] \approx \frac{1}{N_s} \sum_{x \in \{x\}} H_{\text{loc}}^\theta(x)
+\]
+
+où $N_s$ ets le nombre d'échantillons et où $x$ suit la loi $p_\theta(x)$.
+
+Si la variance de l'estimateur croît polynomialement avec la taille du système
+\[
+\mathrm{Var}\!\left[ H_{\mathrm{loc}} \right] \sim \mathrm{Poly}(N),
+\]
+alors un nombre polynomial d'échantillons suffira pour toutes les tailles de système,
+et nous disposerons de méthodes de calcul dont le coût évolue de manière polynomiale.
+La combinaison de la compression qui résout le problème de stockage et l'utilisation des méthodes Monte-carlo qui permet de diminuer la complexité de calcul se nomme le Monte-Carlo Variationnel.
+
+
+\subsection{Descente de gradient}
+
+Afin de calculer la moyenne de l'énergie dans un état donné grâce à l'approximation de Monte-Carlo, nous devons échantilloner des variables aléatoires $x$ selon la loi $p_\theta(x)$. 
+
+Nous utilisons alors des chaînes de Markov homogènes et l'algorithme de Metropolis-Hastings. Cet algorithme nous permet de construire une chaîne de Markov qui possède une mesure invariante pré-déterminée donc $p_\theta(x)$ dans notre cas.
+
+En notant $P(x,y)$ la matrice de transition de cette chaîne de Markov et $Q(x,y)$ une matrice symétrique positive au choix, on a :
+
+\[
+P(x,y) = Q(x,y)\,\min\!\left( \frac{\lvert \phi_{\theta}(y) \rvert^2}{\lvert \phi_{\theta}(x) \rvert^2},\, 1 \right)
+\]
+
+En ajoutant pour chaque état $x$ de la chaîne de Markov, le terme $H_{\text{loc}}^\theta(x)$ à la somme définissant $\langle E \rangle_\theta$, on aura, (même si les premiers états ne seront pas distribués selon $p_\theta(x)$) convergence vers $\langle E \rangle_\theta$.
+
+En mécanique quantique, nous savons que \[
+\forall\, \theta,\quad E_{\theta} \ge E_{0}
+\]
+
+Notre but est alors d'atteindre des valeurs d'énergie toujours plus basses car nous savons qu'elles ne seront que des bornes supérieures de l'énergie de l'état fondamental.
+
+Nous devons donc réaliser une \textbf{Descente de gradient}
+pour trouver le minimum global de la courbe $E$ en fonction de $\theta$. Nous aurons alors notre état fondamental, c'est-à-dire  $|\psi_\theta \rangle$ avec le $\theta$ en question.
+
+
+
+A partir de l'itération $n$, nous savons alors quelle doit être la valeur de  $\theta$ pour progresser à l'étape $n+1$.
+
+\[
+\theta^{(n+1)} = \theta^{(n)} - \eta \,\nabla_{\theta^\ast} E(\theta)
+\]
+où $\eta$ est notre pas d'apprentissage.
+
+De nouveau, en décomposant dans notre base d'états, il est possible de montrer que 
+
+\[
+\partial_{\theta_k^{\ast}} E
+=
+\mathbb{E}_{\sigma \sim |\psi(\sigma)|^2}
+\left[
+\left( \partial_{\theta_k} \log \psi(\sigma) \right)^{\ast}
+\left(
+H_{\mathrm{loc}}(\sigma) - \langle E \rangle
+\right)
+\right]
+\]
+
+On réecrit cela comme :
+
+\[
+\partial_{\theta_k^{\ast}} E
+=
+\frac{1}{N_s} J^{\dagger} \mathbf{E}_{\mathrm{loc}}
+\]
+avec \[
+J_{ij} = \partial_{\theta_j} \log \psi_{\theta}(x_i)
+\]
+la matrice jacobienne et le vecteur d'énergies locales recentrées (de dimension $N_s$ le nombre d'échantillons)
+\[
+\mathbf{E}_\mathrm{loc}
+=
+H_{\mathrm{loc}}(\sigma) - \langle E \rangle
+\]
+
+On peut également montrer que \[
+V_{\theta} \bigl( H_{\mathrm{loc}}(x_i) \bigr) = V(\hat{H})
+\]
+ Cette formule est intéressante car elle nous dit qu'à l'état fondamentale comme $V(\hat{H})$ est nulle, $V_{\theta} \bigl( H_{\mathrm{loc}}(x_i) \bigr)$ le sera donc notre estimation sera très précise. 
+
+ Finalement, afin de quantifier l'incertitude sur les valeurs d'énergie données par notre descente de gradient, nous tracerons lors de chaque étude, en plus de l'énergie en fonction du nombre d'itérations, le "signal to noise ratio" (SNR) en fonction du nombre d'itérations. Il est défini par :
+
+\[
+\mathrm{SNR}_p(x)[H(x)] = \sqrt{\frac{\mathbb{E}_{p(x)}[H]^2}{\operatorname{Var}_{p(x)}[H]}}
+\]
+
+Il représente le rapport de la quantité d'intérêt (l'espérance dans l'état de distribution $p(x)$ de l'énergie le tout au carré) et du bruit c'est-à-dire la variance de l'énergie.
+
+\begin{lstlisting}[language=Python, caption=Code de la descente de gradient-Code "jouet"]
+
+def optimize_SGD(model, sampler, ham, chain_length, n_iters=1000, learning_rate=1e-2):
+    # Initialize
+    parameters = model.init(jax.random.key(1), jnp.ones((ham.hilbert.size,)))
+    sampler_state = sampler.init_state(model, parameters, seed=1)
+
+    # Logging
+    logger = nk.logging.RuntimeLog()
+
+    for i in tqdm(range(n_iters)):
+        # sample
+        sampler_state = sampler.reset(model, parameters, state=sampler_state)
+        samples, sampler_state = sampler.sample(
+            model, parameters, state=sampler_state, chain_length=chain_length
+        )
+
+        # compute energy and gradient
+        E, E_grad = estimate_energy_and_gradient(model, parameters, ham, samples)
+
+        # update parameters
+        parameters = jax.tree.map(
+            lambda x, y: x - learning_rate * y, parameters, E_grad
+        )
+
+        # log energy
+        logger(step=i, item={"Energy": E})
+    return logger, model, parameters, sampler
+\end{lstlisting}
+
+Nous avons écrit ce code afin de nous familiariser avec la syntaxe de Netket et pour ne pas utiliser de suite les options déjà toutes prêtes de cette bibliothèque pour la descente de gradient.
+
+Remarques sur le code :
+
+\begin{itemize}
+
+\item ham est l'hamiltonien du système
+\item model est ici le modèle qu'on a choisi pour notre ansatz, les paramètres de ce modèle seront le vecteur $\theta$
+\item Sampler est un échantilloneur déjà présent dans NetKet, qu'on peut choisir. Nous utilisons le sampler de Monte-Carlo Hastings qui à partir d'un modèle et d'un état calcule la matrice de transition de la chaîne de Markov pour que la probabilité invariante soit \[
+p_\theta(x) = \frac{|\psi_\theta(x)|^2}{\langle \psi_\theta | \psi_\theta \rangle}
+\]
+Les lignes 18 et 21 permettent d'estimer l'énergie moyenne de l'état et le gradient en ce point puis de modifier les paramètres comme souhaité. 
+Finalement, le logger lignes 8 et 26 permet d'enregistrer à chaque itération la valeur de l'énergie.
+\end{itemize}
+
+Avant d'appliquer cette descente de gradient, nous devons soigneusement choisir l'ansatz car ils comportent tous des hypothèses sur les états et ne peuvent donc pas décrire le même ensemble d'états. 
+
+On veut donc trouver l'ansatz qui permet de décrire le plus grand ensemble d'états et qui s'approche autant que possible de l'état du fondamental.
+
+\subsection{Ansatz variationnels}
+\subsubsection{Jastrow}
+Tout d'abord, le premier ansatz que nous avons manipulé est celui de Jastrow : 
+\[
+\phi_J =\exp\left( X^\top J X \right)= \exp\left( \sum_{i=1}^n \sum_{j=1}^n X_i\, J_{ij}\, X_j \right)
+\]
+\(X \in \mathbb{R}^n\) est un vecteur colonne qui représente les spins haut ou bas et \(J \in \mathbb{R}^{n \times n}\) est une matrice symétrique. 
+Cette fonction nous donne la valeur du coefficient du vecteur de la base \(X \in \mathbb{R}^n\) pour un J fixé
+
+Le paramètre $\theta$ est donc ici la matrice J.
+
+Physiquement, cet ansatz est symétrique par échange de deux particules. Les termes non diagonaux $Jij$ reflètent les interactions entre spins.
+
+\begin{lstlisting}
+class Jastrow(nn.Module):
+    @nn.compact
+    def __call__(self, x):
+        n_sites = x.shape[-1]
+        J = self.param("J", nn.initializers.normal(), (n_sites, n_sites), float)
+        dtype = jax.numpy.promote_types(J.dtype, x.dtype)
+        J = J.astype(dtype)
+        x = x.astype(dtype)
+        J_symm = J.T + J
+        return jnp.einsum("...i,ij,...j", x, J_symm, x)
+\end{lstlisting}
+Remarques sur le code :
+\begin{itemize}
+    \item la ligne 5 crée le paramètre J et initialise ses coefficients avec une distribution normale. 
+    \item la ligne 9 symmétrise la matrice J.
+    \item la ligne 10 fait une somme selon la convention d'Einstein en indiquant les indices des différents termes.
+\end{itemize}
+
+Enfin, nous pouvons observer que les interactions ne s'effectuent que 2 par 2 car les termes sont en $XiJijXj$ liant le spin sur le site i et le spin sur le site j. Nous pouvons donc encore améliorer notre ansatz pour qu'il représente mieux les interactions entre spins.
+
+\subsubsection{Machine de Boltzmann}
+
+Ensuite, afin de dépasser les limitations de Jastrow qui ne peut pas représenter une interaction à plus de 2 particules et donc inutilisable pour un mouvement collectif des spins, nous avons utilisé une machine de Boltzmann. 
+
+\[
+\log \Psi_{\mathrm{RBM}}(X)
+=
+\sum_k
+\log \cosh\left(
+b_k + \sum_i W_{ik} x_i
+\right)
++ \sum_i a_i x_i
+\]
+
+ avec $b_k$ composante du vecteur b et $W$ une matrice comme pour Jastrow.
+
+La machine de Boltzmann généralise l'ansatz de Jastrow en n'imposant pas que les interactions s'effectuent 2 par 2. 
+En effet, en passant au log et en développant le cosh selon un développement limité nous avons : 
+
+\[
+\log \cosh(y) = \frac{1}{2} y^2 - \frac{1}{12} y^4 + o(y^4)
+\]
+Le premier terme en $y^2$ nous permet de retrouver Jastrow avec des interactions 2 à 2 mais tous les autres termes permettent d'envisager des interactions plus complexes à plus de 2 corps. 
+Une machine de Boltzmann est en réalité un réseau de neurones avec une couche visible et une couche cachée.
+
+METTRE IMAGE
+
+Le vecteur d'entrée de données(qui représente les spins de notre système physique) $X$ subit un produit matriciel par la matrice $W$ avec un biais visible. Après être passé par une fonction d'activation, un biais visible (que l'image ne représente pas) est alors ajouté à l'input.
+
+Nous avons tout d'abord coder une première version sans biais visible afin de nous familiariser avec ce nouvel ansatz et ses spécificités.
+\begin{lstlisting}
+    class BM(nn.Module):
+    alpha: float
+
+    @nn.compact
+    def __call__(self, x):
+        n_sites = x.shape[-1]
+        n_hidden = int(self.alpha * n_sites)
+
+        W = self.param(
+            "W", nn.initializers.normal(), (n_sites, n_hidden), jnp.complex128
+        )
+        b = self.param("b", nn.initializers.normal(), (n_hidden,), jnp.complex128)
+
+        return jnp.sum(jnp.log(jnp.cosh(jnp.matmul(x, W) + b)), axis=-1)
+\end{lstlisting}
+
+Puis utilisant la méthode $Dense$ de Flax.linen, nous avons écrit un programme avec un biais visible où nous pouvions changer les paramètres (avec/sans couche visible, changer la fonction d'activation) plus facilement.
+
+\begin{lstlisting}
+    default_kernel_init = normal(stddev=0.01)
+
+
+class RBM(nn.Module):
+
+    param_dtype: Any = np.float64
+    """The dtype of the weights."""
+    activation: Any = nknn.log_cosh
+    """The nonlinear activation function."""
+    alpha: float | int = 1
+    """feature density. Number of features equal to alpha * input.shape[-1]"""
+    use_hidden_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
+    use_visible_bias: bool = True
+    """if True adds a bias to the input not passed through the nonlinear layer."""
+    precision: Any = None
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
+
+    kernel_init: NNInitFunc = default_kernel_init
+    """Initializer for the Dense layer matrix."""
+    hidden_bias_init: NNInitFunc = default_kernel_init
+    """Initializer for the hidden bias."""
+    visible_bias_init: NNInitFunc = default_kernel_init
+    """Initializer for the visible bias."""
+
+    @nn.compact
+    def __call__(self, input):
+        x = nn.Dense(
+            name="Dense",
+            features=int(self.alpha * input.shape[-1]),
+            param_dtype=self.param_dtype,
+            precision=self.precision,
+            use_bias=self.use_hidden_bias,
+            kernel_init=self.kernel_init,
+            bias_init=self.hidden_bias_init,
+        )(input)
+        # features c'est le nombre d'unités cachées
+        x = self.activation(x)
+        # applique le x crée puis appliqué à input à la focntion d'activation ici le cosh
+        x = jnp.sum(x, axis=-1)
+
+        if self.use_visible_bias:
+            v_bias = self.param(
+                "visible_bias",
+                self.visible_bias_init,
+                (input.shape[-1],),
+                self.param_dtype,
+            )
+            #cela crée le biais visible, avec une initialisation faite par "self.visible_biais_init"
+            out_bias = jnp.dot(input, v_bias)
+            #cela calcule le produit de input.transpose() par le v_bias
+            # c'est le biais visible qu'on ajoute alors à la sortie de l'input ici x
+            return x + out_bias
+        else:
+            return x
+\end{lstlisting}
+Remarques sur le code:
+\begin{itemize}
+    \item à la ligne 29, un objet $Dense$ est crée et cela fait un produit matricel et ajoute un biais caché si on le souhaite.
+    \item un hyperparamètre (paramètre fixé à l'avance) important est $alpha$ car cela indique le rapport entre le nombre de neurones de la couche visible et le nombre de neurones de la couche cachée
+    \item la fonction d'activation est cosh comme dans l'expression littérale ci-dessus mais d'autres fonctions d'activation peuvent être prises.
+    \item enfin, à partir de la ligne 42, nous ajoutons un biais visible à l'input "transformé" par le réseau.
+\end{itemize}
+Le paramètre $\theta$ que nous optimisons au cours de la descente de gradient est ici les poids des liaisons entre les neurones contenus dans la matrice W ainsi que les biais visibles et cachées contenus dans les vecteurs $a$ et $b$.
+
+
+\subsubsection{Réseau de neurones convolutifs (CNN)}
+Après la prise en main de la machine de Boltzmann, nous avons décidé d'utiliser une ansatz plus complète. En effet, bien que la machine de boltzmann puisse représenter des interactions plus complexes que Jastrow, comme elle n'a que deux couches de neurones, elle ne peut pas représenter la complexité des interactions entre spins.
+En augmentant le nombre de neurones et le nombre de couches, nous pouvons espérer que plus on avance dans les couches du réseau plus l'information sera subtile et donc puisse saisir une grande partie de la physique du problème. 
+Alors que la machine de Boltzmann envisage toutes les interactions entre spins, la CNN tire parti du fait que les interactions sont essentiellement locales mais elle va étudier avec les différents kernels des schémas d'interaction variés et complexes au fil des couches.
+C'est pour cela que nous avons décidé d'utiliser ces réseaux de neurones convolutifs.
+
+ Leur principe repose sur l’utilisation de filtres locaux appelés « kernels », qui parcourent systématiquement les données d’entrée (par exemple une configuration d’état) pour détecter des motifs caractéristiques. Chaque kernel est une petite matrice de poids (dont on peut choisir la taille), qui agit comme un détecteur de motifs locaux : il met en évidence certaines structures physiques, telles que des corrélations ou motifs d’interaction entre sites voisins.
+ Lorsqu’un kernel est appliqué à l’ensemble de la donnée, il produit une nouvelle représentation appelée feature map (carte de caractéristiques), qui correspond à la présence locale du motif détecté à différentes positions.
+ 
+ Par exemple si on a un système de spins 4*4, notre vecteur d'entrée sera un vecteur de 16 composantes une pour chaque spin. Il est préférable de le voir comme une matrice 4*4Si nous choisissons d'utiliser un kernel de taille 3*3, nous allons d'abord partir de la "gauche" de la matrice calculé le produit composante par composante avec le kernel pour obtenir un réel qui sera le coefficient de la feature map correspondant à la position du spin qui était au centre du kernel. Nous allons continuer ceci en se déplaçant dans la matrice avec un pas que l'on peut prendre de 1.
+ 
+ Un CNN comporte généralement plusieurs kernels distincts, chacun produisant sa propre feature map, ce qui permet au réseau d’apprendre plusieurs types de motifs ou corrélations. Ces kernels sont organisés en channels : chaque channel correspond à l'ensemble des kernels qui s'appliquent sur une entrée. Plus on a de channels et de kernels dans chaque channels, plus le réseau peut capter des informations complexes.
+
+Ensuite, ces cartes de caractéristiques peuvent être combinées et traitées par plusieurs couches convolutionnelles successives, permettant au réseau d’agréger l’information locale en représentations globales plus abstraites, utiles pour décrire l’état physique ou prédire ses propriétés. En résumé, la force des CNN réside dans leur capacité à apprendre des motifs locaux pertinents tout en exploitant la structure spatiale des données, ce qui les rend particulièrement adaptés pour modéliser des systèmes physiques avec des interactions locales ou des symétries spatiales. 
+
+Nous avons alors codé la CNN :
+\begin{lstlisting}
+    class CNN(nn.Module):
+    lattice: Lattice
+    kernel_size: Sequence
+    channels: tuple
+    param_dtype: DType = complex
+
+    def __post_init__(self):
+        self.kernel_size = tuple(self.kernel_size)
+        self.channels = tuple(self.channels)
+        super().__post_init__()
+
+    def setup(self):
+        if isinstance(self.kernel_size[0], int):
+            self.kernels = (self.kernel_size,) * len(self.channels)
+        else:
+            assert len(self.kernel_size) == len(self.channels)
+            self.kernels = self.kernel_size
+
+    @nn.compact
+    def __call__(self, x):
+        lattice_shape = tuple(self.lattice.extent)
+
+        x = x / np.sqrt(2)
+        _, ns = x.shape[:-1], x.shape[-1]
+        x = x.reshape(-1, *lattice_shape, 1)
+        for i, (c, k) in enumerate(zip(self.channels, self.kernels)):
+            x = nn.Conv(
+                features=c,
+                kernel_size=k,
+                padding="CIRCULAR",
+                param_dtype=self.param_dtype,
+                kernel_init=nn.initializers.xavier_normal(),
+                use_bias=True,
+            )(x)
+
+            if i:
+                x = logcosh_expanded_dv(x)
+            else:
+                x = logcosh_expanded(x)
+
+        x = jnp.sum(x, axis=range(1, len(lattice_shape) + 1)) / np.sqrt(ns)
+        x = nn.Dense(
+            features=x.shape[-1], param_dtype=self.param_dtype, use_bias=False
+        )(x)
+        x = jnp.sum(x, axis=-1) / np.sqrt(x.shape[-1])
+        return x
+\end{lstlisting}
+\begin{itemize}
+    \item Ligne 13-18 initialisation des tailles des kernels et du nombre de channels, permettant de configurer la structure des couches convolutionnelles.
+    \item Ligne 22-25 remodelage du vecteur d’entrée en tenseur 4D (batch de données, hauteur, largeur, canal) pour exploiter la structure spatiale de la grille.
+    \item Ligne 26-37  application successive des convolutions avec padding (bordure ajoutée artificiellement pour les calculs avec les kernels afin que la sortie ait la même taille que l'entrée) circulaire, respectant la périodicité du réseau physique, suivie d’une activation non linéaire adaptée.
+    \item Ligne 40-44 Couche dense finale sans biais qui combine les informations globales et calcule la sortie scalaire normalisée du réseau.
+\end{itemize}
+
+
+\subsection{Momentum on en parle ?}
+
+\subsection{Descente de gradient naturel}
+Une descente de gradient classique effectue une minimisation de l'énergie à travers l’espace des paramètres de l’ansatz, en supposant implicitement que cet espace est muni d’une métrique simple et uniforme. Or, ces paramètres ne possèdent pas de signification physique directe : ils constituent uniquement une manière arbitraire de paramétrer un même état quantique. Par conséquent, deux paramétrisations différentes, bien que décrivant la même famille d’états physiques, peuvent conduire à des gradients et donc à des trajectoires d’optimisation distinctes. Dans un paysage d’énergie généralement non convexe et bruité par l’échantillonnage Monte Carlo, ces trajectoires différentes peuvent mener à des vitesses de convergence et des comportements numériques différents, ce qui est problématique du point de vue physique.
+
+Pour résoudre ces problèmes, une analyse de l'état de l'art nous a incités à utiliser la descente de gradient naturelle. Cette descente correspond à un changement de métrique comme représenté sur l'image ci-dessous : nous passons de l'espace de paramères à celui des états quantiques. Nous optimisons l'état quantique en lui-même et non plus les paramètres. En effet, dans la descente de gradient précédente, nous modifions les paramètres en fonction du gradient de l'énergie mais ici au cours de la descente l'objectif est d'obtenir la plus grande baisse d'énergie en modifiant légèrement l'état quantique. Nous modifions alors les paramètres pour que l'état quantique change de façon appropriée. Ainsi, les mises à jour des paramètres correspondent à des variations contrôlées et physiquement pertinentes de l’état quantique, indépendamment de la paramétrisation choisie.
+\newline
+IMAGE !!
+\newline
+Plus théoriquement, en utilisant la dérivée fonctionnelle de l'énergie moyenne on peut déterminer la variation de l'état quantique qui diminue le plus l'énergie. Puis, nous calculons le changement des paramètres qui permet la modification souhaitée de l'état quantique.
+
+Nous obtenons alors que le changement de paramètres est :
+\[
+\theta^{(n+1)} = \theta^{(n)} + \eta\, \dot{\theta}
+\]
+ avec $\eta$ notre pas d'apprentissage et $\dot{\theta}$ est donné par la formule 
+
+ \[
+\dot{\theta} = {S}^{-1} \nabla_\theta E
+\]
+
+où \[
+S_{ij} = \left\langle \frac{\partial \ln \psi_\theta}{\partial \theta_i} \,\middle|\, \frac{\partial \ln \psi_\theta}{\partial \theta_j} \right\rangle
+\]
+
+Nous pouvons réexprimer $\mathbf{S}$ à l'aide de la matrice jacobienne dont nous avions déjà implementé le calcul dans l'algorithme de descente de gradient. 
+En effet, 
+
+\[
+S = J^\dagger J
+\]
+où \[
+J_{ij} = \partial_{\theta_j} \log \psi_{\theta}(x_i)
+\]
+Nous pouvons donc calculer à chaque itération le changement des paramètres adéquats pour notre descente de gradient naturelle en calculant la matrice jacobienne et le gradient de l'énergie.
+
+Cependant, un problème peut apparaître avec l'équation qui définit $\dot{\theta}$. 
+En effet, si les valeurs propres de $S$ sont trop petites, celles de son inverse seront très grandes ce qui peut conduire à des valeurs trop grandes pour $\dot{\theta}$ et donc non convenables. 
+
+Pour remédier à ce problème, nous introduisons un paramètre : le diagonale shift $\lambda$ qui augmente les valeurs propres de $S$. 
+
+Pour avoir $\dot{\theta}$, nous résolvons : 
+
+
+\[
+\dot{\theta} = \left( S + \lambda I \right)^{-1} \nabla_\theta E
+\]
+
+Nous savons calculer $S$ et $\nabla_\theta E$, il nous reste plus d'à inverser la matrice ce que nous pouvons par exemple utiliser la décomposition de cholesky qui décompose $( S + \lambda I)^{-1}$  en un produit de matrices triangulaires supérieurs ce qui nous permet d'obtenir l'inverse après résolution de 2 systèmes triangulaires, facilement implémentable numériquement.
+
+Le code est en annexe.
+
+
+\section{Étude de l'influence de chaque hyperparamètre}
+
+\subsection{Conditions aux bords}
+
+Même s'il ne s'agit pas à proprement parler d'un hyperparamètre, intéressons nous d'abord au choix des conditions aux bords pour nos simulations. Comme évoqué plus haut, nos méthodes permettent de modéliser des systèmes physiques de taille finie, de l'ordre d'une centaine de spins maximum en temps raisonnable. Néanmoins, les comportements que nous cherchons à mettre en lumière et à étudier sont ceux de matériaux réels, qui ont une taille infinie, ou du moins de l'ordre du nombre d'Avogadro $N_A=6,022.10^{23}$. En conséquence, nous cherchons des méthodes pour plus facilement nous approcher du cas de la taille infinie. \newline
+Une façon de faire consiste à choisir des conditions aux bords périodiques pour notre réseau de spins, ce qui revient à juxtaposer une infinité de fois un même système physique d'un nombre fini de spins, et à étudier son comportement.
+
+\begin{figure}[h!]
+    \centering
+    % On inclut le PDF généré à l'étape 2
+    % width=0.8\linewidth permet d'ajuster la taille à 80% de la largeur du texte
+    \includegraphics[width=0.5\linewidth]{Figure_Conditions_aux_bords.pdf}
+    
+    % La légende (choisissez votre option ici)
+    \caption{Représentation schématique des conditions aux bords périodiques. Le système central fini est répliqué pour assurer la continuité spatiale et simuler un matériau infini.}
+    
+    % Le label pour faire référence à la figure dans le texte (ex: voir Fig. \ref{fig:pbc})
+    \label{Figure_Conditions_aux_bords.pdf}
+\end{figure}
+
+Cette interprétation laisse penser que le comportement de systèmes finis avec des conditions aux bords périodiques s'approchera mieux de celui de systèmes infinis qu'avec des conditions aux bords ouvertes. Cette propriété des conditions aux bords périodiques est confirmée par la courbe ci-dessous : 
+
+\begin{figure}[h!]
+    \centering
+    % On inclut le PDF généré à l'étape 2
+    % width=0.8\linewidth permet d'ajuster la taille à 80% de la largeur du texte
+    \includegraphics[width=0.6\linewidth]{Energy_vs_L_pbc=TrueOrFalse.png}
+    
+    % La légende (choisissez votre option ici)
+    \caption{}
+    
+    % Le label pour faire référence à la figure dans le texte (ex: voir Fig. \ref{graph:pbc})
+    \label{Figure_Conditions_aux_bords.pdf}
+\end{figure}
+
+On constate très clairement sur cette figure que des conditions aux bords périodiques permettent une convergence beaucoup plus rapide de l'énergie fondamentale par site du système en fonction de sa taille, comparé au cas des conditions aux bords ouvertes, et donc une meilleure approximation du cas infini. \newline
+Ces observations justifient que nous utiliserons toujours des conditions aux bords périodiques par la suite.
+
+\section{Transition de phase ferromagnétique dans le modèle d'Ising en champ transverse}
+
+Forts de ces connaissances théoriques et de la compréhension des difficultés et enjeux pratiques de nos méthodes, nous pouvons désormais étudier le modèle d'Ising en champ transverse, avec des conditions aux bords périodiques. \newline
+L'hamiltonien de ce modèle est donné par 
+
+\[
+\hat{H} = J \sum_{\langle i, j \rangle} \hat{S}_i^z \hat{S}_{j}^z + h \sum_{i=1}^{N} \hat{S}_i^x
+\]
+
+où le symbole $\langle \dots \rangle$ désigne les paires de plus proches voisins. $h$ est le champ magnétique transverse, et $J$ est le facteur de couplage entre deux spins voisins. Nous étudions le cas d'un système ferromagnétique, c'est-à-dire $J<0$. Par souci de simplification, dans la suite, nous prendrons toujours $J=-1$, car seule la valeur du rapport $h/J$ importe pour comprendre la physique du système.
+
+\subsection{En dimension 1}
+Commençons par le cas en dimension $1$, qui correspond à une chaîne de spins. La recherche de l'état fondamental de cet hamiltonien constitue un problème de référence, bien établi dans le domaine. \newline
+Pour l'étudier, nous avons utilisé l'ansatz \textit{Restricted Boltzmann Machine}, qui fonctionne bien pour ce problème et reste assez simple. Notre protocole de simulation part d'une remarque importante : les cas limite $h=0$ et $J\ll h$ sont plus simples, car alors le comportement de l'hamiltonien est régi par un seul des deux termes qui le définissent. En revanche, pour $h$ et $J$ du même ordre, les effets des deux termes sont en compétition, ce qui engendre plus de complexité dans le comportement du système. En conséquence, notre réseau de neurones aura plus de mal à apprendre l'état fondamental du système dans ce cas, et nécessitera davantage de paramètres. Pour cette raison, nous avons effectué nos tests de convergence pour $h=1$ : pour chaque valeur de la taille $L$ du système, nous avons commencé par régler nos hyperparamètres pour obtenir une convergence suffisamment précise pour $h=1$, qui est en quelque sorte la valeur la plus complexe. Une fois le jeu d'hyperparamètres correctement réglé, nous avons lancé des optimisations pour toutes les valeurs de $h$ souhaitées afin de tracer les courbes ci-après. Nous ajoutions progressivement des points pour préciser nos courbes sur les intervalles les plus intéressants, sans calculer de valeurs inutiles. \newline
+Il reste cependant une nuance à apporter : choisir un $\alpha$ grand pour notre $RBM$ augmente considérablement le temps de calcul pour mettre à jour tous les paramètres de notre ansatz, ceux-ci étant plus nombreux. Pour ne pas rallonger inutilement les calculs, pour les valeurs les plus élevées de $L$, nous prenions $\alpha =5$ seulement pour des valeurs de $h$ proches de $1$, et plus loin de $1$ nous réduisions $\alpha$. Ceci illustre notre constante recherche d'un compromis lors de la réalisation de nos optimisations : choisir des modèles assez complexes (c'est-à-dire avec un grand nombre de paramètres, un ansatz avec assez de couches, etc) pour pouvoir approximer le système qui nous intéresse, mais pas trop complexes, car ceci augmenterait inutilement le temps de calcul.\newline
+Une fois toutes ces optimisations réalisées, nous disposions d'une approximation des états fondamentaux de notre modèle d'Ising 1D en champ transverse pour différentes tailles $L$, et pour différentes valeurs de $h$. Nous étions alors en capacité de calculer la valeur moyenne de n'importe quelle observable à l'état fondamental, et en particulier du carré de la magnétisation $\hat{M}_z$ : 
+
+\[
+\hat{M}_z = \frac{1}{L}\sum_{i=1}^{L}\hat{S}_{i}^{z}
+\]
+
+Nous avons ainsi obtenu la courbe suivante : 
+
+\begin{figure}[h!]
+    \centering
+    % On inclut le PDF généré à l'étape 2
+    % width=0.8\linewidth permet d'ajuster la taille à 80% de la largeur du texte
+    \includegraphics[width=0.7\linewidth]{Graph_Mz_1D.png}
+    
+    % La légende (choisissez votre option ici)
+    \caption{}
+    
+    % Le label pour faire référence à la figure dans le texte (ex: voir Fig. \ref{graph:pbc})
+    \label{graph Mz 1D}
+\end{figure}
+
+On constate une transition de phase, d'autant plus nette que $L$ est grand, entre un comportement ferromagnétique pour $h<h_c$, et une magnétisation nulle pour $h>h_c$. On constate également une convergence des courbes vers ce qui semble être une fonction limite, ce qui laisse supposer une convergence du champ magnétique critique $h_c$. \newline
+Pour localiser plus précisément le seuil, nous avons tracé la dérivée de ces courbes $\frac{d\langle\hat{M}_z^2\rangle}{dh}$ :
+
+\begin{figure}[h!]
+    \centering
+    % On inclut le PDF généré à l'étape 2
+    % width=0.8\linewidth permet d'ajuster la taille à 80% de la largeur du texte
+    \includegraphics[width=0.7\linewidth]{Graph_dMz^2:dH_1D.png}
+    
+    % La légende (choisissez votre option ici)
+    \caption{}
+    
+    % Le label pour faire référence à la figure dans le texte (ex: voir Fig. \ref{graph:pbc})
+    \label{graph dMz/dh 1D}
+\end{figure}
+
+La croissance de la valeur maximale de la dérivée avec $L$ montre bien que la transition de phase est de plus en plus nette. Par ailleurs, cette figure nous permet de trouver, pour $L=100$, une valeur du champ magnétique critique $h_c=$. FAIRE UNE COURBE QUI DONNE H_C ET DONNER LA VALEUR, AVEC L'ERREUR. On peut ajouter que d'autres méthodes permettent d'obtenir analytiquement, pour $L=+\infty$, un seuil $h_{c,\infty}=1$. METTRE LA REF DE L'ARTICLE ET VOIR SI CONCORDE AVEC NOS VALEURS \newline
+\newline
+
+Nous avons ensuite tracé la valeur du maximum de la dérivée $\frac{d\langle\hat{M}_z^2\rangle}{dh}$ en fonction de $L$:
+\newline METTRE LA FIGURE, AVEC LE FIT POUR LES GRANDS L \newline
+COMMENTER LA FIGURE (POURQUOI FIT LIN2AIRE ? DONNER UNE REF QUI LE MONTRE)\newline
+\newline
+
+Pour constamment vérifier que nos simulations donnent des résultats fiables, il faut quantifier leur convergence. Pour ce faire, nous utilisons le $V-score$, qui est l'indicateur de convergence de référence dans le milieu des méthodes d'approximation computationnelle en physique quantique [METTRE REF] chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://arxiv.org/pdf/2302.04919
+L'expression (simplifiée) du $V-score$ est 
+\[
+V-score = \frac{Var(E)}{E^2}=\frac{\langle\hat{H}^2\rangle-\langle\hat{H}\rangle^2}{\langle\hat{H}\rangle^2}
+\]
+La convergence d'une optimisation pour approximer un état fondamental est alors considérée satisfaisante dès que $V-score\leq10^{-3}$, et d'autant plus précise que cette inégalité est largement respectée. Nous avons donc tracé ce $V-score$, en échelle $log$, pour toutes les simulations utilisées ci-dessus :
+
+\begin{figure}[h!]
+    \centering
+    % On inclut le PDF généré à l'étape 2
+    % width=0.8\linewidth permet d'ajuster la taille à 80% de la largeur du texte
+    \includegraphics[width=0.7\linewidth]{Graph_Vscore_1D.png}
+    
+    % La légende (choisissez votre option ici)
+    \caption{}
+    
+    % Le label pour faire référence à la figure dans le texte (ex: voir Fig. \ref{graph:pbc})
+    \label{graph V-score 1D}
+\end{figure}
+
+On constate bien que le $V-score$ inférieur à $10^{-3}$ pour chacune de nos simulations, elles leur convergence est donc fiable. On peut aussi observer que, comme attendu, le $V-score$ est assez élevé autour de $h=1$, et qu'il décroit avec $h$ lorsque $J\ll L$. Par ailleurs, le saut observé sur la courbe jaune correspondant à $L=100$ à $h=1,2$ correspond à l'endroit où l'on a réduit la valeur de l'hyperparamètre $\alpha$ de $5$ pour $h<1,2$ à $3$ pour $h\geq 1,2$, ce qui a conduit, comme évoqué plus haut, à une diminution de la précision des simulation, qui reste néanmoins acceptable et permet un gain de temps de calcul considérable.\newline
+\newline
+
+À titre indicatif, la réalisation de toutes simulations ayant permis de tracer la \label{graph Mz 1D} a pris environ $48\space heures$ de calcul en cumulé sur les ordinateurs de l$X$ auxquels nous avons eu accès, qui disposent de GPU. Nous avons tracé le temps de calcul par itération de l'optimisation en fonction de $L$, pour $h=1$ (car c'est le point prenant le plus de temps) : 
+
+\begin{figure}[h!]
+    \centering
+    % On inclut le PDF généré à l'étape 2
+    % width=0.8\linewidth permet d'ajuster la taille à 80% de la largeur du texte
+    \includegraphics[width=0.9\linewidth]{Graph_T_vs_L_à_Hc_1D.png}
+    
+    % La légende (choisissez votre option ici)
+    \caption{}
+    
+    % Le label pour faire référence à la figure dans le texte (ex: voir Fig. \ref{graph:pbc})
+    \label{graph temps calcul 1D}
+\end{figure}
+
+COMMENTER LA FIGURE ET LE FIT\newline\newline
+
+Enfin, nous nous sommes aussi intéressés à l'énergie fondamentale du système, puisqu'elle nous était accessible instantanément une fois nos optimisations réalisées. Plus précisément, nous avons tracé $\frac{E}{L}$, qui est une grandeur intensive.
+
+\begin{figure}[h!]
+    \centering
+    % On inclut le PDF généré à l'étape 2
+    % width=0.8\linewidth permet d'ajuster la taille à 80% de la largeur du texte
+    \includegraphics[width=0.7\linewidth]{Graph_E_par_site_vs_h_1D.png}
+    
+    % La légende (choisissez votre option ici)
+    \caption{}
+    
+    % Le label pour faire référence à la figure dans le texte (ex: voir Fig. \ref{graph:pbc})
+    \label{graph E/L 1D}
+\end{figure}
+
+On constate deux faits intéressants : en premier lieu, toutes les courbes sont confondues, peu importe la valeur de $L$, et ce pour tout $h$. Ainsi, l'énergie fondamentale du système est linéaire en fonction de $L$ à $h$ fixé, pour tout $h$, et la valeur du coefficient est donnée par la \label{graph E/L 1D}. Ensuite, on constate que pour tout $L$, pour $h$ supérieur à $h_c$, $\frac{E}{L}$ est linéaire en $h$, de coefficient directeur AJOUTER LE FIT ET LE COMMENTER.
+\newline
+AJOUTER LES BARRES D'ERREUR (SI ELLES Y SONT PAS DEJA) ET FAIRE UN FIT LINÉAIRE POUR h GRAND
+
+
+\section*{Conclusion}
+Au cours de cette première phase d’appropriation des concepts fondamentaux du Variational Monte Carlo, nous avons exploré en profondeur différents ansatz et affiné notre compréhension des compromis intrinsèques à chaque approche. Les simulations numériques réalisées ont joué un rôle essentiel, non seulement pour valider nos choix méthodologiques, mais aussi pour nous familiariser avec chaque méthode, à l'instar de la descente de gradient naturelle, et pour ancrer nos travaux dans une compréhension physique solide. D'autre part, cette phase exploratoire a aussi constitué un véritable laboratoire d’optimisation, où nous avons testé rigoureusement chaque méthode et ansatz, identifié leurs points faibles et amélioré nos algorithmes.
+
+\vspace{2\baselineskip}
+Ensuite, nous nous sommes attachés à effectuer une étude des hyperparamètres en jeu afin de les ajuster au mieux et ainsi optimiser davantage nos algorithmes.\newline
+
+FINIR CONCLU
+
+
+
+\section*{Bibliographie}
+
+
+\appendix
+\section*{Annexes}
+\addcontentsline{toc}{section}{Annexes}
+
+
+\begin{lstlisting}
+    def compute_S_and_F_and_E(model, parameters, hamiltonian_jax, x):
+
+    x = x.reshape(-1, x.shape[-1])
+    E_loc = compute_local_energies(model, parameters, hamiltonian_jax, x)
+    
+    E_average = jnp.mean(E_loc)
+    E_variance = jnp.var(E_loc)
+    E_error = jnp.sqrt(E_variance / E_loc.size)
+    E = nk.stats.statistics(E_loc)
+    E_average = E.mean
+    E = nk.stats.Stats(mean=E_average, error_of_mean=E_error, variance=E_variance)
+    _, unravel_params_fn = ravel_pytree(parameters)
+  
+
+    
+    jacobian = nk.jax.jacobian(
+        model.apply,
+        parameters["params"],
+        x,
+        mode="holomorphic",
+        dense=True,
+        center=False,
+        chunk_size=None,
+    )
+    J = jacobian - jnp.mean(jacobian, axis=0, keepdims=True)
+    S = (jnp.conj(J).T @ J) / J.shape[0]
+    F = (1 / E_loc.size) * jnp.conj(jacobian.T) @ (E_loc - E_average)
+
+    return S, F, E
+
+
+def natural_gradient(model, parameters, hamiltonian_jax, x, diag, method="chol"):
+
+    S, F, E = compute_S_and_F_and_E(model, parameters, hamiltonian_jax, x)
+
+    # Ajout du shift sans construire I ni appeler jnp.diag / jnp.eye
+    S_inv = S + jnp.eye(S.shape[0]) * diag
+
+    # On résout
+    _, unravel_params_fn = ravel_pytree(parameters)
+
+    if method == "chol":
+        L = jnp.linalg.cholesky(S_inv)
+        y = jax.scipy.linalg.solve_triangular(L, -F, lower=True)
+        delta = jax.scipy.linalg.solve_triangular(L.T, y, lower=False)
+        delta = unravel_params_fn(delta)
+    if method == "pinv":
+        #  Décomposition spectrale
+        w, Q = jnp.linalg.eigh(S)
+        # Filtrage des petites valeurs propres (valeurs propres nulles)
+        w_max = jnp.max(jnp.abs(w))
+        mask = jnp.abs(w) > (1e-2 * w_max)
+        w_inv = jnp.where(mask, 1.0 / w, 0.0)
+        # 4. Pseudo-inverse et solution
+        S_pinv = (Q * w_inv) @ Q.T
+        delta = S_pinv @ (-F)
+        delta = unravel_params_fn(delta)
+
+    if method == "diago":
+        w, Q = jnp.linalg.eigh(S_inv)
+        Y = Q @ jnp.diag(1.0 / w) @ Q.T
+        delta = Y @ (-F)
+
+        delta = unravel_params_fn(delta)
+
+    return delta, E
+
+\end{lstlisting}
+Remarques sur le code :
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% nous avons défini deux commandes :
+\newcommand{\code}[1]{%
+    \mbox{\ttfamily%
+        \detokenize{#1}%
+    }%
+}
+
+\newcommand{\resultat}[1]{%
+    \quad \rightsquigarrow \quad #1%
+}
+
+\author{Louis Vaneau}
+\date{\today}
+\title{Grand titre}
+\subtitle{Petit titre}%
+% pour changer de logo, ajoutez l'image dans un fomat PDF
+% ou image en la glissant à droite et remplacez typographix
+% par le nom de l'image, si vous ne voulez pas de logo, 
+% supprimze la ligne. 
+\logo{typographix}
+
+
+
+
+\begin{document}
+
+	\maketitle 
+	
+	\tableofcontents
+	
+	\section{Motivations}
+		\subsection{Motivations générales}
+Depuis son développement au XXe
+siècle, la physique quantique a permis une avancée technologique
+spectaculaire lors de la première révolution quantique. Une grande variété de systèmes physiques a ainsi
+pu être étudiée : circuits supraconducteurs, objets quantiques individuels (atomes, électrons. . .), ou encore
+défauts d’un cristal périodique.
+Cependant, la découverte et la théorisation de l’intrication quantique ont ouvert la voie à de nouvelles
+recherches : c’est ce que l’on appelle la seconde révolution quantique. Celles-ci visent à développer de
+nouvelles technologies exploitant les principes de superposition et d’intrication. Ce domaine repose sur
+quatre piliers principaux : la communication (cryptologie quantique), les ordinateurs quantiques, les
+capteurs et les simulateurs quantiques. Les grandes puissances scientifiques déploient ainsi d’ambitieux
+projets contribuant à cette seconde révolution (par exemple le Plan Quantique en France). \newline
+Dans tous ces travaux, il est crucial de diagonaliser l’Hamiltonien du système afin de déterminer ses
+énergies et états propres, et en particulier l’état fondamental. Il faut donc quantifier, représenter et
+calculer les grandeurs physiques d’intérêt de manière fiable et rapide. Or, la complexité des algorithmes
+classiques croît exponentiellement avec la taille des systèmes, les rendant inapplicables en pratique.
+En considérant un système de spins, on constate que la dimension de l’espace de Hilbert double à
+chaque particule ajoutée. Par exemple, le plus grand supercalculateur actuel, Frontier, dispose de 9 PB (9×1015
+octets) de mémoire. Chaque nombre complexe nécessitant 16 octets pour être stocké, Frontier peut contenir
+environ 5 × 1014 nombres complexes, soit un vecteur d’état complet pour seulement 49 particules de spin 1/2.
+De plus, cette capacité ne permet que le stockage, et non les calculs associés.
+Ainsi, afin de tirer parti des opportunités offertes par la seconde révolution quantique, il devient nécessaire de développer de nouvelles méthodes permettant de surmonter l’explosion combinatoire de la dimension de l’espace des états.
 	
 	
 	\subsection{Applications de cette étude}
@@ -153,7 +1009,6 @@ Cette méthode s’appuie sur trois piliers~:
 \subsection*{Compression de l'état quantique}
 Tout d'abord, afin de régler le problème de la croissance exponentielle de l'espace des états, nous allons compresser l'information. 
 Soit W l'espace complexe des paramètres, on définit alors la fonction :
-
 \[
 \Psi :
 \begin{array}{rcl}
@@ -161,9 +1016,6 @@ W & \rightarrow & \mathcal{H}, \\
 \theta & \mapsto & |\psi_\theta\rangle
 \end{array}
 \]
-
-
-
 
 
 On nomme ces fonctions les \emph{ansatz variationnels} (ou ansatz).
@@ -311,14 +1163,6 @@ V_{\theta} \bigl( H_{\mathrm{loc}}(x_i) \bigr) = V(\hat{H})
 \]
  Cette formule est intéressante car elle nous dit qu'à l'état fondamentale comme $V(\hat{H})$ est nulle, $V_{\theta} \bigl( H_{\mathrm{loc}}(x_i) \bigr)$ le sera donc notre estimation sera très précise. 
 
- Finalement, afin de quantifier l'incertitude sur les valeurs d'énergie données par notre descente de gradient, nous tracerons lors de chaque étude, en plus de l'énergie en fonction du nombre d'itérations, le "signal to noise ratio" (SNR) en fonction du nombre d'itérations. Il est défini par :
-
-\[
-\mathrm{SNR}_p(x)[H(x)] = \sqrt{\frac{\mathbb{E}_{p(x)}[H]^2}{\operatorname{Var}_{p(x)}[H]}}
-\]
-
-Il représente le rapport de la quantité d'intérêt (l'espérance dans l'état de distribution $p(x)$ de l'énergie le tout au carré) et du bruit c'est-à-dire la variance de l'énergie.
-
 \begin{lstlisting}[language=Python, caption=Code de la descente de gradient-Code "jouet"]
 
 def optimize_SGD(model, sampler, ham, chain_length, n_iters=1000, learning_rate=1e-2):
@@ -431,7 +1275,7 @@ METTRE IMAGE
 
 Le vecteur d'entrée de données(qui représente les spins de notre système physique) $X$ subit un produit matriciel par la matrice $W$ avec un biais visible. Après être passé par une fonction d'activation, un biais visible (que l'image ne représente pas) est alors ajouté à l'input.
 
-Nous avons tout d'abord coder une première version sans biais visible afin de nous familiariser avec ce nouvel ansatz et ses spécificités.
+Nous avons tout d'abord codé une première version sans biais visible. 
 \begin{lstlisting}
     class BM(nn.Module):
     alpha: float
@@ -593,136 +1437,12 @@ Nous avons alors codé la CNN :
 \subsection*{Momentum on en parle ?}
 
 \subsection*{Descente de gradient naturel}
-Une descente de gradient classique effectue une minimisation de l'énergie à travers l’espace des paramètres de l’ansatz, en supposant implicitement que cet espace est muni d’une métrique simple et uniforme. Or, ces paramètres ne possèdent pas de signification physique directe : ils constituent uniquement une manière arbitraire de paramétrer un même état quantique. Par conséquent, deux paramétrisations différentes, bien que décrivant la même famille d’états physiques, peuvent conduire à des gradients et donc à des trajectoires d’optimisation distinctes. Dans un paysage d’énergie généralement non convexe et bruité par l’échantillonnage Monte Carlo, ces trajectoires différentes peuvent mener à des vitesses de convergence et des comportements numériques différents, ce qui est problématique du point de vue physique.
+Diapositives de la présentation sur Whatsapp pour les différents paramèttres 
 
-Pour résoudre ces problèmes, une analyse de l'état de l'art nous a incités à utiliser la descente de gradient naturelle. Cette descente correspond à un changement de métrique comme représenté sur l'image ci-dessous : nous passons de l'espace de paramères à celui des états quantiques. Nous optimisons l'état quantique en lui-même et non plus les paramètres. En effet, dans la descente de gradient précédente, nous modifions les paramètres en fonction du gradient de l'énergie mais ici au cours de la descente l'objectif est d'obtenir la plus grande baisse d'énergie en modifiant légèrement l'état quantique. Nous modifions alors les paramètres pour que l'état quantique change de façon appropriée. Ainsi, les mises à jour des paramètres correspondent à des variations contrôlées et physiquement pertinentes de l’état quantique, indépendamment de la paramétrisation choisie.
-
-IMAGE !!
-
-Plus théoriquement, en utilisant la dérivée fonctionnelle de l'énergie moyenne on peut déterminer la variation de l'état quantique qui diminue le plus l'énergie. Puis, nous calculons le changement des paramètres qui permet la modification souhaitée de l'état quantique.
-
-Nous obtenons alors que le changement de paramètres est :
-\[
-\theta^{(n+1)} = \theta^{(n)} + \eta\, \dot{\theta}
-\]
- avec $\eta$ notre pas d'apprentissage et $\dot{\theta}$ est donné par la formule 
-
- \[
-\dot{\theta} = {S}^{-1} \nabla_\theta E
-\]
-
-où \[
-S_{ij} = \left\langle \frac{\partial \ln \psi_\theta}{\partial \theta_i} \,\middle|\, \frac{\partial \ln \psi_\theta}{\partial \theta_j} \right\rangle
-\]
-
-Nous pouvons réexprimer $\mathbf{S}$ à l'aide de la matrice jacobienne dont nous avions déjà implementé le calcul dans l'algorithme de descente de gradient. 
-En effet, 
-
-\[
-S = J^\dagger J
-\]
-où \[
-J_{ij} = \partial_{\theta_j} \log \psi_{\theta}(x_i)
-\]
-Nous pouvons donc calculer à chaque itération le changement des paramètres adéquats pour notre descente de gradient naturelle en calculant la matrice jacobienne et le gradient de l'énergie.
-
-Cependant, un problème peut apparaître avec l'équation qui définit $\dot{\theta}$. 
-En effet, si les valeurs propres de $S$ sont trop petites, celles de son inverse seront très grandes ce qui peut conduire à des valeurs trop grandes pour $\dot{\theta}$ et donc non convenables. 
-
-Pour remédier à ce problème, nous introduisons un paramètre : le diagonale shift $\lambda$ qui augmente les valeurs propres de $S$. 
-
-Pour avoir $\dot{\theta}$, nous résolvons : 
+\subsection*{Prise en main de la syntaxe Netket }
+Explique les 5 lignes de code qui font la descente de gradient (naturel)
 
 
-\[
-\dot{\theta} = \left( S + \lambda I \right)^{-1} \nabla_\theta E
-\]
-
-Nous savons calculer $S$ et $\nabla_\theta E$, il nous reste plus d'à inverser la matrice ce que nous pouvons par exemple utiliser la décomposition de cholesky qui décompose $( S + \lambda I)^{-1}$  en un produit de matrices triangulaires supérieurs ce qui nous permet d'obtenir l'inverse après résolution de 2 systèmes triangulaires, facilement implémentable numériquement.
-
-Le code est en annexe.
-
-
-\subsection*{Conclusion}
-Au cours de cette première phase d’appropriation des concepts fondamentaux du Variational Monte Carlo, nous avons exploré en profondeur différents ansatz et affiné notre compréhension des compromis intrinsèques à chaque approche. Les simulations numériques réalisées ont joué un rôle essentiel, non seulement pour valider nos choix méthodologiques, mais aussi pour nous familiariser avec chaque méthode comme la descente de gradient naturelle et pour ancrer nos travaux dans une compréhension physique solide. D'autre part, cette phase exploratoire a aussi constitué un véritable laboratoire d’optimisation, où nous avons testé rigoureusement chaque méthode et ansatz, identifié leurs points faibles et amélioré nos algorithmes.
-
-\vspace{2\baselineskip}
-Ensuite, nous nous sommes attachés à effectuer une étude des hyperparamètres en jeu afin de les ajuster au mieux et ainsi optimiser davantage nos algorithmes.
-
-\appendix
-\section*{Annexes}
-\addcontentsline{toc}{section}{Annexes}
-
-\begin{lstlisting}
-    def compute_S_and_F_and_E(model, parameters, hamiltonian_jax, x):
-
-    x = x.reshape(-1, x.shape[-1])
-    E_loc = compute_local_energies(model, parameters, hamiltonian_jax, x)
-    
-    E_average = jnp.mean(E_loc)
-    E_variance = jnp.var(E_loc)
-    E_error = jnp.sqrt(E_variance / E_loc.size)
-    E = nk.stats.statistics(E_loc)
-    E_average = E.mean
-    E = nk.stats.Stats(mean=E_average, error_of_mean=E_error, variance=E_variance)
-    _, unravel_params_fn = ravel_pytree(parameters)
-  
-
-
-    jacobian = nk.jax.jacobian(
-        model.apply,
-        parameters["params"],
-        x,
-        mode="holomorphic",
-        dense=True,
-        center=False,
-        chunk_size=None,
-    )
-    J = jacobian - jnp.mean(jacobian, axis=0, keepdims=True)
-    S = (jnp.conj(J).T @ J) / J.shape[0]
-    F = (1 / E_loc.size) * jnp.conj(jacobian.T) @ (E_loc - E_average)
-
-    return S, F, E
-
-
-def natural_gradient(model, parameters, hamiltonian_jax, x, diag, method="chol"):
-
-    S, F, E = compute_S_and_F_and_E(model, parameters, hamiltonian_jax, x)
-
-    # Ajout du shift sans construire I ni appeler jnp.diag / jnp.eye
-    S_inv = S + jnp.eye(S.shape[0]) * diag
-
-    # On résout
-    _, unravel_params_fn = ravel_pytree(parameters)
-
-    if method == "chol":
-        L = jnp.linalg.cholesky(S_inv)
-        y = jax.scipy.linalg.solve_triangular(L, -F, lower=True)
-        delta = jax.scipy.linalg.solve_triangular(L.T, y, lower=False)
-        delta = unravel_params_fn(delta)
-    if method == "pinv":
-        #  Décomposition spectrale
-        w, Q = jnp.linalg.eigh(S)
-        # Filtrage des petites valeurs propres (valeurs propres nulles)
-        w_max = jnp.max(jnp.abs(w))
-        mask = jnp.abs(w) > (1e-2 * w_max)
-        w_inv = jnp.where(mask, 1.0 / w, 0.0)
-        # 4. Pseudo-inverse et solution
-        S_pinv = (Q * w_inv) @ Q.T
-        delta = S_pinv @ (-F)
-        delta = unravel_params_fn(delta)
-
-    if method == "diago":
-        w, Q = jnp.linalg.eigh(S_inv)
-        Y = Q @ jnp.diag(1.0 / w) @ Q.T
-        delta = Y @ (-F)
-
-        delta = unravel_params_fn(delta)
-
-    return delta, E
-
-\end{lstlisting}
-Remarques sur le code :
 \end{document}
 
 
