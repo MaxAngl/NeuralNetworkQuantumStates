@@ -64,7 +64,7 @@ for L in L_values:
 # Configuration du graphique
 ax.set_xlabel('Champ magnétique H', fontsize=14, fontweight='bold')
 ax.set_ylabel('Énergie moyenne $E/L$', fontsize=14, fontweight='bold')
-ax.set_title('Énergie moyenne par spin en fonction du champ magnétique\npour différentes tailles de système 1D',
+ax.set_title('Énergie moyenne par spin en fonction du champ magnétique\npour différentes tailles de système 2D',
              fontsize=16, fontweight='bold', pad=20)
 ax.grid(True, alpha=0.3, linestyle='--')
 ax.legend(loc='best', framealpha=0.9, fontsize=10)

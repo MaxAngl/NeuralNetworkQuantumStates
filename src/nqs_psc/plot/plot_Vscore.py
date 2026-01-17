@@ -61,7 +61,7 @@ for L in L_values:
 # Configuration du graphique
 ax.set_xlabel('Champ magnétique H', fontsize=14, fontweight='bold')
 ax.set_ylabel('V-score', fontsize=14, fontweight='bold')
-ax.set_title('V-score en fonction du champ magnétique\npour différentes tailles de système', 
+ax.set_title('V-score en fonction du champ magnétique\npour différentes tailles de système 2D', 
              fontsize=16, fontweight='bold', pad=20)
 ax.set_yscale('log')  # Échelle log pour le V-score car les valeurs sont très petites
 ax.grid(True, alpha=0.3, linestyle='--')
