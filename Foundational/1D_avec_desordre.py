@@ -21,19 +21,19 @@ from advanced_drivers._src.callbacks.base import AbstractCallback
 import netket_pro.distributed as nkpd
 
 k = jax.random.key(1)
-N = 100
+n_replicas = 100
 h0 = 1.0
 hi = nk.hilbert.Spin(0.5, 16)
 ps = nkf.ParameterSpace(N=hi.size, min=0, max=h0)
 #N nombre de paramètres indépendants
 
-def generate_disorder_realizations(N, system_size, h0, rng=None):
+def generate_disorder_realizations(n_replicas, system_size, h0, rng=None, sigma=0.1):
     if rng is None:
         rng = np.random.default_rng()
     #cela prend le generateur standard si aucun autre n'est proposé dans rng    
 
     # Shape: (N, system_size)
-    return rng.uniform(0.0, h0, size=(N, system_size))
+    return rng.normal(loc=h0, scale=sigma, size=(n_replicas, system_size))
 #produit une matrice de nombres aleatoires entre 0 et h0 de taille (N, system_size)
 
 ma = ViTFNQS(
@@ -51,9 +51,9 @@ ma = ViTFNQS(
 
 sa = nk.sampler.MetropolisLocal(hi, n_chains=800)
 
-vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=N, n_samples=N*64, seed=1)
+vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=n_replicas, n_samples=n_replicas*64, seed=1)
 
-params_list = generate_disorder_realizations(N, hi.size, h0)
+params_list = generate_disorder_realizations(n_replicas, hi.size, h0, )
 print(params_list.shape)
 vs.parameter_array = params_list
 
