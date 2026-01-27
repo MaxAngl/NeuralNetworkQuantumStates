@@ -8,18 +8,23 @@ import jax
 import jax.numpy as jnp
 import nqxpack
 
+
+# sauvegarde fichier 
+
+log = "logs/alpha_rapport"
+
 # Taille du système
 
 n_dim= 1
-L = 3
+L = 12
 J = -1
 H = 1
 
 #Paramètres RBM/optimisation
 
-alpha = 3
-lr= 0.004
-diag_shift= 1e-3
+alpha = 4
+lr= 0.01
+diag_shift= 0.01
 n_chains = 300
 n_samples =1000
 n_iter =300
@@ -33,11 +38,11 @@ ham = nk.operator.Ising(hi, g, J=J, h=H)
 
 
 
-#from scipy.sparse.linalg import eigsh
-#e_gs, psi_gs = eigsh(ham.to_sparse(), k=2, which="SA")
-#e_gs = e_gs[0]
-#psi_gs = psi_gs.reshape(-1)
-#print(e_gs)
+from scipy.sparse.linalg import eigsh
+e_gs, psi_gs = eigsh(ham.to_sparse(), k=2, which="SA")
+e_gs = e_gs[0]
+psi_gs = psi_gs.reshape(-1)
+print(e_gs)
 
 # Définition du Modèle RBM
 
@@ -49,7 +54,7 @@ model = nk.models.RBM(
 
 
 sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
-vstate = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=451)
+vstate = nk.vqs.FullSumState(hi, model)
 
 # Optimisation
 
@@ -76,7 +81,7 @@ meta = {
     "sampler": {"type": "MetropolisLocal", "n_chains": n_chains, "n_samples": n_samples},
     "optimizer": {"type": "SGD", "lr": lr, "diag_shift": diag_shift},
     "n_iter": n_iter,
-    "exact": "?",
+    "exact": e_gs,
 }
 
 # Créer le dossier de run avant l'entraînement

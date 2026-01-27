@@ -2,7 +2,6 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
-from matplotlib.cm import get_cmap
 from pathlib import Path
 
 
@@ -118,6 +117,7 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
     - Coloration selon meta_key
     - Sous-titre = tout le meta sauf meta_key et les champs '?'
     - Légende = uniquement meta_key = valeur
+    - Affiche deux graphiques: énergie et erreur relative
     
     meta_key peut être:
     - Une clé simple: "alpha", "L", etc.
@@ -128,6 +128,7 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
     runs = []
     metas = []
     values = []
+    exact_values = []
     
     def get_nested_value(d, key):
         """Récupère une valeur potentiellement imbriquée (ex: 'optimizer.lr')"""
@@ -141,20 +142,16 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
         return val
     
     def format_value_for_display(val):
-        """Convertit les valeurs complexes en chaînes lisibles"""
+        """Convertit les valeurs complexes en chaînes lisibles (toujours string)"""
         if isinstance(val, (list, tuple)):
-            # Pour kernel_size comme [[1,1],[1,1]] ou channels comme [5,5]
             if all(isinstance(v, (list, tuple)) for v in val):
-                # Nested list: [[1,1],[1,1]] -> "1x1_1x1"
                 return "_".join("x".join(map(str, v)) for v in val)
             else:
-                # Simple list: [5,5] -> "5_5"
                 return "_".join(map(str, val))
         elif isinstance(val, dict):
-            # Dict -> "key1=val1_key2=val2"
             return "_".join(f"{k}={v}" for k, v in val.items())
         else:
-            return val
+            return str(val)  # Toujours convertir en string
 
     # ------------------- Lecture des sous-dossiers -------------------
     for sub in run_dir.iterdir():
@@ -177,20 +174,43 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
         if param_value is None:
             continue
         
+        # Récupérer la valeur exacte
+        exact = meta.get("exact")
+        if exact is None:
+            print(f"[WARNING] Pas de valeur 'exact' dans {sub.name}, skip pour l'erreur relative")
+            continue
+        
         # Convertir en format affichable si nécessaire
         display_value = format_value_for_display(param_value)
 
         # -------- Extraction énergie --------
         energy_block = logger["Energy"]
 
-        # Format NetKet : {"iters": [...], "Mean": [...]}
+        # Format NetKet : {"iters": [...], "Mean": {"real": [...], "imag": [...]}}
+        # ou {"iters": [...], "Mean": [...]}
         if (
             isinstance(energy_block, dict)
             and "iters" in energy_block
             and "Mean" in energy_block
         ):
             it = np.asarray(energy_block["iters"])
-            E = np.asarray(energy_block["Mean"])
+            mean_data = energy_block["Mean"]
+            
+            # Mean peut être un dict {"real": [...], "imag": [...]} ou directement une liste
+            if isinstance(mean_data, dict):
+                # Format: {"real": [...], "imag": [...]}
+                E = np.asarray(mean_data.get("real", mean_data.get("Real", [])))
+            elif isinstance(mean_data, list) and len(mean_data) > 0:
+                if isinstance(mean_data[0], dict):
+                    # Format: [{"real": x, "imag": y}, ...]
+                    E = np.array([m.get("real", m.get("Real", 0)) for m in mean_data])
+                else:
+                    E = np.asarray(mean_data)
+            else:
+                E = np.asarray(mean_data)
+            
+            # S'assurer que E est bien un array de floats
+            E = E.astype(float)
 
         # Format PSC : [[iter, E], ...]
         elif isinstance(energy_block, list):
@@ -205,6 +225,7 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
         runs.append((it, E))
         metas.append(meta)
         values.append(display_value)
+        exact_values.append(exact)
 
     if len(runs) == 0:
         print("Aucun run valide trouvé.")
@@ -216,48 +237,65 @@ def plot_energy_by_meta(run_dir, meta_key="magma", cmap_name="viridis"):
     # Valeurs numériques ?
     is_numeric = all(isinstance(v, (int, float)) for v in values)
 
-    # Figure + Axes explicites (corrige l’erreur Colorbar)
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Figure avec 2 subplots côte à côte
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
 
-    # ------------------- Tracé -------------------
+    # ------------------- Préparation colormap -------------------
     if is_numeric:
         vmin, vmax = min(values), max(values)
         norm = Normalize(vmin=vmin, vmax=vmax)
-        cmap = get_cmap(cmap_name)
-
-        for (it, E), v in zip(runs, values):
-            ax.plot(it, E, linewidth=2, color=cmap(norm(v)), label=f"{meta_key} = {v}")
-
-        sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
-        cbar = fig.colorbar(sm, ax=ax)
-        cbar.set_label(meta_key)
-
+        cmap = plt.get_cmap(cmap_name)
+        get_color = lambda v: cmap(norm(v))
     else:
         categories = sorted(set(values))
-        cmap = get_cmap(cmap_name)
+        cmap = plt.get_cmap(cmap_name)
         cols = cmap(np.linspace(0, 1, len(categories)))
         cmap_dict = {cat: cols[i] for i, cat in enumerate(categories)}
+        get_color = lambda v: cmap_dict[v]
 
-        for (it, E), v in zip(runs, values):
-            ax.plot(it, E, linewidth=2, color=cmap_dict[v], label=f"{meta_key} = {v}")
+    # ------------------- Tracé énergie (ax1) -------------------
+    for (it, E), v in zip(runs, values):
+        ax1.plot(it, E, linewidth=2, color=get_color(v), label=f"{meta_key} = {v}")
 
-    # ------------------- Labels & mise en forme -------------------
-    ax.set_title("Énergie en fonction des itérations")
-    fig.suptitle(subtitle, fontsize=9, y=0.96)
+    ax1.set_title("Énergie en fonction des itérations")
+    ax1.set_xlabel("Itérations")
+    ax1.set_ylabel("Énergie")
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
 
-    ax.set_xlabel("Itérations")
-    ax.set_ylabel("Énergie")
-    ax.grid(True, alpha=0.3)
-    ax.legend()
+    # ------------------- Tracé erreur relative (ax2) -------------------
+    for (it, E), v, exact in zip(runs, values, exact_values):
+        # Erreur relative : |E - E_exact| / |E_exact|
+        rel_error = np.abs(E - exact) / np.abs(exact)
+        ax2.plot(it, rel_error, linewidth=2, color=get_color(v), label=f"{meta_key} = {v}")
+
+    ax2.set_title("Erreur relative par rapport à l'énergie exacte")
+    ax2.set_xlabel("Itérations")
+    ax2.set_ylabel(r"$|E - E_{\mathrm{exact}}| / |E_{\mathrm{exact}}|$")
+    ax2.set_yscale("log")  # Échelle log pour mieux voir la convergence
+    ax2.grid(True, alpha=0.3, which="both")
+    ax2.legend()
+
+    # ------------------- Colorbar si numérique -------------------
+    if is_numeric:
+        sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+        cbar = fig.colorbar(sm, ax=[ax1, ax2], location='right', shrink=0.8)
+        cbar.set_label(meta_key)
+
+    # ------------------- Titre global -------------------
+    fig.suptitle(subtitle, fontsize=10, y=0.98)
 
     fig.tight_layout()
-    plt.show()
- # ----------- Sauvegarde -----------
-
-    plt.tight_layout()
     plt.savefig(run_dir / "energy_plot_byparam.png", dpi=200)
     plt.close()
 
     print(f"Graphique sauvegardé dans {run_dir / 'energy_plot_byparam.png'}")
 
-plot_energy_by_meta(r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/logs/CNN_optimisation/Kernel_size", meta_key="model.kernel_size", cmap_name="viridis")
+
+# Exemple d'utilisation
+if __name__ == "__main__":
+    plot_energy_by_meta(
+        r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/logs/alpha_rapport",
+        meta_key="alpha",
+        cmap_name="viridis"
+    )
