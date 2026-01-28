@@ -40,9 +40,9 @@ ma = ViTFNQS(
     num_layers=4,
     d_model=16,
     heads=8,
+    b=4, #taille des patchs,
     L_eff=hi.size // 4, #taille effective du système
-    n_coups=ps.size, #nombre de paramètres variables du hamiltonien, ie dimension de l'espace de paramètre
-    b=4, #taille des patchs
+    n_coups=ps.size, #nombre de paramètres variables du hamiltonien, ie dimension de l'espace de paramètres
     complex=True, #sortie complexe du modèle, sortie réelle possible aussi avec complex=False
     disorder=True, #specifie le type d'embedding adapté à un grand nombre de paramètres de hamiltonien
     transl_invariant=False, #pas d'invariance par translation entre les patchs car le modèle avec désordre ne l'est pas
@@ -196,6 +196,7 @@ for pars in tqdm(exact["h"]):
     psi0 = psi0.reshape(-1)
     exact["Energy"].append(E0)
     exact["Mz2"].append((psi0.T.conj() @ (Mz2_mat @ psi0)).item())
+    
 
 exact = {
     "h": np.array(exact["h"]),
@@ -206,7 +207,12 @@ exact = {
 vmc_vals = {
     "Energy": [],
     "Mz2": [],
+    "v_score":[],
 }
+
+
+# Le V_score est la moyenne de ces erreurs sur l'ensemble des échantillons de test
+V_score = np.abs()
 
 
 print('Computing the nqs predictions for the squared magnetizations on the test set...')
@@ -226,15 +232,25 @@ for pars in tqdm(vs.parameter_array):
     vs_fs = nk.vqs.FullSumState(hilbert = hi, model = _vs.model, chunk_size = _vs.chunk_size, variables = _vs.variables)
     #cet objet va ensuoite calculer ensuite les valeurs des observables en sommant sur tout l'espace de Hilbert
     #MAIS ATTENTION meme si calcul exact c'est la moyenne sur l'état fo,ndamental trouvé par l'alogrithe VMC
+    # _e.variance contient déjà <H^2> - <H>^2 calculé exactement par FullSumState
+    variance_H = _e.variance
+    energy_sq = (_e.Mean.real)**2  # On prend le carré de l'énergie moyenne (partie réelle)
+    
+    # Calcul du V_score = Var / E^2
+    current_v_score = variance_H / energy_sq
+    
     _e = vs_fs.expect(_ha)
     _o = vs_fs.expect(Mz2)
     vmc_vals["Energy"].append(_e.Mean)
     vmc_vals["Mz2"].append(_o.Mean)
+    vmc_vals["V_score"].append(current_v_score)
+    
 
 vmc_vals = {
     "h": np.array(vs.parameter_array),
     "Energy": np.array(vmc_vals["Energy"]),
     "Mz2": jnp.real(np.array(vmc_vals["Mz2"])),
+    "V_score": np.real(np.array(vmc_vals["V_score"]))
 }
 
 # Plot des valeurs de magnetisation comparant valeurs estimées et valeurs provenant de la diagonalisation exacte

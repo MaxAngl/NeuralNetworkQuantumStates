@@ -17,7 +17,7 @@ from advanced_drivers._src.callbacks.base import AbstractCallback
 from netket_foundational._src.model.vit import ViTFNQS
 
 # --- CONFIGURATION ET DOSSIERS ---
-output_dir = Path("/results_simulation")
+output_dir = Path("results_simulation")
 output_dir.mkdir(parents=True, exist_ok=True)
 checkpoint_dir = output_dir / "checkpoints"
 
@@ -89,7 +89,7 @@ log_path = output_dir / "log_data"
 log = nk.logging.JsonLog(str(log_path))
 
 gs.run(
-    1000,
+    100,
     out=log,
     obs={"ham": ha_p, "mz": mz_p},
     step_size=10,

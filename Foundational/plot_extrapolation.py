@@ -18,7 +18,7 @@ from netket_foundational._src.model.vit import ViTFNQS
 
 
 # --- CONFIGURATION ET DOSSIERS ---
-output_dir = Path("/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational")
+output_dir = Path("results_simulation")
 output_dir.mkdir(parents=True, exist_ok=True)
 checkpoint_dir = output_dir / "checkpoints"
 
@@ -33,7 +33,7 @@ sampler=sa = nk.sampler.MetropolisLocal(hi, n_chains=5016)
 
 
 # Charger les paramètres sauvegardés
-vs= nk.vqs.MCState.load(r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/2/state_990.nk", new_seed=False)
+vs= nk.vqs.MCState.load(r"results_simulation/state_990.nk", new_seed=False)
 
 def create_operator(params):
     assert params.shape == (1,)
