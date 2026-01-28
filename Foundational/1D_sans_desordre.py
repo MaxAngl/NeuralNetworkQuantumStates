@@ -112,7 +112,7 @@ for h_val in tqdm(h_exact_range, desc="Calculs Exacts"):
     exact_data["Mz2"].append((psi0.T.conj() @ (Mz2_mat @ psi0)).item())
 
 # --- ÉVALUATION VMC FINALE ---
-vmc_final = {"h": [], "Energy": [], "Mz2": []}
+vmc_final = {"h": [], "Energy": [], "Mz2": [], "v_score":[]}
 for pars in tqdm(jnp.linspace(0.8, 1.2, 40).reshape(-1, 1), desc="Évaluation VMC"):
     _ha = create_operator(pars)
     _vs = vs.get_state(pars)
