@@ -120,6 +120,17 @@ for pars in tqdm(jnp.linspace(0.8, 1.2, 40).reshape(-1, 1), desc="Évaluation VM
     vmc_final["h"].append(pars[0].item())
     vmc_final["Energy"].append(_vs.expect(_ha).Mean.real)
     vmc_final["Mz2"].append(_vs.expect(Mz @ Mz).Mean.real)
+    variance_H = _e.variance
+    energy_sq = (_e.Mean.real)**2  # On prend le carré de l'énergie moyenne (partie réelle)
+    
+    # Calcul du V_score = Var / E^2
+    current_v_score = variance_H / energy_sq
+    
+    _e = vs_fs.expect(_ha)
+    _o = vs_fs.expect(Mz2)
+    vmc_vals["Energy"].append(_e.Mean)
+    vmc_vals["Mz2"].append(_o.Mean)
+    vmc_vals["V_score"].append(current_v_score)
 
 # --- ANALYSE DE LA CONVERGENCE & SAUVEGARDE CSV ---
 convergence_list = []

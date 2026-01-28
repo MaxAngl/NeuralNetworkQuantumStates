@@ -122,8 +122,8 @@ gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=1e-4)
 #l'objet vs prend en charge en meme temps un batch de N (nb de réalisations ou de replicas )différents
 #gs optimise en parallèle toutes les replicas et leurs Hamiltoniens respectifs
 
-log = nk.logging.JsonLog("2")
-#le "2" est le nom du dossier
+log = nk.logging.JsonLog("log_data")
+
 gs.run(
     1000,
     out=log,
@@ -211,8 +211,7 @@ vmc_vals = {
 }
 
 
-# Le V_score est la moyenne de ces erreurs sur l'ensemble des échantillons de test
-V_score = np.abs()
+
 
 
 print('Computing the nqs predictions for the squared magnetizations on the test set...')
