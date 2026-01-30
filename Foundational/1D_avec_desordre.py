@@ -23,7 +23,7 @@ import netket_pro.distributed as nkpd
 # On définit tout ici pour que le 'meta' soit cohérent
 seed = 1
 k = jax.random.key(seed)
-L = 16              # Taille du système
+L = 4              # Taille du système
 h0 = 1.0            # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
@@ -41,8 +41,8 @@ vit_params = {
     "num_layers": 4,
     "d_model": 16,
     "heads": 8,
-    "b": 4,
-    "L_eff": L // 4,
+    "b": 1,
+    "L_eff": L,
 }
 
 # ==========================================
