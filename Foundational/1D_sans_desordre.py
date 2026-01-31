@@ -17,7 +17,7 @@ from advanced_drivers._src.callbacks.base import AbstractCallback
 from netket_foundational._src.model.vit import ViTFNQS
 
 # --- CONFIGURATION ET DOSSIERS ---
-output_dir = Path("/results_simulation")
+output_dir = Path("results_simulation")
 output_dir.mkdir(parents=True, exist_ok=True)
 checkpoint_dir = output_dir / "checkpoints"
 
@@ -89,7 +89,7 @@ log_path = output_dir / "log_data"
 log = nk.logging.JsonLog(str(log_path))
 
 gs.run(
-    1000,
+    100,
     out=log,
     obs={"ham": ha_p, "mz": mz_p},
     step_size=10,
@@ -112,7 +112,7 @@ for h_val in tqdm(h_exact_range, desc="Calculs Exacts"):
     exact_data["Mz2"].append((psi0.T.conj() @ (Mz2_mat @ psi0)).item())
 
 # --- ÉVALUATION VMC FINALE ---
-vmc_final = {"h": [], "Energy": [], "Mz2": []}
+vmc_final = {"h": [], "Energy": [], "Mz2": [], "v_score":[]}
 for pars in tqdm(jnp.linspace(0.8, 1.2, 40).reshape(-1, 1), desc="Évaluation VMC"):
     _ha = create_operator(pars)
     _vs = vs.get_state(pars)
@@ -120,6 +120,17 @@ for pars in tqdm(jnp.linspace(0.8, 1.2, 40).reshape(-1, 1), desc="Évaluation VM
     vmc_final["h"].append(pars[0].item())
     vmc_final["Energy"].append(_vs.expect(_ha).Mean.real)
     vmc_final["Mz2"].append(_vs.expect(Mz @ Mz).Mean.real)
+    variance_H = _e.variance
+    energy_sq = (_e.Mean.real)**2  # On prend le carré de l'énergie moyenne (partie réelle)
+    
+    # Calcul du V_score = Var / E^2
+    current_v_score = variance_H / energy_sq
+    
+    _e = vs_fs.expect(_ha)
+    _o = vs_fs.expect(Mz2)
+    vmc_vals["Energy"].append(_e.Mean)
+    vmc_vals["Mz2"].append(_o.Mean)
+    vmc_vals["V_score"].append(current_v_score)
 
 # --- ANALYSE DE LA CONVERGENCE & SAUVEGARDE CSV ---
 convergence_list = []

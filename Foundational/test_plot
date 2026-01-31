@@ -1,0 +1,59 @@
+import json
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+# --- CONFIGURATION AUTOMATIQUE ---
+# On cherche le fichier dans le dossier results_simulation
+output_dir = Path("results_simulation")
+log_files = list(output_dir.glob("*.json"))
+
+if not log_files:
+    raise FileNotFoundError(f"Aucun fichier JSON trouvé dans {output_dir.absolute()}")
+
+# On prend le fichier le plus récent ou le premier trouvé
+log_path = log_files[0]
+print(f"Analyse du fichier : {log_path}")
+
+# --- 1. CHARGEMENT ---
+with open(log_path, 'r') as f:
+    data = json.load(f)
+
+# Extraction des clés (NetKet utilise souvent 'Energy' ou 'Energy_vstate')
+# On s'adapte à la structure du JSON
+energy_key = "Energy" if "Energy" in data else "Energy_vstate"
+
+iters = np.array(data[energy_key]["iters"])
+e_mean = np.array(data[energy_key]["Mean"]["real"])
+e_var = np.array(data[energy_key]["Variance"])
+
+# Calcul du V-score : Var / E^2
+v_score = e_var / (e_mean**2)
+
+# --- 2. TRACÉ ---
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+# Graphique 1 : V-score vs Itérations
+ax1.plot(iters, v_score, color='#2ca02c', lw=1.5)
+ax1.set_yscale('log')
+ax1.set_xlabel('Itérations')
+ax1.set_ylabel(r'V-score ($Var/E^2$)')
+ax1.set_title('Qualité de l\'état (Convergence)')
+ax1.grid(True, which="both", ls="--", alpha=0.4)
+
+# Graphique 2 : Énergie vs h
+# On crée un axe h artificiel entre 0.5 et 1.5 basé sur le nombre de points
+# (Ou utilise tes propres données si h est dans le log)
+h_axis = np.linspace(0.5, 1.5, len(e_mean))
+ax2.plot(h_axis, e_mean, color='#d62728', lw=2)
+ax2.axvspan(0.8, 1.2, color='gray', alpha=0.15, label='Zone Entraînement')
+ax2.set_xlabel('Champ transverse $h$')
+ax2.set_ylabel('Énergie $\langle H \rangle$')
+ax2.set_title('Énergie vs $h$ (autour de 1)')
+ax2.grid(True, ls=":", alpha=0.6)
+ax2.legend()
+
+plt.tight_layout()
+output_pdf = "Rapport_Simulation_VScore.pdf"
+plt.savefig(output_pdf)
+print(f"✅ PDF généré avec succès : {output_pdf}")
