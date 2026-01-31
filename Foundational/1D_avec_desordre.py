@@ -21,7 +21,7 @@ from advanced_drivers._src.callbacks.base import AbstractCallback
 import netket_pro.distributed as nkpd
 
 k = jax.random.key(1)
-n_replicas = 100
+n_replicas = 10
 h0 = 1.0
 hi = nk.hilbert.Spin(0.5, 16)
 ps = nkf.ParameterSpace(N=hi.size, min=0, max=10*h0)
@@ -30,14 +30,16 @@ ps = nkf.ParameterSpace(N=hi.size, min=0, max=10*h0)
 def generate_disorder_realizations(n_replicas, system_size, h0, rng=None, sigma=0.1):
     if rng is None:
         rng = np.random.default_rng()
-    #cela prend le generateur standard si aucun autre n'est proposé dans rng    
-
-    # Shape: (N, system_size)
-    return min(max(0,rng.normal(loc=h0, scale=sigma, size=(n_replicas, system_size))), 10*h0)
+    
+    # 1. Générer la matrice de désordre (Gaussienne)
+    samples = rng.normal(loc=h0, scale=sigma, size=(n_replicas, system_size))
+    
+    # 2. Borner les valeurs entre 0 et 10*h0 proprement avec NumPy
+    return np.clip(samples, 0, 10 * h0)
 #produit une matrice de nombres aleatoires entre 0 et 10*h0 de taille (n_replicas, system_size)
 
 ma = ViTFNQS(
-    num_layers=4,
+    num_layers=1,
     d_model=16,
     heads=8,
     L_eff=hi.size // 4, #taille effective du système
