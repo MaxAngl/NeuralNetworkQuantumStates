@@ -217,7 +217,7 @@ plt.xlabel("Iteration")
 plt.ylabel("Rel Error")
 plt.xscale("log")
 plt.yscale("log")
-plt.savefig(os.path.join(run_dir, "convergence.pdf"))
+plt.savefig(os.path.join(run_dir, f"Found_disordered_mono_h0_L={L}_convergence.pdf"))
 plt.clf()
 
 # ==========================================
@@ -358,4 +358,4 @@ ax2.set_title("Distribution de l'Erreur Relative $M_z^2$")
 ax2.legend()
 
 plt.tight_layout()
-plt.savefig(os.path.join(run_dir, "comparative_analysis.pdf"))
+plt.savefig(os.path.join(run_dir, f"Found_disordered_mono_h0_L={L}_extrapolation_analysis.pdf"))

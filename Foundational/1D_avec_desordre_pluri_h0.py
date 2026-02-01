@@ -164,7 +164,8 @@ plt.figure()
 for _data in conv_data:
     plt.plot(_data["iters"], np.abs(_data["err_val"] / _data["e0"]), alpha=0.3)
 plt.xlabel("Iteration"); plt.ylabel("Rel Error"); plt.xscale("log"); plt.yscale("log")
-plt.savefig(os.path.join(run_dir, "convergence.pdf")); plt.clf()
+plt.savefig(os.path.join(run_dir, f"Found_disordered_pluri_h0_L={L}_convergence.pdf"))
+plt.clf()
 
 # ==========================================
 # 5. TEST SUR NOUVEL ENSEMBLE (SANS FULLSUM)
@@ -262,5 +263,5 @@ ax2.hist(err_train, bins=bins_e, alpha=0.8, label='Train', color='cyan', edgecol
 ax2.set_xscale('log'); ax2.set_title("Distribution de l'Erreur Relative $M_z^2$"); ax2.legend()
 
 plt.tight_layout()
-plt.savefig(os.path.join(run_dir, "comparative_analysis.pdf"))
+plt.savefig(os.path.join(run_dir, f"Found_disordered_pluri_h0_L={L}_extrapolation_analysis.pdf"))
 print(f"✅ Analyse terminée dans : {run_dir}")
