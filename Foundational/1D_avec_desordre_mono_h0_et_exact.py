@@ -1,10 +1,13 @@
 import os
-os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
+#Décommenter cette ligne pour L supérieur à n16 ou 20
+#os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
 
 import netket as nk
 import netket_foundational as nkf
 from nqs_psc.utils import save_run 
 
+import time
+import pandas as pd
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -27,10 +30,10 @@ L = 4              # Taille du système
 h0 = 1.0            # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
-n_replicas = 100    # Nombre de réalisations de désordre
+n_replicas = 10    # Nombre de réalisations de désordre
 n_chains = 800      # Pour le sampler
 n_samples = n_replicas * 64
-n_iter = 1000       # Nombre d'étapes d'optimisation
+n_iter = 500       # Nombre d'étapes d'optimisation
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 1e-4
@@ -38,9 +41,9 @@ logs_path = "logs"  # Dossier racine pour les logs
 
 # Paramètres du modèle ViT
 vit_params = {
-    "num_layers": 4,
+    "num_layers": 1,
     "d_model": 16,
-    "heads": 8,
+    "heads": 2,
     "b": 1,
     "L_eff": L,
 }
@@ -50,7 +53,7 @@ vit_params = {
 # ==========================================
 
 hi = nk.hilbert.Spin(0.5, L)
-ps = nkf.ParameterSpace(N=hi.size, min=0, max=h0)
+ps = nkf.ParameterSpace(N=hi.size, min=0, max=10*h0)
 
 def generate_disorder_realizations(n_replicas, system_size, h0, rng=None, sigma=0.1):
     if rng is None:
@@ -154,6 +157,8 @@ except Exception as e:
     print(f"Warning: save_run issue ({e}), using default path.")
     run_dir = "checkpoints"
 
+start_time = time.time()
+
 # Lancement du run
 gs.run(
     n_iter,
@@ -161,6 +166,15 @@ gs.run(
     obs={"ham": ha_p, "mz": mz_p},
     callback=SaveState(run_dir, 10), # Sauvegarde dans le dossier créé
 )
+
+duration = time.time() - start_time
+print(f"⏱️ Temps total d'entraînement : {duration:.2f} secondes")
+
+# Mise à jour du meta.json avec le temps d'exécution final
+meta["execution_time_seconds"] = duration
+import json
+with open(os.path.join(run_dir, "meta.json"), 'w') as f:
+    json.dump(meta, f, indent=4)
 
 # ==========================================
 # 4. ANALYSE ET PLOTS (CONVERGENCE)
@@ -203,115 +217,145 @@ plt.xlabel("Iteration")
 plt.ylabel("Rel Error")
 plt.xscale("log")
 plt.yscale("log")
-plt.savefig("convergence.pdf")
+plt.savefig(os.path.join(run_dir, f"Found_disordered_mono_h0_L={L}_convergence.pdf"))
 plt.clf()
 
 # ==========================================
 # 5. TEST SUR NOUVEL ENSEMBLE (CORRIGÉ)
 # ==========================================
 
-N_test = 100
+N_test = 10*n_replicas
 params_list_test = generate_disorder_realizations(N_test, hi.size, h0, sigma=sigma_disorder)
-print(f"Test set shape: {params_list_test.shape}")
 
-# Mise à jour de l'état avec les nouveaux paramètres
-vs.parameter_array = params_list_test
-Mz2 = Mz @ Mz
-Mz2_mat = Mz2.to_sparse()
+vmc_vals = {"Energy": [], "Mz2": [], "V_score": []}
 
-# --- Calcul Exact ---
-exact = {"Energy": [], "Mz2": []}
+print(f'Computing NQS predictions on test set ({N_test} samples)...')
+
+# On avance par paquets de n_replicas (ici 10)
+for i in tqdm(range(0, N_test, n_replicas)):
+    # 1. On prend un lot de 10 paramètres
+    batch_params = params_list_test[i : i + n_replicas]
+    
+    # Si le dernier lot est plus petit que n_replicas, on le complète avec des zéros (ou on ignore)
+    if len(batch_params) < n_replicas: break 
+
+    # 2. On injecte le lot dans le vstate
+    vs.parameter_array = batch_params
+    
+    # 3. On évalue chaque réplica du lot individuellement
+    for r in range(n_replicas):
+        pars = batch_params[r]
+        _vs = vs.get_state(pars) # Récupère l'état spécifique au paramètre r
+        
+        # Passage en FullSum pour la précision (puisque L=4)
+        vs_fs = nk.vqs.FullSumState(hilbert=hi, model=_vs.model, variables=_vs.variables)
+        
+        _ha = create_operator(pars)
+        _e = vs_fs.expect(_ha)
+        _o = vs_fs.expect(Mz @ Mz)
+        
+        # Calcul du V-score
+        v_score = _e.variance / (_e.Mean.real**2 + 1e-12)
+        
+        vmc_vals["Energy"].append(_e.Mean)
+        vmc_vals["Mz2"].append(_o.Mean)
+        vmc_vals["V_score"].append(v_score)
+
+# --- Calcul Exact de Test (Indispensable pour comparer) ---
+exact_vals = {"Energy": [], "Mz2": []}
 print('Computing exact values on test set...')
+Mz2_op = Mz @ Mz
+Mz2_mat = Mz2_op.to_sparse()
+
 for pars in tqdm(params_list_test):
-    _ha = create_operator(pars.reshape(-1))
-    E0, psi0 = nk.exact.lanczos_ed(_ha, k=1, compute_eigenvectors=True)
-    E0 = E0.item()
-    psi0 = psi0.reshape(-1)
-    
-    exact["Energy"].append(E0)
-    exact["Mz2"].append((psi0.T.conj() @ (Mz2_mat @ psi0)).item())
-
-exact_vals = {
-    "Energy": np.array(exact["Energy"]),
-    "Mz2": jnp.real(np.array(exact["Mz2"])),
-}
-
-# --- Calcul VMC (FullSum) ---
-vmc_vals = {
-    "Energy": [],
-    "Mz2": [],
-    "V_score": [], # Correction de la majuscule pour matcher l'append
-}
-
-print('Computing NQS predictions on test set...')
-for pars in tqdm(vs.parameter_array):
     _ha = create_operator(pars)
-    _vs = vs.get_state(pars)
-    _vs.reset()
+    E0, psi0 = nk.exact.lanczos_ed(_ha, k=1, compute_eigenvectors=True)
+    exact_vals["Energy"].append(E0.item())
+    exact_vals["Mz2"].append((psi0.T.conj() @ (Mz2_mat @ psi0.reshape(-1))).item().real)
 
-    # Utilisation de FullSumState pour obtenir la valeur exacte de l'ansatz
-    vs_fs = nk.vqs.FullSumState(hilbert=hi, model=_vs.model, chunk_size=_vs.chunk_size, variables=_vs.variables)
-    
-    # --- CORRECTION MAJEURE ICI ---
-    # 1. On calcule d'abord les espérances
-    _e = vs_fs.expect(_ha)
-    _o = vs_fs.expect(Mz2)
-    
-    # 2. Ensuite, on peut accéder à la variance
-    variance_H = _e.variance
-    energy_sq = (_e.Mean.real)**2 
-    
-    # Sécurité division par zéro
-    if energy_sq > 1e-12:
-        current_v_score = variance_H / energy_sq
-    else:
-        current_v_score = 0.0
-    
-    vmc_vals["Energy"].append(_e.Mean)
-    vmc_vals["Mz2"].append(_o.Mean)
-    vmc_vals["V_score"].append(current_v_score)
-
-# Conversion en arrays
+# --- Conversion des résultats VMC en numpy arrays ---
 vmc_final = {
-    "Energy": np.array(vmc_vals["Energy"]),
-    "Mz2": jnp.real(np.array(vmc_vals["Mz2"])),
-    "V_score": np.real(np.array(vmc_vals["V_score"]))
+    "Energy": np.array([np.real(e) for e in vmc_vals["Energy"]]),
+    "Mz2": np.array([np.real(m) for m in vmc_vals["Mz2"]]),
+    "V_score": np.array(vmc_vals["V_score"])
 }
 
+# --- Conversion des résultats EXACTS en numpy arrays (INDISPENSABLE) ---
+ex_energy = np.array(exact_vals["Energy"])
+ex_mz2 = np.array(exact_vals["Mz2"])
+
+# Maintenant le calcul d'erreur ne plantera plus
+err_test = np.abs(vmc_final['Mz2'] - ex_mz2) / (np.abs(ex_mz2) + 1e-12)
+
 # ==========================================
-# 6. PLOTS FINAUX (CORRIGÉS)
+# 5bis. SAUVEGARDE DES RESULTATS (CSV)
+# ==========================================
+df_results = pd.DataFrame({
+    "h_mean": [h0] * len(exact_vals["Energy"]),
+    "exact_energy": exact_vals["Energy"],
+    "vmc_energy": vmc_final["Energy"],
+    "exact_mz2": exact_vals["Mz2"],
+    "vmc_mz2": vmc_final["Mz2"],
+    "v_score": vmc_final["V_score"]
+})
+
+csv_path = os.path.join(run_dir, "test_results.csv")
+df_results.to_csv(csv_path, index=False)
+print(f"✅ Données de test sauvegardées dans : {csv_path}")
+
+# ==========================================
+# 6. ANALYSE COMPARATIVE : TRAIN VS TEST
 # ==========================================
 
-# Plot Magnetization
-plt.figure()
-plt.scatter(exact_vals['Mz2'], vmc_final['Mz2'], alpha=0.7, label='Data')
+print("Ré-évaluation des points de Train pour comparaison...")
+vs.parameter_array = params_list  # On remet les 10 points originaux
 
-# Correction de la ligne d'identité (min vers max, pas min vers min)
-min_mz = min(jnp.min(exact_vals["Mz2"]), jnp.min(vmc_final["Mz2"]))
-max_mz = max(jnp.max(exact_vals["Mz2"]), jnp.max(vmc_final["Mz2"]))
-plt.plot([min_mz, max_mz], [min_mz, max_mz], linestyle='--', color='black', label='Ideal')
+train_results = {"V_score": [], "Mz2": [], "Ex_Mz2": []}
 
-plt.xlabel("Exact $M_z^2$")
-plt.ylabel("VMC $M_z^2$")
-plt.legend()
-plt.savefig("mag_accordance.pdf")
-plt.clf()
+for r in range(n_replicas):
+    pars = params_list[r]
+    _vs = vs.get_state(pars)
+    vs_fs = nk.vqs.FullSumState(hilbert=hi, model=_vs.model, variables=_vs.variables)
+    
+    # VMC
+    _e = vs_fs.expect(create_operator(pars))
+    _o = vs_fs.expect(Mz @ Mz)
+    
+    # Exact
+    E0, psi0 = nk.exact.lanczos_ed(create_operator(pars), k=1, compute_eigenvectors=True)
+    ex_mz2_val = (psi0.reshape(-1).T.conj() @ (Mz2_mat @ psi0.reshape(-1))).item().real
+    
+    train_results["V_score"].append(_e.variance / (_e.Mean.real**2 + 1e-12))
+    train_results["Mz2"].append(_o.Mean.real)
+    train_results["Ex_Mz2"].append(ex_mz2_val)
 
-# Plot Distributions (KDE)
-plt.figure()
-# Exact
-kde_exact = gaussian_kde(exact_vals["Mz2"])
-x_space = np.linspace(min_mz, max_mz, 500)
-plt.plot(x_space, kde_exact(x_space), linestyle='--', color='black', label='Exact')
+# --- CONVERSION EN ARRAYS POUR CALCULS ---
+v_train = np.array(train_results["V_score"])
+err_train = np.abs(np.array(train_results["Mz2"]) - np.array(train_results["Ex_Mz2"])) / (np.abs(np.array(train_results["Ex_Mz2"])) + 1e-12)
 
-# VMC
-kde_vmc = gaussian_kde(vmc_final["Mz2"])
-plt.plot(x_space, kde_vmc(x_space), label='VMC')
+v_test = vmc_final['V_score']
+# err_test a déjà été calculé plus haut avec ex_mz2 converti
 
-plt.xlabel("$M_z^2$")
-plt.ylabel("Distribution density")
-plt.legend()
-plt.savefig("mz2_distrib.pdf")
-plt.clf()
+# --- TRACÉ DES HISTOGRAMMES ---
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
-print("Terminé. Résultats sauvegardés.")
+# Histogramme V-scores
+all_v = np.concatenate([v_train, v_test])
+bins_v = np.logspace(np.log10(all_v.min() + 1e-18), np.log10(all_v.max() + 1e-2), 25)
+ax1.hist(v_test, bins=bins_v, alpha=0.5, label='Test', color='orange', edgecolor='darkorange')
+ax1.hist(v_train, bins=bins_v, alpha=0.8, label='Train', color='red', edgecolor='black')
+ax1.set_xscale('log')
+ax1.set_title("Distribution du V-score")
+ax1.legend()
+
+# Histogramme Erreurs Relatives
+all_err = np.concatenate([err_train, err_test])
+bins_e = np.logspace(np.log10(all_err.min() + 1e-18), np.log10(all_err.max() + 1e-1), 25)
+ax2.hist(err_test, bins=bins_e, alpha=0.5, label='Test', color='blue', edgecolor='darkblue')
+ax2.hist(err_train, bins=bins_e, alpha=0.8, label='Train', color='cyan', edgecolor='black')
+ax2.set_xscale('log')
+ax2.set_title("Distribution de l'Erreur Relative $M_z^2$")
+ax2.legend()
+
+plt.tight_layout()
+plt.savefig(os.path.join(run_dir, f"Found_disordered_mono_h0_L={L}_extrapolation_analysis.pdf"))
