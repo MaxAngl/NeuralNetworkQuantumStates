@@ -3,7 +3,7 @@ os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
 
 import netket as nk
 import netket_foundational as nkf
-from nqs_psc.utils import save_run # Assure-toi que ce module est accessible
+from nqs_psc.utils import save_run 
 
 import jax
 import jax.numpy as jnp
