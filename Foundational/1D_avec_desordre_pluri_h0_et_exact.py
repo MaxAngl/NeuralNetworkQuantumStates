@@ -45,7 +45,7 @@ logs_path = "logs"  # Dossier racine pour les logs
 # Paramètres du modèle ViT
 vit_params = {
     "num_layers": 1,
-    "d_model": 16,
+    "d_model": 32,
     "heads": 2,
     "b": 1,
     "L_eff": L,

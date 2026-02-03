@@ -24,7 +24,7 @@ import netket_pro.distributed as nkpd
 # 1. HYPERPARAMÈTRES ET CONFIGURATION
 # ==========================================
 seed = 1
-k = jax.random.key(seed)
+k = jax.random.PRNGKey(seed)
 L = 4              # Augmente ici pour tes tests (ex: 20, 25)
 h0_train_list = [0, 0.4, 0.8, 0.9, 1.0, 1.1, 1.2, 2.0, 5.0]
 sigma_disorder = 0.1 
@@ -96,7 +96,7 @@ mz_p = nkf.operator.ParametrizedOperator(hi, ps, lambda _: Mz)
 # ==========================================
 # 3. LOGGING ET OPTIMISATION
 # ==========================================
-class SaveState(AbstractCallback, mutable=True):
+class SaveState(AbstractCallback):
     _path: str = struct.field(pytree_node=False, serialize=False)
     _prefix: str = struct.field(pytree_node=False, serialize=False)
     _save_every: int = struct.field(pytree_node=False, serialize=False)
@@ -250,7 +250,7 @@ v_train = np.array(train_results["V_score"])
 err_train = np.abs(np.array(train_results["Mz2"]) - np.array(train_results["Ex_Mz2"])) / (np.abs(np.array(train_results["Ex_Mz2"])) + 1e-12)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-all_v = np.concatenate([v_train, v_test])
+all_v = np.concatenate([v_train, vmc_final["V_score"]])
 bins_v = np.logspace(np.log10(all_v.min() + 1e-18), np.log10(all_v.max() + 1e-2), 25)
 ax1.hist(vmc_final['V_score'], bins=bins_v, alpha=0.5, label='Test', color='orange', edgecolor='darkorange')
 ax1.hist(v_train, bins=bins_v, alpha=0.8, label='Train', color='red', edgecolor='black')
