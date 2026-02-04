@@ -1,15 +1,30 @@
 import os
-import json
+import sys
+# Ajouter le répertoire racine du projet au chemin Python
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+#Décommenter cette ligne pour L supérieur à 16 ou 20
+#os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
+
 import netket as nk
 import netket_foundational as nkf
-import jax
-import numpy as np
+
+from src.nqs_psc.utils import save_run # Assure-toi que ce module est accessible
+
+import time
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+import jax
+import jax.numpy as jnp
+import numpy as np
 from tqdm import tqdm
-from pathlib import Path
+import optax
+from scipy.stats import gaussian_kde
+from netket.utils import struct
+import matplotlib.pyplot as plt
 from netket_foundational._src.model.vit import ViTFNQS
+from advanced_drivers._src.callbacks.base import AbstractCallback
+import netket_pro.distributed as nkpd
 
 # ==========================================
 # 1. HYPERPARAMÈTRES ET CONFIGURATION
@@ -18,7 +33,7 @@ from netket_foundational._src.model.vit import ViTFNQS
 seed = 1
 k = jax.random.key(seed)
 L = 4              # Taille du système
-h0_train_list = [ 0.2, 0.8, 1.0, 1.2, 5.0 ]          # Champ moyen
+h0_train_list = [ 0.0, 0.8, 1.0, 1.2, 2.0, 5.0 ]          # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
 n_replicas = 10    # Nombre de réalisations de désordre
@@ -27,13 +42,13 @@ chains_per_replica = 4      # <--- ICI : Chaque réplica aura 4 chaînes indépe
 samples_per_chain = 2      # Nombre de points récoltés par chaque chaîne
 n_chains = total_configs_train * chains_per_replica 
 n_samples = n_chains * samples_per_chain             
-n_iter = 300       # Nombre d'étapes d'optimisation
+n_iter = 200       # Nombre d'étapes d'optimisation
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 1e-4
 logs_path = "logs"  # Dossier racine pour les logs
 
-h0_test_list = [ 0.85, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
+h0_test_list = [ 0.4, 0.95, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
 N_test_per_h0 = 10  # Nombre de configurations de désordre par h0 de test
 
 # Paramètres du modèle ViT
@@ -45,48 +60,124 @@ vit_params = {
     "L_eff": L,
 }
 
-L = meta["L"]
-h0_train_list = np.array(meta["hamiltonian"]["h0_train_list"])
-n_reps = meta["n_replicas_per_h0"]
-n_h0 = len(h0_train_list)
-J_val = meta["hamiltonian"]["J"]
-sigma_disorder = meta["hamiltonian"]["sigma"]
-n_iter = meta["n_iter"]
+# ==========================================
+# 2. DEFINITION DU SYSTEME
+# ==========================================
 
-# Chargement du log NetKet
-log_nk = nk.logging.JsonLog(str(log_path).replace(".json", ""))
-print(f"✅ Log et Meta chargés pour L={L}")
-
-# Détection de la clé d'énergie (souvent 'ham' d'après ton gs.run)
-energy_key = "ham" if "ham" in log_nk.data else "Energy"
-
-# --- 2. RECONSTRUCTION DU SYSTÈME ET CALCUL EXACT ---
 hi = nk.hilbert.Spin(0.5, L)
+ps = nkf.ParameterSpace(N=hi.size, min=0, max=10*max(h0_train_list))
+
+def generate_multi_h0_disorder(h0_list, n_reps, system_size, sigma, rng=None):
+    if rng is None:
+        rng = np.random.default_rng()
+    all_configs = []
+    for h_m in h0_list:
+        configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
+        all_configs.append(configs)
+    return np.vstack(all_configs) # Shape: (len(h0_list)*n_reps, system_size)
+
+# Modèle
+ma = ViTFNQS(
+    num_layers=vit_params["num_layers"],
+    d_model=vit_params["d_model"],
+    heads=vit_params["heads"],
+    b=vit_params["b"],
+    L_eff=vit_params["L_eff"], 
+    n_coups=ps.size, 
+    complex=True, 
+    disorder=True, 
+    transl_invariant=False, 
+    two_dimensional=False, 
+)
+
+# Sampler & État Variationnel
+sa = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
+vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed)
+
+# Initialisation des paramètres (désordre)
+params_list = generate_multi_h0_disorder(h0_train_list, n_replicas, hi.size, sigma=sigma_disorder)
+print(f"Forme des paramètres de désordre : {params_list.shape}")
+vs.parameter_array = params_list
+
+# Opérateurs
+Mz = sum(nkf.operator.sigmaz(hi, i) for i in range(hi.size)) * (1 / float(hi.size))
 
 def create_operator(params):
+    assert params.shape == (hi.size,)
+    # Transverse field term: sum_i h_i sigma^x_i
     ha_X = sum(params[i] * nkf.operator.sigmax(hi, i) for i in range(hi.size))
+    # Ising interaction
     ha_ZZ = sum(nkf.operator.sigmaz(hi, i) @ nkf.operator.sigmaz(hi, (i + 1) % hi.size) for i in range(hi.size))
     return -ha_X - J_val * ha_ZZ
 
-# Régénération des paramètres d'entraînement (même seed)
-rng = np.random.default_rng(meta["seed"])
-params_train = []
-for h in h0_train_list:
-    params_train.append(rng.normal(h, sigma_disorder, (n_reps, L)))
-params_train = np.vstack(params_train)
+ha_p = nkf.operator.ParametrizedOperator(hi, ps, create_operator)
+mz_p = nkf.operator.ParametrizedOperator(hi, ps, lambda _: Mz)
 
-print("Calcul des énergies exactes pour la convergence...")
-exact_energies = []
-for p in tqdm(params_train):
-    res = nk.exact.lanczos_ed(create_operator(p), k=1)
-    exact_energies.append(res[0].item())
-exact_energies = np.array(exact_energies)
+# ==========================================
+# 3. LOGGING ET OPTIMISATION
+# ==========================================
 
-# --- 3. EXTRACTION DES DONNÉES ---
-convergence_errors = [] 
-final_metrics = {
-    "h0": [], "rel_err": [], "variance": [], 
-    "r_hat": [], "v_score": [], "tau": []
+# Callback de sauvegarde
+class SaveState(AbstractCallback, mutable=True):
+    _path: str = struct.field(pytree_node=False, serialize=False)
+    _prefix: str = struct.field(pytree_node=False, serialize=False)
+    _save_every: int = struct.field(pytree_node=False, serialize=False)
+
+    def __init__(self, path: str, save_every: int, prefix: str = "state"):
+        self._path = path
+        self._prefix = prefix
+        self._save_every = save_every
+
+    def on_run_start(self, step, driver, callbacks):
+        if nkpd.is_master_process() and not os.path.exists(self._path):
+            os.makedirs(self._path)
+        # Sauvegarde initiale optionnelle
+        # path = f"{self._path}/{self._prefix}_{driver.step_count}.nk"
+        # driver.state.save(path)
+
+    def on_step_end(self, step, log_data, driver):
+        if step % self._save_every == 0:
+            path = f"{self._path}/{self._prefix}_{driver.step_count}.nk"
+            driver.state.save(path)
+
+# Optimiseur
+learning_rate = optax.linear_schedule(init_value=lr_init, end_value=lr_end, transition_steps=300) 
+optimizer = optax.sgd(learning_rate)
+gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift)
+
+# Logger
+# On initialise le logger avec un dossier temporaire ou final
+log = nk.logging.JsonLog("log_data", save_params=False) 
+
+# Dictionnaire META propre
+meta = {
+    "L": L,
+    "graph": "Hypercube 1D",
+    "n_dim": 1,
+    "pbc": True,
+    "hamiltonian": {
+        "type": "Ising Disorder", 
+        "J": J_val, 
+        "h0_train_list": h0_train_list, # On enregistre la liste complète
+        "sigma": sigma_disorder
+    },
+    "model": "ViTFNQS",
+    "vit_config": vit_params,
+    "sampler": {
+        "type": "MetropolisLocal", 
+        "n_chains": n_chains, 
+        "n_samples": n_samples
+    },
+    "optimizer": {
+        "type": "SGD", 
+        "lr_init": lr_init, 
+        "lr_end": lr_end, 
+        "diag_shift": diag_shift
+    },
+    "n_iter": n_iter,
+    "n_replicas_per_h0": n_replicas,
+    "total_configs_train": total_configs_train,
+    "seed": seed,
 }
 
 
@@ -183,55 +274,12 @@ print(f'Computing NQS predictions on test set ({N_test_total} samples)...')
     # 1. On prend un lot de 10 paramètres
     batch_params = params_list_test[i : i + total_configs_train]
     
-    convergence_errors.append(errs)
+    # Si le dernier lot est plus petit que n_replicas, on le complète avec des zéros (ou on ignore)
     
-    # Métriques à la dernière itération
-    final_metrics["h0"].append(h_val)
-    final_metrics["rel_err"].append(errs[-1])
-    final_metrics["variance"].append(replica_data.Variance[-1])
-    final_metrics["v_score"].append(replica_data.Variance[-1] / (means[-1].real**2 + 1e-12))
-    # R_hat et TauCorr peuvent être optionnels selon le sampler
-    final_metrics["r_hat"].append(getattr(replica_data, 'R_hat', [1.0])[-1])
-    final_metrics["tau"].append(getattr(replica_data, 'TauCorr', [0.0])[-1])
-
-# --- 4. GRAPHES DE CONVERGENCE PAR FENÊTRE (H0) ---
-n_cols = 3
-n_rows = (n_h0 + n_cols - 1) // n_cols
-fig1, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
-axes = axes.flatten()
-cmap_tab = cm.get_cmap("tab10")
-
-for i in range(n_h0):
-    ax = axes[i]
-    for r in range(n_reps):
-        idx = i * n_reps + r
-        ax.plot(iters, convergence_errors[idx], color=cmap_tab(i % 10), alpha=0.4)
-    ax.set_yscale('log')
-    ax.set_title(f"$h_0 = {h0_train_list[i]}$")
-    ax.grid(True, which="both", alpha=0.2)
-    if i % n_cols == 0: ax.set_ylabel("Relative Error (Energy)")
-
-for j in range(i + 1, len(axes)): fig1.delaxes(axes[j])
-fig1.tight_layout()
-fig1.savefig(run_dir / f"Found_L={L}_convergence_per_h0.pdf")
-
-# --- 5. SUPERPOSITION AVEC GRADIENT MAGMA ---
-plt.figure(figsize=(10, 6))
-norm = plt.Normalize(h0_train_list.min(), h0_train_list.max())
-sm = cm.ScalarMappable(cmap="magma", norm=norm)
-
-for i in range(len(convergence_errors)):
-    h_val = h0_train_list[i // n_reps]
-    plt.plot(iters, convergence_errors[i], color=cm.magma(norm(h_val)), alpha=0.3)
-
-plt.yscale('log')
-plt.xlabel("Iterations")
-plt.ylabel("Relative Error")
-plt.title(f"Superposed Convergence Errors (L={L})")
-plt.colorbar(sm, label="$h_0$")
-plt.savefig(run_dir / f"Found_L={L}_convergence_magma.pdf")
-
-# --- 6. SCATTER PLOTS DES MÉTRIQUES FINALES ---
+    if len(batch_params) < total_configs_train:
+        total_in_batch = len(batch_params)
+    else:
+        total_in_batch = total_configs_train
 
 
     # 2. On injecte le lot dans le vstate
@@ -380,7 +428,6 @@ ax2.set_xscale('log')
 ax2.set_title("Distribution de l'Erreur Relative $M_z^2$")
 ax2.legend()
 
-fig3.delaxes(axes3[-1]) # Supprime le dernier subplot vide
 plt.tight_layout()
 plt.savefig(os.path.join(run_dir, f"Found_disordered_pluri_h0_L={L}_extrapolation_analysis.pdf"))
 print(f"✅ Analyse terminée dans : {run_dir}")
