@@ -444,6 +444,28 @@ for i, pars in tqdm(enumerate(params_list)):
     exact_energies_train[str(i)] = float(np.real(E0))
 
 # Charger le fichier log_data.log existant
+log_data_file = "log_data.log"
+with open(log_data_file, 'r') as f:
+    log_json = json.load(f)
+
+# Ajouter les énergies exactes au JSON du log
+log_json["exact_energies"] = exact_energies_train
+
+# Sauvegarder le fichier log_data.log mis à jour
+with open(log_data_file, 'w') as f:
+    json.dump(log_json, f, indent=4)
+print(f"✅ Exact energies saved to: {log_data_file}")
+# 7. CALCUL ET ENREGISTREMENT DES ENERGIES EXACTES
+# ==========================================
+print("\nComputing and saving exact energies for each training replica...")
+exact_energies_train = {}
+
+for i, pars in tqdm(enumerate(params_list)):
+    _ha = create_operator(pars)
+    E0 = nk.exact.lanczos_ed(_ha, k=1, compute_eigenvectors=False).item()
+    exact_energies_train[str(i)] = float(np.real(E0))
+
+# Charger le fichier log_data.log existant
 log_data_file = os.path.join(run_dir, "log_data.log")
 with open(log_data_file, 'r') as f:
     log_json = json.load(f)
