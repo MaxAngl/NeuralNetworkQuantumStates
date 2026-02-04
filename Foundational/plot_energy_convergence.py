@@ -51,6 +51,11 @@ print(f"Loading log data from: {log_path}")
 with open(log_path, 'r') as f:
     log_json = json.load(f)
 
+# Charger les énergies exactes depuis le JSON du log
+exact_energies = log_json.get("exact_energies", {})
+if not exact_energies:
+    print(f"⚠️  Warning: 'exact_energies' not found in log data")
+
 # Extraire les données d'énergie (ham)
 if "ham" not in log_json:
     print("❌ 'ham' key not found in log data")
@@ -126,52 +131,65 @@ plt.savefig(output_path, dpi=150, bbox_inches='tight')
 print(f"✅ Plot saved: {output_path}")
 plt.close()
 
+print(f"✅ Energy convergence plot saved successfully!")
+
 # ==========================================
-# PLOT ALTERNATIF : TOUTES LES ÉNERGIES SUR UN SEUL GRAPHE AVEC LÉGENDE COULEUR
+# PLOT DES ERREURS RELATIVES PAR H0
 # ==========================================
-fig, ax = plt.subplots(figsize=(14, 8))
-
-# Créer une colormap étendue pour tous les replicas de tous les h0
-n_total = total_configs_train
-cmap_full = plt.colormaps['tab20c']
-colors_full = [cmap_full(i % 20 / 20) for i in range(n_total)]
-
-# Tracer toutes les énergies
-for replica_idx in range(min(len(ham_data), total_configs_train)):
-    energy_data = ham_data[replica_idx]
+if exact_energies:
+    print("\nCreating relative error plot...")
     
-    iters = np.array(energy_data.get("iters", []))
-    means_data = energy_data.get("Mean", {})
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    axes = axes.flatten()
     
-    if isinstance(means_data, dict):
-        means = np.array(means_data.get("real", []))
-    else:
-        means = np.array(means_data)
+    for h0_idx, h0_val in enumerate(h0_train_list):
+        ax = axes[h0_idx]
+        replica_indices = h0_to_replicas[h0_val]
+        
+        # Tracer une courbe par réplica
+        for replica_num, replica_idx in enumerate(replica_indices):
+            if replica_idx < len(ham_data):
+                energy_data = ham_data[replica_idx]
+                
+                # Extraire les itérations et les énergies moyennes VMC
+                iters = np.array(energy_data.get("iters", []))
+                means_data = energy_data.get("Mean", {})
+                
+                if isinstance(means_data, dict):
+                    means = np.array(means_data.get("real", []))
+                else:
+                    means = np.array(means_data)
+                
+                means = np.real(np.array(means))
+                
+                # Récupérer l'énergie exacte pour ce réplica
+                replica_str = str(replica_idx)
+                if replica_str in exact_energies:
+                    exact_E = exact_energies[replica_str]
+                    
+                    # Calculer l'erreur relative
+                    if len(iters) > 0 and len(means) > 0:
+                        rel_error = np.abs(means - exact_E) / (np.abs(exact_E) + 1e-12)
+                        ax.semilogy(iters, rel_error, 
+                                   label=f"Replica {replica_num}", 
+                                   color=colors[replica_num],
+                                   linewidth=1.5,
+                                   alpha=0.8)
+        
+        ax.set_xlabel("Iteration", fontsize=10)
+        ax.set_ylabel("Relative Error |E_VMC - E_exact| / |E_exact|", fontsize=10)
+        ax.set_title(f"$h_0 = {h0_val}$", fontsize=12, fontweight='bold')
+        ax.legend(fontsize=8, ncol=2, loc='best')
+        ax.grid(True, alpha=0.3, which='both')
     
-    means = np.real(np.array(means))
+    # Masquer les subplots inutilisés
+    for idx in range(len(h0_train_list), len(axes)):
+        axes[idx].axis('off')
     
-    if len(iters) > 0 and len(means) > 0:
-        # Déterminer h0 et replica_num correspondants
-        h0_idx = replica_idx // n_replicas
-        replica_num = replica_idx % n_replicas
-        if h0_idx < len(h0_train_list):
-            h0_val = h0_train_list[h0_idx]
-            label = f"h₀={h0_val}, r={replica_num}"
-            ax.plot(iters, means, 
-                   label=label,
-                   color=colors_full[replica_idx],
-                   linewidth=1.2,
-                   alpha=0.7)
-
-ax.set_xlabel("Iteration", fontsize=12)
-ax.set_ylabel("Energy", fontsize=12)
-ax.set_title("Energy Convergence for All Replicas", fontsize=14, fontweight='bold')
-ax.legend(fontsize=8, ncol=3, loc='center left', bbox_to_anchor=(1, 0.5))
-ax.grid(True, alpha=0.3)
-
-plt.tight_layout()
-output_path_all = os.path.join(run_dir, f"energy_convergence_all_replicas_L={L}.pdf")
-plt.savefig(output_path_all, dpi=150, bbox_inches='tight')
-print(f"✅ Combined plot saved: {output_path_all}")
-
-plt.show()
+    plt.tight_layout()
+    output_path_error = os.path.join(run_dir, f"relative_error_by_h0_L={L}.pdf")
+    plt.savefig(output_path_error, dpi=150, bbox_inches='tight')
+    print(f"✅ Relative error plot saved: {output_path_error}")
+    plt.close()
+else:
+    print("⚠️  exact_energies.json not available, skipping relative error plot")
