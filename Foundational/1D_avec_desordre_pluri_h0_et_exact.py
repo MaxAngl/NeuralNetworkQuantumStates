@@ -33,24 +33,27 @@ import netket_pro.distributed as nkpd
 seed = 1
 k = jax.random.key(seed)
 L = 4              # Taille du système
-h0_train_list = [ 0.2, 0.3, 0.4, 0.5, 0.6 ]          # Champ moyen
+h0_train_list = [ 0.2, 0.8, 1.0, 1.2, 5.0 ]          # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
 n_replicas = 10    # Nombre de réalisations de désordre
 total_configs_train = len(h0_train_list) * n_replicas
 chains_per_replica = 4      # <--- ICI : Chaque réplica aura 4 chaînes indépendantes
-samples_per_chain = 32      # Nombre de points récoltés par chaque chaîne
+samples_per_chain = 2      # Nombre de points récoltés par chaque chaîne
 n_chains = total_configs_train * chains_per_replica 
 n_samples = n_chains * samples_per_chain             
-n_iter = 100       # Nombre d'étapes d'optimisation
+n_iter = 300       # Nombre d'étapes d'optimisation
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 1e-4
 logs_path = "logs"  # Dossier racine pour les logs
 
+h0_test_list = [ 0.85, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
+N_test_per_h0 = 10  # Nombre de configurations de désordre par h0 de test
+
 # Paramètres du modèle ViT
 vit_params = {
-    "num_layers": 1,
+    "num_layers": 2,
     "d_model": 16,
     "heads": 4,
     "b": 1,
@@ -255,8 +258,7 @@ plt.clf()
 # 5. TEST SUR NOUVEL ENSEMBLE (CORRIGÉ)
 # ==========================================
 
-h0_test_list = [ 0.85, 1.05, 1.3, 1.5,3] # Valeurs d'interpolation et d'extrapolation
-N_test_per_h0 = 14 
+
 params_list_test = generate_multi_h0_disorder(h0_test_list, N_test_per_h0, hi.size, sigma_disorder)
 N_test_total = params_list_test.shape[0]
 
@@ -301,35 +303,25 @@ print(f'Computing NQS predictions on test set ({N_test_total} samples)...')
         
         
         
-for i in tqdm(range(0, N_test_total, total_configs_train)):
-    batch_params = params_list_test[i : i + total_configs_train]
+for i in tqdm(range(0, N_test_total)):
+    pars = params_list_test[i]
+    _vs = vs.get_state(pars)
 
-    if len(batch_params) < total_configs_train:
-        total_in_batch = len(batch_params)
-    else:
-        total_in_batch = total_configs_train
+    vs_fs = nk.vqs.FullSumState(
+        hilbert=hi,
+        model=_vs.model,
+        variables=_vs.variables
+    )
 
-    vs.parameter_array = batch_params
+    _ha = create_operator(pars)
+    _e = vs_fs.expect(_ha)
+    _o = vs_fs.expect(Mz @ Mz)
 
-    for r in range(total_in_batch):
-        pars = batch_params[r]
-        _vs = vs.get_state(pars)
+    v_score = _e.variance / (_e.Mean.real**2 + 1e-12)
 
-        vs_fs = nk.vqs.FullSumState(
-            hilbert=hi,
-            model=_vs.model,
-            variables=_vs.variables
-        )
-
-        _ha = create_operator(pars)
-        _e = vs_fs.expect(_ha)
-        _o = vs_fs.expect(Mz @ Mz)
-
-        v_score = _e.variance / (_e.Mean.real**2 + 1e-12)
-
-        vmc_vals["Energy"].append(_e.Mean)
-        vmc_vals["Mz2"].append(_o.Mean)
-        vmc_vals["V_score"].append(v_score)
+    vmc_vals["Energy"].append(_e.Mean)
+    vmc_vals["Mz2"].append(_o.Mean)
+    vmc_vals["V_score"].append(v_score)
 
 
 # --- Calcul Exact de Test (Indispensable pour comparer) ---

@@ -7,13 +7,17 @@
         "type": "Ising Disorder",
         "J": 0.36787944117144233,
         "h0_train_list": [
-            0.8, 1.0, 1.2, 1.4, 1.6
+            0.2,
+            0.8,
+            1.0,
+            1.2,
+            5.0
         ],
         "sigma": 0.1
     },
     "model": "ViTFNQS",
     "vit_config": {
-        "num_layers": 1,
+        "num_layers": 2,
         "d_model": 16,
         "heads": 4,
         "b": 1,
@@ -30,9 +34,9 @@
         "lr_end": 0.005,
         "diag_shift": 0.0001
     },
-    "n_iter": 100,
+    "n_iter": 300,
     "n_replicas_per_h0": 10,
     "total_configs_train": 50,
     "seed": 1,
-    "execution_time_seconds": 242.79433608055115
+    "execution_time_seconds": 2127.6599984169006
 }

@@ -7,7 +7,12 @@
         "type": "Ising Disorder",
         "J": 0.36787944117144233,
         "h0_train_list": [
-            0.8, 1.0, 1.2, 1.4, 1.6
+            0.2,
+            0.8,
+            0.9,
+            1.0,
+            1.2,
+            5.0
         ],
         "sigma": 0.1
     },
@@ -21,8 +26,8 @@
     },
     "sampler": {
         "type": "MetropolisLocal",
-        "n_chains": 200,
-        "n_samples": 6400
+        "n_chains": 240,
+        "n_samples": 7680
     },
     "optimizer": {
         "type": "SGD",
@@ -32,7 +37,7 @@
     },
     "n_iter": 100,
     "n_replicas_per_h0": 10,
-    "total_configs_train": 50,
+    "total_configs_train": 60,
     "seed": 1,
-    "execution_time_seconds": 242.79433608055115
+    "execution_time_seconds": 286.9104223251343
 }
