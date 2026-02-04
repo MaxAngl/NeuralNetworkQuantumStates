@@ -181,7 +181,7 @@ meta = {
 }
 
 # Initialisation du logger et création du dossier
-log = nk.logging.JsonLog("log_data", save_params=False)
+log = nk.logging.JsonLog(os.path.join(run_dir, "log_data.json"), save_params=False)
 
 # Création de la structure de dossier via ta fonction utilitaire
 # Note: Assure-toi que save_run renvoie bien le chemin créé si tu veux l'utiliser pour SaveState
