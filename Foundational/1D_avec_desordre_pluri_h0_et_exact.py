@@ -180,8 +180,6 @@ meta = {
     "seed": seed,
 }
 
-# Initialisation du logger et création du dossier
-log = nk.logging.JsonLog(os.path.join(run_dir, "log_data.json"), save_params=False)
 
 # Création de la structure de dossier via ta fonction utilitaire
 # Note: Assure-toi que save_run renvoie bien le chemin créé si tu veux l'utiliser pour SaveState
@@ -190,6 +188,11 @@ try:
 except Exception as e:
     print(f"Warning: save_run issue ({e}), using default path.")
     run_dir = "checkpoints"
+
+
+
+# Initialisation du logger et création du dossier
+log = nk.logging.JsonLog(os.path.join(run_dir, "log_data.json"), save_params=False)
 
 start_time = time.time()
 
