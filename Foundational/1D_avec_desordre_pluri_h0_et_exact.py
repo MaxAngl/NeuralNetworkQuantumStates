@@ -441,7 +441,7 @@ for i, pars in tqdm(enumerate(params_list)):
     exact_energies_train[str(i)] = float(np.real(E0))
 
 # Charger le fichier log_data.log existant
-log_data_file = "log_data.log"
+log_data_file = os.path.join(run_dir, "log_data.log")
 with open(log_data_file, 'r') as f:
     log_json = json.load(f)
 
