@@ -12,8 +12,8 @@ from pathlib import Path
 from netket_foundational._src.model.vit import ViTFNQS
 
 # --- 1. CHARGEMENT ET RÉCUPÉRATION DU CONTEXTE ---
-run_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/run_2026-02-04_13-13-39")
-checkpoint_path = run_dir / "state_90.nk"
+run_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/run_2026-02-04_13-48-58")
+checkpoint_path = run_dir / "state_290.nk"
 meta_path = run_dir / "meta.json"
 
 with open(meta_path, 'r') as f:
