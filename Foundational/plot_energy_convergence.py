@@ -5,20 +5,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ==========================================
-# CONFIGURATION
+# CONFIGURATION (allow passing run dir)
 # ==========================================
+import argparse
+
 logs_path = "logs"
-run_dir = None
 
-# Trouver le dernier run
-if os.path.exists(logs_path):
-    runs = [d for d in os.listdir(logs_path) if d.startswith("run_")]
-    if runs:
-        run_dir = os.path.join(logs_path, sorted(runs)[-1])
-        print(f"✅ Using run: {run_dir}")
+parser = argparse.ArgumentParser(description="Plot energy convergence and relative error by h0")
+parser.add_argument("--run", "-r", dest="run_dir", help="Path to run directory (eg. logs/run_...)", default=None)
+args = parser.parse_args()
 
+run_dir = args.run_dir or os.environ.get("PLOT_RUN_DIR")
+
+# If not provided, try to auto-detect the last run in logs/
 if run_dir is None:
-    print("❌ No run directory found!")
+    if os.path.exists(logs_path):
+        runs = [d for d in os.listdir(logs_path) if d.startswith("run_")]
+        if runs:
+            run_dir = os.path.join(logs_path, sorted(runs)[-1])
+            print(f"✅ Using run: {run_dir}")
+
+if run_dir is None or not os.path.exists(run_dir):
+    print("❌ No run directory found! Provide --run or set PLOT_RUN_DIR to a valid path.")
     sys.exit(1)
 
 # Charger la configuration depuis meta.json
@@ -39,10 +47,22 @@ print(f"total_configs_train = {total_configs_train}")
 # ==========================================
 # CHARGER LES DONNEES DE LOG
 # ==========================================
-# Charger le fichier log_data.log depuis la racine
-log_path = os.path.join(os.path.dirname(run_dir), "..", "log_data.log")
-if not os.path.exists(log_path):
-    print(f"❌ Log file not found: {log_path}")
+# Localiser le fichier de log (priorité au run_dir)
+candidates = [
+    os.path.join(run_dir, "log_data.json.log"),
+    os.path.join(run_dir, "log_data.log"),
+    os.path.join(os.path.dirname(run_dir), "..", "log_data.json.log"),
+    os.path.join(os.path.dirname(run_dir), "..", "log_data.log"),
+]
+
+log_path = None
+for c in candidates:
+    if os.path.exists(c):
+        log_path = c
+        break
+
+if log_path is None:
+    print(f"❌ Log file not found. Checked: {candidates}")
     sys.exit(1)
 
 print(f"Loading log data from: {log_path}")
@@ -50,11 +70,6 @@ print(f"Loading log data from: {log_path}")
 # Charger le JSON
 with open(log_path, 'r') as f:
     log_json = json.load(f)
-
-# Charger les énergies exactes depuis le JSON du log
-exact_energies = log_json.get("exact_energies", {})
-if not exact_energies:
-    print(f"⚠️  Warning: 'exact_energies' not found in log data")
 
 # Extraire les données d'énergie (ham)
 if "ham" not in log_json:
@@ -132,64 +147,3 @@ print(f"✅ Plot saved: {output_path}")
 plt.close()
 
 print(f"✅ Energy convergence plot saved successfully!")
-
-# ==========================================
-# PLOT DES ERREURS RELATIVES PAR H0
-# ==========================================
-if exact_energies:
-    print("\nCreating relative error plot...")
-    
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    axes = axes.flatten()
-    
-    for h0_idx, h0_val in enumerate(h0_train_list):
-        ax = axes[h0_idx]
-        replica_indices = h0_to_replicas[h0_val]
-        
-        # Tracer une courbe par réplica
-        for replica_num, replica_idx in enumerate(replica_indices):
-            if replica_idx < len(ham_data):
-                energy_data = ham_data[replica_idx]
-                
-                # Extraire les itérations et les énergies moyennes VMC
-                iters = np.array(energy_data.get("iters", []))
-                means_data = energy_data.get("Mean", {})
-                
-                if isinstance(means_data, dict):
-                    means = np.array(means_data.get("real", []))
-                else:
-                    means = np.array(means_data)
-                
-                means = np.real(np.array(means))
-                
-                # Récupérer l'énergie exacte pour ce réplica
-                replica_str = str(replica_idx)
-                if replica_str in exact_energies:
-                    exact_E = exact_energies[replica_str]
-                    
-                    # Calculer l'erreur relative
-                    if len(iters) > 0 and len(means) > 0:
-                        rel_error = np.abs(means - exact_E) / (np.abs(exact_E) + 1e-12)
-                        ax.semilogy(iters, rel_error, 
-                                   label=f"Replica {replica_num}", 
-                                   color=colors[replica_num],
-                                   linewidth=1.5,
-                                   alpha=0.8)
-        
-        ax.set_xlabel("Iteration", fontsize=10)
-        ax.set_ylabel("Relative Error |E_VMC - E_exact| / |E_exact|", fontsize=10)
-        ax.set_title(f"$h_0 = {h0_val}$", fontsize=12, fontweight='bold')
-        ax.legend(fontsize=8, ncol=2, loc='best')
-        ax.grid(True, alpha=0.3, which='both')
-    
-    # Masquer les subplots inutilisés
-    for idx in range(len(h0_train_list), len(axes)):
-        axes[idx].axis('off')
-    
-    plt.tight_layout()
-    output_path_error = os.path.join(run_dir, f"relative_error_by_h0_L={L}.pdf")
-    plt.savefig(output_path_error, dpi=150, bbox_inches='tight')
-    print(f"✅ Relative error plot saved: {output_path_error}")
-    plt.close()
-else:
-    print("⚠️  exact_energies.json not available, skipping relative error plot")
