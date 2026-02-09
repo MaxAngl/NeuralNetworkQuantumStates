@@ -49,7 +49,7 @@ diag_shift = 1e-4
 logs_path = "logs"  # Dossier racine pour les logs
 
 h0_test_list = [ 0.4, 0.95, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
-N_test_per_h0 = 10  # Nombre de configurations de désordre par h0 de test
+N_test_per_h0 = 2  # Nombre de configurations de désordre par h0 de test
 
 # Paramètres du modèle ViT
 vit_params = {

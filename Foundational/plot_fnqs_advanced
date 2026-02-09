@@ -1,0 +1,329 @@
+import os
+import json
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from tqdm import tqdm
+import pandas as pd
+from matplotlib.gridspec import GridSpec
+
+# ==========================================
+# 1. CONFIGURATION ET CHARGEMENT
+# ==========================================
+
+# Chemin vers le dossier de run (à adapter)
+run_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/run_2026-02-04_13-48-58")
+
+# Charger les métadonnées
+meta_path = run_dir / "meta.json"
+with open(meta_path, 'r') as f:
+    meta = json.load(f)
+
+# Charger le fichier de log
+log_path = run_dir / "log_data.log"
+with open(log_path, 'r') as f:
+    log_data = json.load(f)
+
+# Extraction des paramètres
+h0_train_list = meta["hamiltonian"]["h0_train_list"]
+n_replicas = meta["n_replicas_per_h0"]
+total_configs_train = meta["total_configs_train"]
+exact_energies = log_data.get("exact_energies", {})
+
+print(f"✅ Données chargées depuis: {run_dir}")
+
+# ==========================================
+# 2. ORGANISATION DES DONNÉES
+# ==========================================
+
+data_by_h0 = {h0: {} for h0 in h0_train_list}
+
+for replica_idx in range(total_configs_train):
+    h0_idx = replica_idx // n_replicas
+    h0_value = h0_train_list[h0_idx]
+    
+    try:
+        ham_log = log_data["ham"][replica_idx]
+        
+        iters = ham_log.get("iters", [])
+        energy_mean = ham_log.get("Mean", [])
+        energy_var = ham_log.get("Variance", [])
+        
+        v_scores = [var / (mean**2 + 1e-12) for mean, var in zip(energy_mean, energy_var)]
+        
+        data_by_h0[h0_value][replica_idx] = {
+            "iters": np.array(iters),
+            "energy": np.array(energy_mean),
+            "v_score": np.array(v_scores),
+            "variance": np.array(energy_var),
+            "exact_energy": exact_energies.get(str(replica_idx), None)
+        }
+    except (KeyError, IndexError) as e:
+        pass
+
+# ==========================================
+# 3. GRAPHIQUE COMPACT: TOUS LES h0 SUR UNE PAGE
+# ==========================================
+
+print("\n📊 Création du graphique compact global...")
+
+fig = plt.figure(figsize=(20, 12))
+gs = GridSpec(3, len(h0_train_list), figure=fig, hspace=0.35, wspace=0.3)
+
+for idx, h0 in enumerate(h0_train_list):
+    replicas_data = data_by_h0[h0]
+    
+    # Sous-graphique 1: Énergie
+    ax1 = fig.add_subplot(gs[0, idx])
+    for replica_idx, data in replicas_data.items():
+        ax1.plot(data["iters"], data["energy"], alpha=0.5, linewidth=1.2)
+        if data["exact_energy"] is not None:
+            ax1.axhline(y=data["exact_energy"], color='red', linestyle='--', linewidth=1.5, alpha=0.7)
+    ax1.set_title(f'h0={h0:.2f}', fontsize=11, fontweight='bold')
+    ax1.set_ylabel('Énergie', fontsize=9)
+    ax1.grid(True, alpha=0.2)
+    ax1.tick_params(labelsize=8)
+    
+    # Sous-graphique 2: V-score
+    ax2 = fig.add_subplot(gs[1, idx])
+    for replica_idx, data in replicas_data.items():
+        ax2.plot(data["iters"], data["v_score"], alpha=0.5, linewidth=1.2)
+    ax2.set_ylabel('V-score', fontsize=9)
+    ax2.set_yscale('log')
+    ax2.grid(True, alpha=0.2, which='both')
+    ax2.tick_params(labelsize=8)
+    
+    # Sous-graphique 3: Erreur relative
+    ax3 = fig.add_subplot(gs[2, idx])
+    for replica_idx, data in replicas_data.items():
+        if data["exact_energy"] is not None:
+            rel_err = np.abs((data["energy"] - data["exact_energy"]) / data["exact_energy"])
+            ax3.plot(data["iters"], rel_err, alpha=0.5, linewidth=1.2)
+    ax3.set_xlabel('Itération', fontsize=9)
+    ax3.set_ylabel('Erreur Rel.', fontsize=9)
+    ax3.set_yscale('log')
+    ax3.grid(True, alpha=0.2, which='both')
+    ax3.tick_params(labelsize=8)
+
+fig.suptitle('Convergence de l\'entraînement par valeur de h0', fontsize=16, fontweight='bold', y=0.995)
+compact_plot_path = run_dir / "convergence_compact_all_h0.pdf"
+plt.savefig(compact_plot_path, dpi=300, bbox_inches='tight')
+print(f"✅ Graphique compact sauvegardé: {compact_plot_path}")
+plt.close()
+
+# ==========================================
+# 4. ANALYSE DE LA DISPERSION INTER-RÉPLICAS
+# ==========================================
+
+print("\n📈 Analyse de la dispersion entre réplicas...")
+
+fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+
+# Graphique 1: Moyenne ± écart-type de l'énergie
+ax1 = axes[0]
+for h0 in h0_train_list:
+    replicas_data = data_by_h0[h0]
+    
+    # Récupérer toutes les trajectoires d'énergie
+    all_energies = []
+    iters_ref = None
+    
+    for replica_idx, data in replicas_data.items():
+        all_energies.append(data["energy"])
+        if iters_ref is None:
+            iters_ref = data["iters"]
+    
+    if len(all_energies) > 0:
+        all_energies = np.array(all_energies)
+        mean_energy = np.mean(all_energies, axis=0)
+        std_energy = np.std(all_energies, axis=0)
+        
+        ax1.plot(iters_ref, mean_energy, linewidth=2, label=f'h0={h0:.2f}')
+        ax1.fill_between(iters_ref, mean_energy - std_energy, mean_energy + std_energy, alpha=0.2)
+
+ax1.set_xlabel('Itération', fontsize=12)
+ax1.set_ylabel('Énergie moyenne ± std', fontsize=12)
+ax1.set_title('Convergence moyenne de l\'énergie par h0', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=10, loc='best')
+ax1.grid(True, alpha=0.3)
+
+# Graphique 2: Moyenne ± écart-type du V-score
+ax2 = axes[1]
+for h0 in h0_train_list:
+    replicas_data = data_by_h0[h0]
+    
+    all_vscores = []
+    iters_ref = None
+    
+    for replica_idx, data in replicas_data.items():
+        all_vscores.append(data["v_score"])
+        if iters_ref is None:
+            iters_ref = data["iters"]
+    
+    if len(all_vscores) > 0:
+        all_vscores = np.array(all_vscores)
+        mean_vscore = np.mean(all_vscores, axis=0)
+        std_vscore = np.std(all_vscores, axis=0)
+        
+        ax2.plot(iters_ref, mean_vscore, linewidth=2, label=f'h0={h0:.2f}')
+        ax2.fill_between(iters_ref, mean_vscore - std_vscore, mean_vscore + std_vscore, alpha=0.2)
+
+ax2.set_xlabel('Itération', fontsize=12)
+ax2.set_ylabel('V-score moyen ± std', fontsize=12)
+ax2.set_title('Convergence moyenne du V-score par h0', fontsize=14, fontweight='bold')
+ax2.set_yscale('log')
+ax2.legend(fontsize=10, loc='best')
+ax2.grid(True, alpha=0.3, which='both')
+
+plt.tight_layout()
+dispersion_plot_path = run_dir / "convergence_mean_std_by_h0.pdf"
+plt.savefig(dispersion_plot_path, dpi=300, bbox_inches='tight')
+print(f"✅ Graphique de dispersion sauvegardé: {dispersion_plot_path}")
+plt.close()
+
+# ==========================================
+# 5. COMPARAISON DES TAUX DE CONVERGENCE
+# ==========================================
+
+print("\n⚡ Analyse des taux de convergence...")
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Graphique 1: Temps pour atteindre erreur < 1%
+ax1 = axes[0]
+convergence_times = {h0: [] for h0 in h0_train_list}
+
+for h0 in h0_train_list:
+    replicas_data = data_by_h0[h0]
+    
+    for replica_idx, data in replicas_data.items():
+        if data["exact_energy"] is not None:
+            rel_err = np.abs((data["energy"] - data["exact_energy"]) / data["exact_energy"])
+            
+            # Trouver la première itération où erreur < 1%
+            converged_idx = np.where(rel_err < 0.01)[0]
+            if len(converged_idx) > 0:
+                convergence_times[h0].append(data["iters"][converged_idx[0]])
+
+positions = np.arange(len(h0_train_list))
+box_data = [convergence_times[h0] for h0 in h0_train_list]
+
+bp = ax1.boxplot(box_data, positions=positions, widths=0.6, patch_artist=True,
+                 boxprops=dict(facecolor='lightblue', alpha=0.7),
+                 medianprops=dict(color='red', linewidth=2))
+
+ax1.set_xticks(positions)
+ax1.set_xticklabels([f'{h0:.2f}' for h0 in h0_train_list])
+ax1.set_xlabel('h0', fontsize=12)
+ax1.set_ylabel('Itérations pour erreur < 1%', fontsize=12)
+ax1.set_title('Vitesse de convergence par h0', fontsize=14, fontweight='bold')
+ax1.grid(True, alpha=0.3, axis='y')
+
+# Graphique 2: V-score final
+ax2 = axes[1]
+final_vscores = {h0: [] for h0 in h0_train_list}
+
+for h0 in h0_train_list:
+    replicas_data = data_by_h0[h0]
+    
+    for replica_idx, data in replicas_data.items():
+        if len(data["v_score"]) > 0:
+            final_vscores[h0].append(data["v_score"][-1])
+
+box_data2 = [final_vscores[h0] for h0 in h0_train_list]
+
+bp2 = ax2.boxplot(box_data2, positions=positions, widths=0.6, patch_artist=True,
+                  boxprops=dict(facecolor='lightgreen', alpha=0.7),
+                  medianprops=dict(color='darkgreen', linewidth=2))
+
+ax2.set_xticks(positions)
+ax2.set_xticklabels([f'{h0:.2f}' for h0 in h0_train_list])
+ax2.set_xlabel('h0', fontsize=12)
+ax2.set_ylabel('V-score final', fontsize=12)
+ax2.set_yscale('log')
+ax2.set_title('Qualité finale de l\'approximation par h0', fontsize=14, fontweight='bold')
+ax2.grid(True, alpha=0.3, which='both', axis='y')
+
+plt.tight_layout()
+comparison_plot_path = run_dir / "convergence_comparison_by_h0.pdf"
+plt.savefig(comparison_plot_path, dpi=300, bbox_inches='tight')
+print(f"✅ Graphique de comparaison sauvegardé: {comparison_plot_path}")
+plt.close()
+
+# ==========================================
+# 6. TABLEAU RÉCAPITULATIF DÉTAILLÉ
+# ==========================================
+
+print("\n📋 Génération du rapport détaillé...")
+
+report_data = []
+
+for h0 in h0_train_list:
+    replicas_data = data_by_h0[h0]
+    
+    final_energies = []
+    final_v_scores = []
+    final_errors = []
+    conv_iters = []
+    
+    for replica_idx, data in replicas_data.items():
+        if len(data["energy"]) > 0:
+            final_energies.append(data["energy"][-1])
+            final_v_scores.append(data["v_score"][-1])
+            
+            if data["exact_energy"] is not None:
+                rel_err = np.abs((data["energy"] - data["exact_energy"]) / data["exact_energy"])
+                final_errors.append(rel_err[-1])
+                
+                # Temps de convergence à 1%
+                converged_idx = np.where(rel_err < 0.01)[0]
+                if len(converged_idx) > 0:
+                    conv_iters.append(data["iters"][converged_idx[0]])
+    
+    report_data.append({
+        "h0": h0,
+        "n_replicas": len(replicas_data),
+        "energy_mean": np.mean(final_energies),
+        "energy_std": np.std(final_energies),
+        "vscore_mean": np.mean(final_v_scores),
+        "vscore_std": np.std(final_v_scores),
+        "vscore_median": np.median(final_v_scores),
+        "error_mean": np.mean(final_errors) if final_errors else np.nan,
+        "error_max": np.max(final_errors) if final_errors else np.nan,
+        "conv_iter_mean": np.mean(conv_iters) if conv_iters else np.nan,
+        "conv_iter_median": np.median(conv_iters) if conv_iters else np.nan,
+        "conv_rate": len(conv_iters) / len(replicas_data) * 100  # % de réplicas convergés
+    })
+
+df_report = pd.DataFrame(report_data)
+
+# Sauvegarder le rapport
+report_csv_path = run_dir / "detailed_convergence_report.csv"
+df_report.to_csv(report_csv_path, index=False, float_format='%.6e')
+print(f"✅ Rapport détaillé sauvegardé: {report_csv_path}")
+
+# Afficher le rapport
+print("\n" + "="*100)
+print("RAPPORT DÉTAILLÉ DE CONVERGENCE PAR h0")
+print("="*100)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
+pd.set_option('display.float_format', '{:.4e}'.format)
+print(df_report.to_string(index=False))
+print("="*100)
+
+# ==========================================
+# 7. RÉSUMÉ FINAL
+# ==========================================
+
+print(f"\n{'='*60}")
+print("✅ ANALYSE COMPLÈTE TERMINÉE")
+print(f"{'='*60}")
+print(f"📂 Dossier: {run_dir}")
+print(f"\n📊 Graphiques générés:")
+print(f"   1. convergence_compact_all_h0.pdf")
+print(f"   2. convergence_mean_std_by_h0.pdf")
+print(f"   3. convergence_comparison_by_h0.pdf")
+print(f"\n📄 Rapports CSV:")
+print(f"   1. detailed_convergence_report.csv")
+print(f"{'='*60}\n")

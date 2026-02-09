@@ -1,0 +1,105 @@
+import json
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from pathlib import Path
+
+# --- CONFIGURATION DES CHEMINS ---
+# Le script pointe vers le dossier 'run' comme dans votre fichier plot précédent
+run_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/run_2026-02-09_16-38-08")
+log_path = run_dir / "log_data.json.log"
+meta_path = run_dir / "meta.json"
+
+def plot_netket_results():
+    # 1. Chargement des métadonnées et des logs
+    with open(meta_path, 'r') as f:
+        meta = json.load(f)
+    with open(log_path, 'r') as f:
+        log_data = json.load(f)
+
+    h0_list = meta["hamiltonian"]["h0_train_list"]
+    n_replicas = meta["n_replicas_per_h0"]
+    n_iter = meta["n_iter"]
+    
+    # Couleurs Magma pour les répliques
+    colors = cm.magma(np.linspace(0, 0.8, n_replicas))
+
+    # --- INITIALISATION DES FIGURES ---
+    fig_en, axes_en = plt.subplots(len(h0_list), 1, figsize=(10, 4 * len(h0_list)), sharex=True)
+    fig_vs, axes_vs = plt.subplots(len(h0_list), 1, figsize=(10, 4 * len(h0_list)), sharex=True)
+    
+    if len(h0_list) == 1:
+        axes_en = [axes_en]
+        axes_vs = [axes_vs]
+
+    print(f"Génération des graphes pour {len(h0_list)} valeurs de h0 avec {n_replicas} répliques chacune...")
+
+    # 2. Boucle sur les h0 et les répliques
+    for i, h0 in enumerate(h0_list):
+        ax_en = axes_en[i]
+        ax_vs = axes_vs[i]
+        
+        ax_en.set_title(f"Énergie : h0 = {h0}", fontweight='bold')
+        ax_vs.set_title(f"V-Score : h0 = {h0}", fontweight='bold')
+
+        for r in range(n_replicas):
+            # Calcul de l'index global de la réplique (0 à 59 si 6 h0 * 10 reps)
+            replica_idx = i * n_replicas + r
+            rep_key = str(replica_idx)
+
+            # Extraction des données si elles sont indexées par réplique
+            # Sinon, on adapte selon la structure réelle de votre log_data
+            if rep_key in log_data:
+                data = log_data[rep_key]
+            elif "Energy" in log_data and isinstance(log_data["Energy"], dict):
+                # Cas où NetKet a tout mis dans un seul bloc (il faut alors slicer)
+                data = log_data
+            else:
+                continue
+
+            try:
+                iters = np.array(data["Energy"]["iters"])
+                # On slice les données si le log est concaténé (n_iter par réplique)
+                # Si votre log sépare déjà par clés, ce slice ne fera rien
+                start = r * (n_iter + 1)
+                end = (r + 1) * (n_iter + 1)
+                
+                # Récupération des segments de données
+                e_mean = np.array(data["Energy"]["Mean"]["real"])
+                e_var = np.array(data["Energy"]["Variance"])
+                
+                # Calcul du V-score
+                v_score = e_var / (e_mean**2)
+
+                # Tracé Énergie
+                ax_en.plot(iters, e_mean, color=colors[r], alpha=0.8, label=f"Rep {r}" if i==0 else "")
+                
+                # Tracé V-Score
+                ax_vs.semilogy(iters, v_score, color=colors[r], alpha=0.8)
+                
+            except Exception as e:
+                print(f"Erreur replica {replica_idx}: {e}")
+
+        ax_en.set_ylabel("$\langle H \\rangle$")
+        ax_en.grid(True, alpha=0.3)
+        
+        ax_vs.set_ylabel("Variance / $\langle H \\rangle^2$")
+        ax_vs.grid(True, which="both", alpha=0.3)
+
+    axes_en[-1].set_xlabel("Itérations")
+    axes_vs[-1].set_xlabel("Itérations")
+    
+    if n_replicas <= 10:
+        axes_en[0].legend(loc='upper right', bbox_to_anchor=(1.15, 1))
+
+    fig_en.tight_layout()
+    fig_vs.tight_layout()
+
+    # Sauvegarde
+    fig_en.savefig(run_dir / "evolution_energie_magma.png", dpi=200)
+    fig_vs.savefig(run_dir / "evolution_vscore_magma.png", dpi=200)
+    
+    plt.show()
+
+if __name__ == "__main__":
+    plot_netket_results()

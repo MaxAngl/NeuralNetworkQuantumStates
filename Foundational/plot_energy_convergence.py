@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -9,7 +10,7 @@ import matplotlib.pyplot as plt
 # ==========================================
 import argparse
 
-logs_path = "logs"
+logs_path = "/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs"
 
 parser = argparse.ArgumentParser(description="Plot energy convergence and relative error by h0")
 parser.add_argument("--run", "-r", dest="run_dir", help="Path to run directory (eg. logs/run_...)", default=None)
@@ -48,24 +49,83 @@ print(f"total_configs_train = {total_configs_train}")
 # CHARGER LES DONNEES DE LOG
 # ==========================================
 # Localiser le fichier de log (priorité au run_dir)
-candidates = [
-    os.path.join(run_dir, "log_data.json.log"),
-    os.path.join(run_dir, "log_data.log"),
-    os.path.join(os.path.dirname(run_dir), "..", "log_data.json.log"),
-    os.path.join(os.path.dirname(run_dir), "..", "log_data.log"),
+# Supporte plusieurs variantes: 'log_data.log', 'log_data.log.log', 'log_data', etc.
+candidates = []
+common_names = [
+    "log_data.log",
+    "log_data.log.log",
+    "log_data",
+    "log_data.json",
+    "log_data.json.log",
 ]
+for name in common_names:
+    candidates.append(os.path.join(run_dir, name))
+
+# Add any .log files in run_dir and one-level recursive search
+candidates += glob.glob(os.path.join(run_dir, "*.log"))
+candidates += glob.glob(os.path.join(run_dir, "**", "*.log"), recursive=True)
+
+# Deduplicate while preserving order
+seen = set()
+uniq_candidates = []
+for c in candidates:
+    if c not in seen:
+        seen.add(c)
+        uniq_candidates.append(c)
+candidates = uniq_candidates
 
 log_path = None
+# Prefer files with 'log_data' in name
 for c in candidates:
-    if os.path.exists(c):
+    if os.path.exists(c) and "log_data" in os.path.basename(c):
         log_path = c
         break
 
+# Fallback: pick largest existing .log file
 if log_path is None:
-    print(f"❌ Log file not found. Checked: {candidates}")
-    sys.exit(1)
+    existing = [c for c in candidates if os.path.exists(c)]
+    if existing:
+        log_path = max(existing, key=lambda p: os.path.getsize(p))
 
-print(f"Loading log data from: {log_path}")
+if log_path is None:
+    # Fallback: if the requested run has no log, try to find the latest run with a log
+    print(f"⚠️ No log found in requested run. Searching other runs in {logs_path}...")
+    other_runs = [d for d in os.listdir(logs_path) if d.startswith("run_")]
+    other_runs = sorted(other_runs, reverse=True)
+    found = False
+    for r in other_runs:
+        candidate_dir = os.path.join(logs_path, r)
+        # search same candidate patterns inside candidate_dir
+        cand_files = []
+        for name in common_names:
+            cand_files.append(os.path.join(candidate_dir, name))
+        cand_files += glob.glob(os.path.join(candidate_dir, "*.log"))
+        cand_files += glob.glob(os.path.join(candidate_dir, "**", "*.log"), recursive=True)
+        for c in cand_files:
+            if not os.path.exists(c):
+                continue
+            # Prefer files containing 'log_data' in name
+            if "log_data" not in os.path.basename(c):
+                continue
+            # Try to open and ensure it contains 'ham' entries
+            try:
+                with open(c, 'r') as fh:
+                    j = json.load(fh)
+                if "ham" in j:
+                    log_path = c
+                    run_dir = candidate_dir
+                    found = True
+                    break
+            except Exception:
+                continue
+        if found:
+            break
+
+    if not found:
+        print(f"❌ Log file not found. Checked: {candidates}")
+        sys.exit(1)
+
+print(f"Loading log data from: {log_path} (run: {run_dir})")
 
 # Charger le JSON
 with open(log_path, 'r') as f:

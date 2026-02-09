@@ -47,11 +47,11 @@ class Config:
     # Training disorder configurations
     h0_train_list = [0.0, 0.8, 1.0, 1.2, 2.0, 5.0]
     sigma_disorder = 0.1
-    n_replicas = 10
+    n_replicas = 2
     
     # Test disorder configurations
     h0_test_list = [0.4, 0.95, 1.05, 1.3, 1.5, 3]
-    N_test_per_h0 = 10
+    N_test_per_h0 = 2
     
     # Sampling parameters
     chains_per_replica = 4
@@ -226,7 +226,7 @@ def setup_system(config):
 def setup_operators(hilbert, param_space, J):
     """Create Hamiltonian and observable operators"""
     # Magnetization observable
-    Mz = sum(nkf.operator.sigmaz(hilbert, i) for i in range(hilbert.size)) / hilbert.size
+    Mz = sum(nkf.operator.sigmaz(hilbert, i) for i in range(hilbert.size)) * (1.0 / hilbert.size)
     
     # Parametrized Hamiltonian
     ha_param = nkf.operator.ParametrizedOperator(
@@ -257,21 +257,23 @@ def train_model(config, vstate, ha_param, mz_param, run_dir):
     # Setup driver
     driver = nkf.VMC_NG(ha_param, optimizer, variational_state=vstate, diag_shift=config.diag_shift)
     
-    # Setup logger
-    log = nk.logging.JsonLog(os.path.join(run_dir, "log_data.log"), save_params=False)
+    # Setup logger (pass base name; JsonLog appends '.log')
+    log = nk.logging.JsonLog(os.path.join(run_dir, "log_data"), save_params=False)
     
     # Train
     print(f"\n🚀 Starting training for {config.n_iter} iterations...")
     start_time = time.time()
-    
+
+    # Run training (measure time with simple wall-clock)
     driver.run(
-        n_iterations=config.n_iter,
+        n_iter=config.n_iter,
         out=log,
         obs={"ham": ha_param, "mz2": mz_param},
         step_size=10,
-        callback=SaveState(str(Path(psu_dir) / f"L{config.L}"), save_every=config.save_every),
+        callback=SaveState(str(Path(run_dir) / f"L{config.L}"), save_every=config.save_every),
+        timeit=True,
     )
-    
+
     duration = time.time() - start_time
     print(f"⏱️  Training completed in {duration:.2f} seconds")
     
@@ -375,18 +377,22 @@ def save_exact_energies_to_log(params_train, hilbert, J, run_dir):
         E0 = compute_exact_energy(pars, hilbert, J)
         exact_energies[str(i)] = float(E0)
     
-    # Load existing log file
+    # Load existing log file if present, otherwise create new log data
     log_file = os.path.join(run_dir, "log_data.log")
-    with open(log_file, 'r') as f:
-        log_data = json.load(f)
-    
-    # Add exact energies
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, 'r') as f:
+                log_data = json.load(f)
+        except Exception:
+            log_data = {}
+    else:
+        log_data = {}
+
+    # Add exact energies and save
     log_data["exact_energies"] = exact_energies
-    
-    # Save updated log
     with open(log_file, 'w') as f:
         json.dump(log_data, f, indent=4)
-    
+
     print(f"✅ Exact energies saved to: {log_file}")
 
 
@@ -430,6 +436,7 @@ def main():
     # Setup logging directory
     print("\n📁 Setting up logging directory...")
     meta = get_metadata(config)
+    
     try:
         run_dir = save_run(None, meta, create_only=True, base_dir=config.logs_path)
     except Exception as e:
@@ -442,6 +449,8 @@ def main():
     
     # Update metadata with training time
     meta["execution_time_seconds"] = duration
+    meta["training_iterations"] = config.n_iter
+    meta["timestamp"] = time.time()
     
     # Evaluate on test set
     vmc_results, exact_results = evaluate_test_set(config, vstate, hilbert, config.J_val, Mz, params_test)
