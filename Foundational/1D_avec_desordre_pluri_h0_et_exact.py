@@ -34,7 +34,7 @@ seed = 1
 rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 L = 4              # Taille du système
-h0_train_list = [ 0.1, 0.8, 1.0, 1.2, 2.0, 5.0 ]          # Champ moyen
+h0_train_list = [ 0.1,0.2, 0.4,0.6,0.8, 1.0, 1.2,2, 5.0 ]          # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
 n_replicas = 10    # Nombre de réalisations de désordre
@@ -49,8 +49,8 @@ lr_end = 0.005
 diag_shift = 1e-4
 logs_path = "logs"  # Dossier racine pour les logs
 
-h0_test_list = [ 0.4, 0.95, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
-N_test_per_h0 = 2  # Nombre de configurations de désordre par h0 de test
+h0_test_list = [ 0.05, 0.15, 0.3,0.5,0.85, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
+N_test_per_h0 = 10  # Nombre de configurations de désordre par h0 de test
 
 # Paramètres du modèle ViT
 vit_params = {
@@ -461,6 +461,21 @@ plt.tight_layout()
 plt.savefig(os.path.join(run_dir, f"Found_disordered_pluri_h0_L={L}_extrapolation_analysis.pdf"))
 print(f"✅ Analyse terminée dans : {run_dir}")
 
+
+# --- SAUVEGARDE DES DONNÉES DE TRAIN ---
+# On récupère les h_0 correspondant à chaque réplica de train
+h_mean_train_full = []
+for h_val in h0_train_list:
+    h_mean_train_full.extend([h_val] * n_replicas)
+
+df_train = pd.DataFrame({
+    "h_mean": h_mean_train_full,
+    "v_score": v_train,
+    "relative_error": err_train
+})
+df_train.to_csv(os.path.join(run_dir, "train_results.csv"), index=False)
+print(f"✅ Données de train sauvegardées dans : {run_dir}/train_results.csv")
+
 # ==========================================
 # 7. CALCUL ET ENREGISTREMENT DES ENERGIES EXACTES
 # ==========================================
@@ -473,7 +488,7 @@ for i, pars in tqdm(enumerate(params_list)):
     exact_energies_train[str(i)] = float(np.real(E0))
 
 # Charger le fichier log_data.log existant
-log_data_file = "log_data.log"
+log_data_file = os.path.join(run_dir, "log_data.json")
 with open(log_data_file, 'r') as f:
     log_json = json.load(f)
 
