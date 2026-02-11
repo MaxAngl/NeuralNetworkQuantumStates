@@ -36,7 +36,7 @@ L = 4              # Taille du système
 h0_train_list = [ 0.0, 0.8, 1.0, 1.2, 2.0, 5.0 ]          # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
-n_replicas = 10    # Nombre de réalisations de désordre
+n_replicas = 6    # Nombre de réalisations de désordre
 total_configs_train = len(h0_train_list) * n_replicas
 chains_per_replica = 4      # <--- ICI : Chaque réplica aura 4 chaînes indépendantes
 samples_per_chain = 2      # Nombre de points récoltés par chaque chaîne
@@ -48,8 +48,8 @@ lr_end = 0.005
 diag_shift = 1e-4
 logs_path = "logs"  # Dossier racine pour les logs
 
-h0_test_list = [ 0.4, 0.95, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
-N_test_per_h0 = 2  # Nombre de configurations de désordre par h0 de test
+h0_test_list = [ 0.5, 0.95, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
+N_test_per_h0 = 6  # Nombre de configurations de désordre par h0 de test
 
 # Paramètres du modèle ViT
 vit_params = {
