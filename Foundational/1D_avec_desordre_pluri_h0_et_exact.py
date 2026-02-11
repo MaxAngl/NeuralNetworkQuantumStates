@@ -31,13 +31,14 @@ import netket_pro.distributed as nkpd
 # ==========================================
 # On définit tout ici pour que le 'meta' soit cohérent
 seed = 1
+rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 L = 4              # Taille du système
-h0_train_list = [ 0.0, 0.8, 1.0, 1.2, 2.0, 5.0 ]          # Champ moyen
+h0_train_list = [ 0.1, 0.8, 1.0, 1.2, 2.0, 5.0 ]          # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
 n_replicas = 10    # Nombre de réalisations de désordre
-total_configs_train = len(h0_train_list) * n_replicas
+total_configs_train = len(h0_train_list) * (n_replicas + 1)
 chains_per_replica = 4      # <--- ICI : Chaque réplica aura 4 chaînes indépendantes
 samples_per_chain = 2      # Nombre de points récoltés par chaque chaîne
 n_chains = total_configs_train * chains_per_replica 
@@ -67,14 +68,37 @@ vit_params = {
 hi = nk.hilbert.Spin(0.5, L)
 ps = nkf.ParameterSpace(N=hi.size, min=0, max=10*max(h0_train_list))
 
+#VERSION SANS VECTEUR HOMOGENE :
+#def generate_multi_h0_disorder(h0_list, n_reps, system_size, sigma, rng=None):
+#    if rng is None:
+#        rng = np.random.default_rng()
+#    all_configs = []
+#    for h_m in h0_list:
+#        configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
+#        all_configs.append(configs)
+#    return np.vstack(all_configs) # Shape: (len(h0_list)*n_reps, system_size)
+
 def generate_multi_h0_disorder(h0_list, n_reps, system_size, sigma, rng=None):
     if rng is None:
         rng = np.random.default_rng()
+    
     all_configs = []
+    
     for h_m in h0_list:
-        configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
-        all_configs.append(configs)
-    return np.vstack(all_configs) # Shape: (len(h0_list)*n_reps, system_size)
+        # 1. Génération des 'n_reps' configurations désordonnées (Aléatoire)
+        random_configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
+        
+        # 2. Création de la configuration homogène (h_m, h_m, ..., h_m) (Exacte)
+        # Shape (1, system_size)
+        homogeneous_config = np.full((1, system_size), h_m)
+        
+        # 3. On empile les deux : on obtient (n_reps + 1) configurations pour ce h_m
+        # L'homogène est ajoutée à la fin du bloc de ce h_m
+        batch_configs = np.vstack([random_configs, homogeneous_config])
+        
+        all_configs.append(batch_configs)
+        
+    return np.vstack(all_configs)
 
 # Modèle
 ma = ViTFNQS(
@@ -193,6 +217,11 @@ except Exception as e:
 
 # Initialisation du logger et création du dossier
 log = nk.logging.JsonLog(os.path.join(run_dir, "log_data.json"), save_params=False)
+
+# AJOUT : SAUVEGARDE DES CONFIGURATIONS DE DÉSORDRE
+disorder_path = os.path.join(run_dir, "disorder_configs.npy")
+np.save(disorder_path, params_list)
+print(f"Configurations de désordre sauvegardées dans : {disorder_path}")
 
 start_time = time.time()
 
@@ -445,28 +474,6 @@ for i, pars in tqdm(enumerate(params_list)):
 
 # Charger le fichier log_data.log existant
 log_data_file = "log_data.log"
-with open(log_data_file, 'r') as f:
-    log_json = json.load(f)
-
-# Ajouter les énergies exactes au JSON du log
-log_json["exact_energies"] = exact_energies_train
-
-# Sauvegarder le fichier log_data.log mis à jour
-with open(log_data_file, 'w') as f:
-    json.dump(log_json, f, indent=4)
-print(f"✅ Exact energies saved to: {log_data_file}")
-# 7. CALCUL ET ENREGISTREMENT DES ENERGIES EXACTES
-# ==========================================
-print("\nComputing and saving exact energies for each training replica...")
-exact_energies_train = {}
-
-for i, pars in tqdm(enumerate(params_list)):
-    _ha = create_operator(pars)
-    E0 = nk.exact.lanczos_ed(_ha, k=1, compute_eigenvectors=False).item()
-    exact_energies_train[str(i)] = float(np.real(E0))
-
-# Charger le fichier log_data.log existant
-log_data_file = os.path.join(run_dir, "log_data.log")
 with open(log_data_file, 'r') as f:
     log_json = json.load(f)
 

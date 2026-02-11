@@ -25,15 +25,16 @@ import netket_pro.distributed as nkpd
 # ==========================================
 # On définit tout ici pour que le 'meta' soit cohérent
 seed = 1
+rng=np.random.default_rng(seed)
 k = jax.random.key(seed)
 L = 4              # Taille du système
 h0 = 1.0            # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
 n_replicas = 10    # Nombre de réalisations de désordre
-n_chains = 800      # Pour le sampler
-n_samples = n_replicas * 64
-n_iter = 500       # Nombre d'étapes d'optimisation
+n_chains = 4*n_replicas      # Pour le sampler
+n_samples = 2*n_chains
+n_iter = 200       # Nombre d'étapes d'optimisation
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 1e-4
@@ -148,6 +149,11 @@ meta = {
 # Logger
 # On initialise le logger avec un dossier temporaire ou final
 log = nk.logging.JsonLog("log_data", save_params=False) 
+
+# AJOUT : SAUVEGARDE DES CONFIGURATIONS DE DÉSORDRE
+disorder_path = os.path.join(run_dir, "disorder_configs.npy")
+np.save(disorder_path, params_list)
+print(f"Configurations de désordre sauvegardées dans : {disorder_path}")
 
 # Création de la structure de dossier via ta fonction utilitaire
 # Note: Assure-toi que save_run renvoie bien le chemin créé si tu veux l'utiliser pour SaveState

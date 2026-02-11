@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # ==========================================
 import argparse
 
-logs_path = "/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs"
+logs_path = "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-04_17-13-25"
 
 parser = argparse.ArgumentParser(description="Plot energy convergence and relative error by h0")
 parser.add_argument("--run", "-r", dest="run_dir", help="Path to run directory (eg. logs/run_...)", default=None)
@@ -206,4 +206,3 @@ plt.savefig(output_path, dpi=150, bbox_inches='tight')
 print(f"✅ Plot saved: {output_path}")
 plt.close()
 
-print(f"✅ Energy convergence plot saved successfully!")
