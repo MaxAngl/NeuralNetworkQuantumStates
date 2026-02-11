@@ -1,33 +1,31 @@
 import os
 import sys
-import json
 import glob
+import json
 import numpy as np
-import matplotlib.pyplot as plt
 import jax
 import netket as nk
 import netket_foundational as nkf
 from netket_foundational._src.model.vit import ViTFNQS
+import flax
+import msgpack
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pandas as pd
-import flax 
-import msgpack 
-
+import zipfile  # <--- INDISPENSABLE
 
 # ==========================================
-# 1. CONFIGURATION UTILISATEUR
+# 1. CONFIGURATION
 # ==========================================
+# RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-04_17-13-25"
+RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/tests_pluri_h0_L=4/run_2026-02-10_10-09-56"
 
-RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/tests_pluri_h0_L=4/run_2026-02-11_08-56-14"
-
-# Paramètres TEST
-H0_TEST_LIST = [0.0, 0.5, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
+H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
 
 # ==========================================
-# 2. SETUP ET CHARGEMENT
+# 2. SETUP
 # ==========================================
-
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
@@ -35,7 +33,6 @@ if not os.path.exists(RUN_DIR):
     print(f"❌ Erreur : Le dossier {RUN_DIR} n'existe pas.")
     sys.exit(1)
 
-# Meta
 meta_path = os.path.join(RUN_DIR, "meta.json")
 with open(meta_path, 'r') as f:
     meta = json.load(f)
@@ -45,8 +42,6 @@ J_val = meta["hamiltonian"]["J"]
 sigma_disorder = meta["hamiltonian"]["sigma"]
 h0_train_list = meta["hamiltonian"]["h0_train_list"]
 vit_params = meta["vit_config"]
-
-print(f"🔹 Modèle chargé : L={L}, J={J_val:.4f}, Sigma={sigma_disorder}")
 
 hi = nk.hilbert.Spin(0.5, L)
 ps = nkf.ParameterSpace(N=hi.size, min=0, max=10*max(H0_TEST_LIST + h0_train_list))
@@ -67,81 +62,78 @@ ma = ViTFNQS(
 sa = nk.sampler.MetropolisLocal(hi, n_chains=1) 
 vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=1, seed=1)
 
-# Checkpoints
 checkpoints = glob.glob(os.path.join(RUN_DIR, "*.nk"))
 if not checkpoints:
     print("❌ Aucun checkpoint (.nk) trouvé.")
     sys.exit(1)
-    
 last_checkpoint = sorted(checkpoints, key=lambda x: int(x.split('_')[-1].split('.')[0]))[-1]
 
-# --- CHARGEMENT "SANDWICH" AVEC TOLÉRANCE AUX ERREURS ---
-print(f"🔹 Chargement des poids depuis : {os.path.basename(last_checkpoint)}")
+# ==========================================
+# 3. CHARGEMENT VIA ZIPFILE (LA SOLUTION)
+# ==========================================
+print(f"🔹 Chargement depuis l'archive : {os.path.basename(last_checkpoint)}")
 
-raw_obj_found = None
+state_dict = None
 
-with open(last_checkpoint, 'rb') as f:
-    # 1. Configuration permissive de l'Unpacker
-    unpacker = msgpack.Unpacker(
-        f, 
-        raw=False, 
-        strict_map_key=False, 
-        max_map_len=2**63-1, 
-        max_bin_len=2**63-1
-    )
-    
-    # 2. Boucle manuelle avec gestion d'erreur (EOF/Garbage bytes)
-    while True:
-        try:
-            obj = next(unpacker)
-            
-            # Vérification si c'est le bon objet
-            if isinstance(obj, dict):
-                if 'variables' in obj:
-                    raw_obj_found = obj['variables']
-                    break
-                elif 'model' in obj and isinstance(obj['model'], dict) and 'variables' in obj['model']:
-                    raw_obj_found = obj['model']['variables']
-                    break
-                elif 'params' in obj:
-                    raw_obj_found = obj
-                    break
-                elif any(k in obj for k in ['encoder', 'layers_0', 'output']):
-                    raw_obj_found = obj
-                    break
-                    
-        except StopIteration:
-            # Fin normale du fichier
-            break
-        except Exception:
-            # Fin anormale (bruit à la fin du fichier, erreur max_map_len, etc.)
-            # On ignore et on utilise ce qu'on a trouvé avant le crash.
-            break
+# On vérifie d'abord si c'est bien un ZIP (format NetKet >= 3.0)
+if not zipfile.is_zipfile(last_checkpoint):
+    print("⚠️  Ce n'est pas un fichier ZIP. Tentative de chargement Raw MsgPack...")
+    with open(last_checkpoint, 'rb') as f:
+        state_dict = flax.serialization.msgpack_restore(f.read())
+else:
+    # C'est un ZIP, on l'ouvre
+    with zipfile.ZipFile(last_checkpoint, 'r') as zf:
+        # On cherche le fichier contenant les données msgpack
+        # Souvent : 'assets/state/state.msgpack' ou juste 'state.msgpack'
+        file_list = zf.namelist()
+        
+        # Priorité aux noms standards
+        candidates = [f for f in file_list if f.endswith('.msgpack')]
+        if not candidates:
+             print(f"❌ Erreur : Aucun fichier .msgpack trouvé dans l'archive ZIP. Contenu : {file_list}")
+             sys.exit(1)
+        
+        # On prend le fichier le plus probable (souvent le plus long chemin 'assets/...')
+        target_file = sorted(candidates, key=len)[-1]
+        print(f"   -> Extraction de : {target_file}")
+        
+        with zf.open(target_file) as f:
+            # On lit les données binaires et on deserialise avec Flax
+            state_dict = flax.serialization.msgpack_restore(f.read())
 
-if raw_obj_found is None:
-    print("❌ Impossible d'isoler les variables dans le checkpoint.")
-    print("   (Le fichier est peut-être corrompu ou ne contient pas de dictionnaire valide)")
+if state_dict is None:
+    print("❌ Echec du chargement des données.")
     sys.exit(1)
 
-# 3. Ré-hydratation via Flax
+# Extraction des variables depuis le dictionnaire chargé
+vars_dict = None
+
+if 'variables' in state_dict:
+    vars_dict = state_dict['variables']
+elif 'model' in state_dict and 'variables' in state_dict['model']:
+    vars_dict = state_dict['model']['variables']
+elif 'params' in state_dict:
+    vars_dict = state_dict
+# Parfois NetKet sauvegarde tout l'objet VMC
+elif 'vqs' in state_dict and 'variables' in state_dict['vqs']:
+    vars_dict = state_dict['vqs']['variables']
+
+if vars_dict is None:
+    # Fallback : on suppose que c'est directement les variables
+    vars_dict = state_dict
+
 try:
-    # On repack pour laisser Flax gérer les Extensions (ExtType -> Complex)
-    packed_bytes = msgpack.packb(raw_obj_found)
-    vars_dict = flax.serialization.msgpack_restore(packed_bytes)
-    
-    # Injection finale
     vs.variables = flax.serialization.from_state_dict(vs.variables, vars_dict)
-    print("✅ Poids chargés avec succès.")
-    
+    print("✅ Poids injectés avec succès !")
 except Exception as e:
-    print(f"❌ Erreur lors de la reconstruction des poids : {e}")
+    print(f"❌ Erreur lors de l'injection Flax : {e}")
+    # Debug structure
+    print("Clés trouvées :", state_dict.keys() if isinstance(state_dict, dict) else "Not a dict")
     sys.exit(1)
 
-
 # ==========================================
-# 3. FONCTIONS UTILITAIRES
+# 4. SUITE DU SCRIPT
 # ==========================================
-
 def create_operator(params):
     ha_X = sum(params[i] * nk.operator.spin.sigmax(hi, i) for i in range(L))
     ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) * nk.operator.spin.sigmaz(hi, (i + 1) % L) for i in range(L))
@@ -149,7 +141,6 @@ def create_operator(params):
 
 def compute_vscore(params_batch):
     v_scores = []
-    # Désactivation du JIT/Cache warning pour la boucle
     for pars in params_batch:
         _vs = vs.get_state(pars) 
         vs_fs = nk.vqs.FullSumState(hilbert=hi, model=_vs.model, variables=_vs.variables)
@@ -161,67 +152,46 @@ def compute_vscore(params_batch):
         v_scores.append(val_score)
     return np.array(v_scores)
 
-# ==========================================
-# 4. TRAITEMENT TRAIN
-# ==========================================
 print("\n🏗️  Traitement des données TRAIN...")
 train_h0 = []
 train_v_scores = []
-
 disorder_file = os.path.join(RUN_DIR, "disorder.configs.npy")
 if not os.path.exists(disorder_file):
     disorder_file = os.path.join(RUN_DIR, "disorder_configs.npy")
 
 if os.path.exists(disorder_file):
     train_params = np.load(disorder_file)
-    print(f"   Chargé {len(train_params)} configurations d'entraînement.")
-    
     train_v_scores = compute_vscore(tqdm(train_params, desc="V-score Train"))
-    
     n_h0_train = len(h0_train_list)
     replicas_per_h0_train = len(train_params) // n_h0_train
-    
     for h0 in h0_train_list:
         train_h0.extend([h0] * replicas_per_h0_train)
 else:
     print("⚠️ Fichier disorder.configs.npy introuvable.")
 
-# ==========================================
-# 5. TRAITEMENT TEST
-# ==========================================
 print("\n🧪 Traitement des données TEST...")
 test_h0 = []
 test_v_scores = []
-
 rng = np.random.default_rng(seed=42)
-
 for h0 in tqdm(H0_TEST_LIST, desc="Génération Test"):
     test_configs = rng.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L))
     scores = compute_vscore(test_configs)
     test_h0.extend([h0] * N_TEST_PER_H0)
     test_v_scores.extend(scores)
 
-# ==========================================
-# 6. PLOTTING
-# ==========================================
 plt.figure(figsize=(10, 6))
-
-plt.scatter(test_h0, test_v_scores, color='crimson', alpha=0.6, s=50, label='Test (New disorder)', edgecolor='white', marker='o', zorder=2)
-
+plt.scatter(test_h0, test_v_scores, color='crimson', alpha=0.6, s=50, label='Test', edgecolor='white', marker='o', zorder=2)
 if len(train_h0) > 0:
-    plt.scatter(train_h0, train_v_scores, color='royalblue', alpha=0.6, s=50, label='Train (Seen disorder)', edgecolor='white', marker='^', zorder=1)
-
+    plt.scatter(train_h0, train_v_scores, color='royalblue', alpha=0.6, s=50, label='Train', edgecolor='white', marker='^', zorder=1)
 df_test = pd.DataFrame({"h0": test_h0, "v": test_v_scores})
 mean_test = df_test.groupby("h0")["v"].mean()
 plt.plot(mean_test.index, mean_test.values, 'r--', alpha=0.4, linewidth=1, label='Test Mean')
-
 plt.yscale('log')
 plt.xlabel(r"Transverse Field $h_0$", fontsize=12)
 plt.ylabel(r"V-score ($\text{Var}(E) / E^2$)", fontsize=12)
 plt.title(f"Accuracy Landscape: Train vs Test (L={L})", fontsize=14)
 plt.grid(True, which="both", ls="--", alpha=0.3)
 plt.legend()
-
 output_file = os.path.join(RUN_DIR, "vscore_scatter_train_test.pdf")
 plt.tight_layout()
 plt.savefig(output_file)

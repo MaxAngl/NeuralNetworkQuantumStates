@@ -6,7 +6,7 @@ import os
 # ==========================================
 # CONFIGURATION
 # ==========================================
-run_dir = "/users/eleves-a/2024/nikola.audit/NeuralNetworkQuantumStates/logs/run_2026-02-09_22-37-43"  # À adapter
+run_dir = "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/tests_pluri_h0_L=4/run_2026-02-11_08-56-14"  # À adapter
 csv_train_path = os.path.join(run_dir, "train_results.csv")
 csv_test_path = os.path.join(run_dir, "test_results.csv")
 
