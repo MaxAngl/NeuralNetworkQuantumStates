@@ -4,102 +4,170 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from pathlib import Path
 
-# --- CONFIGURATION DES CHEMINS ---
-# Le script pointe vers le dossier 'run' comme dans votre fichier plot précédent
-run_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/run_2026-02-09_16-38-08")
-log_path = run_dir / "log_data.json.log"
-meta_path = run_dir / "meta.json"
+# ==============================================================================
+# CONFIGURATION
+# ==============================================================================
+# Indiquez ici le chemin du dossier contenant meta.json et log_data.json.log
+run_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/run_2026-02-09_18-41-50")
 
-def plot_netket_results():
-    # 1. Chargement des métadonnées et des logs
+# Noms des fichiers (standards selon votre code)
+log_filename = "log_data.json.log"
+meta_filename = "meta.json"
+
+# ==============================================================================
+# FONCTION PRINCIPALE
+# ==============================================================================
+def process_and_plot():
+    # 1. Vérification des fichiers
+    log_path = run_dir / log_filename
+    meta_path = run_dir / meta_filename
+
+    if not meta_path.exists():
+        raise FileNotFoundError(f"Le fichier meta.json est introuvable dans : {run_dir}")
+    if not log_path.exists():
+        raise FileNotFoundError(f"Le fichier log est introuvable dans : {run_dir}")
+
+    # 2. Chargement des paramètres de la simulation (Meta)
+    print(f"Chargement des paramètres depuis {meta_path.name}...")
     with open(meta_path, 'r') as f:
         meta = json.load(f)
+
+    # Extraction dynamique des hyperparamètres
+    try:
+        n_iter = meta["n_iter"]
+        n_reps_per_h0 = meta["n_replicas_per_h0"]
+        h0_list = meta["hamiltonian"]["h0_train_list"]
+        total_configs = meta.get("total_configs_train", len(h0_list) * n_reps_per_h0)
+    except KeyError as e:
+        print(f"❌ Erreur : Paramètre manquant dans meta.json : {e}")
+        return
+
+    # NetKet inclut l'itération 0 (état initial), donc un bloc fait n_iter + 1
+    chunk_size = n_iter + 1
+    
+    print(f"Configuration détectée :")
+    print(f"  - {len(h0_list)} valeurs de h0 : {h0_list}")
+    print(f"  - {n_reps_per_h0} répliques par h0")
+    print(f"  - {n_iter} itérations (+1 init) par réplique")
+    print(f"  => Taille attendue d'un bloc de données : {chunk_size} points")
+
+    # 3. Chargement des données d'entraînement (Log)
+    print(f"Chargement des données depuis {log_path.name}...")
     with open(log_path, 'r') as f:
         log_data = json.load(f)
 
-    h0_list = meta["hamiltonian"]["h0_train_list"]
-    n_replicas = meta["n_replicas_per_h0"]
-    n_iter = meta["n_iter"]
-    
-    # Couleurs Magma pour les répliques
-    colors = cm.magma(np.linspace(0, 0.8, n_replicas))
+    # Récupération des listes complètes (concaténation de toutes les runs)
+    try:
+        # NetKet stocke souvent la partie réelle de l'énergie dans Mean/real
+        if "real" in log_data["Energy"]["Mean"]:
+            all_energies = np.array(log_data["Energy"]["Mean"]["real"])
+        else:
+            all_energies = np.array(log_data["Energy"]["Mean"])
+            
+        all_variances = np.array(log_data["Energy"]["Variance"])
+    except KeyError as e:
+        print(f"❌ Erreur de structure dans le log (clé manquante) : {e}")
+        return
 
-    # --- INITIALISATION DES FIGURES ---
+    # Vérification de la cohérence des données
+    total_points_log = len(all_energies)
+    total_points_expected = total_configs * chunk_size
+    
+    print(f"  - Points totaux dans le log : {total_points_log}")
+    if total_points_log < total_points_expected:
+        print(f"⚠️ ATTENTION : Le fichier log semble incomplet. (Attendu: {total_points_expected}, Trouvé: {total_points_log})")
+        print("   Le script tracera ce qui est disponible.")
+
+    # 4. Préparation des couleurs (Magma)
+    # On génère une palette de n_reps couleurs distinctes
+    colors = cm.magma(np.linspace(0.1, 0.9, n_reps_per_h0))
+
+    # 5. Création des figures
+    # Figure 1 : Énergie
     fig_en, axes_en = plt.subplots(len(h0_list), 1, figsize=(10, 4 * len(h0_list)), sharex=True)
-    fig_vs, axes_vs = plt.subplots(len(h0_list), 1, figsize=(10, 4 * len(h0_list)), sharex=True)
+    if len(h0_list) == 1: axes_en = [axes_en]
     
-    if len(h0_list) == 1:
-        axes_en = [axes_en]
-        axes_vs = [axes_vs]
+    # Figure 2 : V-Score
+    fig_vs, axes_vs = plt.subplots(len(h0_list), 1, figsize=(10, 4 * len(h0_list)), sharex=True)
+    if len(h0_list) == 1: axes_vs = [axes_vs]
 
-    print(f"Génération des graphes pour {len(h0_list)} valeurs de h0 avec {n_replicas} répliques chacune...")
-
-    # 2. Boucle sur les h0 et les répliques
+    # 6. Boucle de traitement et tracé
     for i, h0 in enumerate(h0_list):
-        ax_en = axes_en[i]
-        ax_vs = axes_vs[i]
+        ax_e = axes_en[i]
+        ax_v = axes_vs[i]
         
-        ax_en.set_title(f"Énergie : h0 = {h0}", fontweight='bold')
-        ax_vs.set_title(f"V-Score : h0 = {h0}", fontweight='bold')
+        # Titres
+        ax_e.set_title(f"Énergie - Champ $h_0 = {h0}$", fontsize=12, fontweight='bold')
+        ax_v.set_title(f"V-Score - Champ $h_0 = {h0}$", fontsize=12, fontweight='bold')
 
-        for r in range(n_replicas):
-            # Calcul de l'index global de la réplique (0 à 59 si 6 h0 * 10 reps)
-            replica_idx = i * n_replicas + r
-            rep_key = str(replica_idx)
-
-            # Extraction des données si elles sont indexées par réplique
-            # Sinon, on adapte selon la structure réelle de votre log_data
-            if rep_key in log_data:
-                data = log_data[rep_key]
-            elif "Energy" in log_data and isinstance(log_data["Energy"], dict):
-                # Cas où NetKet a tout mis dans un seul bloc (il faut alors slicer)
-                data = log_data
-            else:
+        # Boucle sur les répliques de ce h0
+        for r in range(n_reps_per_h0):
+            # Calcul des indices dans la liste géante concaténée
+            # L'ordre est supposé séquentiel : h0_1 (rep1...repN), h0_2 (rep1...repN)...
+            global_replica_index = i * n_reps_per_h0 + r
+            
+            start_idx = global_replica_index * chunk_size
+            end_idx = start_idx + chunk_size
+            
+            # Sécurité pour ne pas planter si le log est tronqué
+            if start_idx >= total_points_log:
+                continue
+            
+            # Extraction du segment
+            segment_en = all_energies[start_idx : min(end_idx, total_points_log)]
+            segment_var = all_variances[start_idx : min(end_idx, total_points_log)]
+            
+            # Si le segment est vide ou trop court pour être significatif
+            if len(segment_en) == 0:
                 continue
 
-            try:
-                iters = np.array(data["Energy"]["iters"])
-                # On slice les données si le log est concaténé (n_iter par réplique)
-                # Si votre log sépare déjà par clés, ce slice ne fera rien
-                start = r * (n_iter + 1)
-                end = (r + 1) * (n_iter + 1)
-                
-                # Récupération des segments de données
-                e_mean = np.array(data["Energy"]["Mean"]["real"])
-                e_var = np.array(data["Energy"]["Variance"])
-                
-                # Calcul du V-score
-                v_score = e_var / (e_mean**2)
+            # Création de l'axe X local (0, 1, 2... n_iter) pour superposer les courbes
+            x_axis = np.arange(len(segment_en))
+            
+            # Calcul du V-Score : Var / E^2
+            # On gère la division par zéro éventuelle (très rare pour l'énergie)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                segment_vscore = segment_var / (segment_en**2)
 
-                # Tracé Énergie
-                ax_en.plot(iters, e_mean, color=colors[r], alpha=0.8, label=f"Rep {r}" if i==0 else "")
-                
-                # Tracé V-Score
-                ax_vs.semilogy(iters, v_score, color=colors[r], alpha=0.8)
-                
-            except Exception as e:
-                print(f"Erreur replica {replica_idx}: {e}")
+            # Tracé
+            label_name = f"Replica {r+1}" if i == 0 else None # Légende uniquement sur le 1er graph
+            
+            ax_e.plot(x_axis, segment_en, color=colors[r], alpha=0.8, linewidth=1.2, label=label_name)
+            ax_v.semilogy(x_axis, segment_vscore, color=colors[r], alpha=0.8, linewidth=1.2)
 
-        ax_en.set_ylabel("$\langle H \\rangle$")
-        ax_en.grid(True, alpha=0.3)
+        # Mise en forme des axes
+        ax_e.set_ylabel(r"$\langle H \rangle$")
+        ax_e.grid(True, linestyle='--', alpha=0.4)
         
-        ax_vs.set_ylabel("Variance / $\langle H \\rangle^2$")
-        ax_vs.grid(True, which="both", alpha=0.3)
+        ax_v.set_ylabel(r"V-Score")
+        ax_v.grid(True, which="both", linestyle='--', alpha=0.4)
 
+    # Labels communs en bas
     axes_en[-1].set_xlabel("Itérations")
     axes_vs[-1].set_xlabel("Itérations")
-    
-    if n_replicas <= 10:
-        axes_en[0].legend(loc='upper right', bbox_to_anchor=(1.15, 1))
 
+    # Légende externe pour ne pas masquer les courbes
+    if n_reps_per_h0 > 0:
+        fig_en.legend(loc='upper right', bbox_to_anchor=(0.98, 0.98), title="Répliques")
+
+    # 7. Sauvegarde
     fig_en.tight_layout()
     fig_vs.tight_layout()
 
-    # Sauvegarde
-    fig_en.savefig(run_dir / "evolution_energie_magma.png", dpi=200)
-    fig_vs.savefig(run_dir / "evolution_vscore_magma.png", dpi=200)
+    output_en = run_dir / "analyse_energie_par_h0.png"
+    output_vs = run_dir / "analyse_vscore_par_h0.png"
+
+    fig_en.savefig(output_en, dpi=200, bbox_inches='tight')
+    fig_vs.savefig(output_vs, dpi=200, bbox_inches='tight')
+
+    print(f"\n✅ Terminé !")
+    print(f"   Graphique Énergie enregistré sous : {output_en}")
+    print(f"   Graphique V-Score enregistré sous : {output_vs}")
     
     plt.show()
 
 if __name__ == "__main__":
-    plot_netket_results()
+    try:
+        process_and_plot()
+    except Exception as e:
+        print(f"\n❌ Une erreur critique est survenue : {e}")
