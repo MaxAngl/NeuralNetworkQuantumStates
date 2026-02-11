@@ -138,6 +138,11 @@ try:
 except Exception as e:
     run_dir = "checkpoints"
 
+# AJOUT : SAUVEGARDE DES CONFIGURATIONS DE DÉSORDRE
+disorder_path = os.path.join(run_dir, "disorder_configs.npy")
+np.save(disorder_path, params_list)
+print(f"Configurations de désordre sauvegardées dans : {disorder_path}")
+
 start_time = time.time()
 gs.run(n_iter, out=log, obs={"ham": ha_p, "mz": mz_p}, callback=SaveState(run_dir, 10))
 duration = time.time() - start_time

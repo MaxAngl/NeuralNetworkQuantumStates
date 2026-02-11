@@ -1,0 +1,80 @@
+import json
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+# ==========================================
+# CONFIGURATION
+# ==========================================
+run_dir = "/users/eleves-a/2024/nikola.audit/NeuralNetworkQuantumStates/logs/run_2026-02-09_22-37-43" # À adapter
+json_path = os.path.join(run_dir, "log_data.json.log")
+meta_path = os.path.join(run_dir, "meta.json")
+
+def plot_rhat_from_metadata():
+    # 1. Vérification des fichiers
+    if not os.path.exists(json_path) or not os.path.exists(meta_path):
+        print(f"❌ Fichiers manquants dans {run_dir}")
+        return
+
+    # 2. Extraction des métadonnées (h0 et nombre de réplicas)
+    with open(meta_path, 'r') as f:
+        meta = json.load(f)
+    
+    # On récupère les infos dans la structure que tu as définie dans ton script principal
+    h0_train_list = meta["hamiltonian"]["h0_train_list"]
+    n_reps = meta["n_replicas_per_h0"]
+    L = meta["L"]
+
+    # 3. Chargement des données du log (R_hat)
+    with open(json_path, 'r') as f:
+        log_data = json.load(f)
+
+    try:
+        # Récupération du R_hat de la dernière itération pour tous les réplicas
+        r_hat_final = np.array(log_data['data']['ham']['R_hat'][-1])
+    except KeyError:
+        print("❌ La clé 'R_hat' n'a pas été trouvée. Vérifie ton n_chains.")
+        return
+
+    # 4. Reconstruction automatique de l'axe H
+    h_coords = []
+    for h in h0_train_list:
+        h_coords.extend([h] * n_reps)
+
+    # 5. Création du graphique
+    plt.figure(figsize=(10, 6))
+
+    # Points individuels
+    plt.scatter(h_coords, r_hat_final, color='forestgreen', alpha=0.5, 
+                edgecolors='black', label='Réplicas (Train)')
+
+    # Moyenne par h_mean
+    df = pd.DataFrame({'h': h_coords, 'rhat': r_hat_final})
+    summary = df.groupby('h')['rhat'].mean().reset_index()
+    plt.plot(summary['h'], summary['rhat'], color='darkgreen', marker='o', 
+             linestyle='--', linewidth=2, label='Moyenne $\hat{R}$')
+
+    # Seuils de convergence
+    plt.axhline(y=1.1, color='red', linestyle='-', linewidth=1.5, label='Seuil critique (1.1)')
+    plt.axhline(y=1.0, color='black', linestyle=':', alpha=0.5)
+
+    # Mise en forme
+    plt.yscale('linear') # R-hat se lit mieux en linéaire, souvent proche de 1
+    plt.xlabel(r'Champ transverse moyen $h_{mean}$', fontsize=12)
+    plt.ylabel(r'Diagnostic $\hat{R}$ (Convergence MCMC)', fontsize=12)
+    plt.title(f'Analyse de convergence des chaînes (L={L})\nDonnées extraites de meta.json', fontsize=13)
+    
+    plt.xticks(h0_train_list)
+    plt.grid(True, which="both", ls="-", alpha=0.2)
+    plt.legend()
+
+    # Sauvegarde
+    output_path = os.path.join(run_dir, "rhat_vs_h_auto.png")
+    plt.savefig(output_path, dpi=300)
+    print(f"✅ Graphique généré avec succès en utilisant les métadonnées.")
+    print(f"📍 Sauvegardé sous : {output_path}")
+    plt.show()
+
+if __name__ == "__main__":
+    plot_rhat_from_metadata()
