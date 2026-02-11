@@ -34,7 +34,7 @@ seed = 1
 rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 L = 4              # Taille du système
-h0_train_list = [ 0.1,0.2, 0.4,0.6,0.8, 1.0, 1.2,2, 5.0 ]          # Champ moyen
+h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]          # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
 n_replicas = 10    # Nombre de réalisations de désordre
@@ -49,7 +49,7 @@ lr_end = 0.005
 diag_shift = 1e-4
 logs_path = "logs"  # Dossier racine pour les logs
 
-h0_test_list = [ 0.05, 0.15, 0.3,0.5,0.85, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
+h0_test_list = [ 0.05, 0.15, 0.3, 0.5, 0.85, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
 N_test_per_h0 = 10  # Nombre de configurations de désordre par h0 de test
 
 # Paramètres du modèle ViT
