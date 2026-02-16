@@ -18,7 +18,7 @@ import zipfile
 # 1. CONFIGURATION
 # ==========================================
 # RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-04_17-13-25"
-RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/tests_pluri_h0_L=4/run_2026-02-11_13-31-21"
+RUN_DIR = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/test_L=16/run_2026-02-13_22-30-44"
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 

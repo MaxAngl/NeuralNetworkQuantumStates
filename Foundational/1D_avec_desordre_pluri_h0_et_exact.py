@@ -5,7 +5,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 #Décommenter cette ligne pour L supérieur à 16 ou 20
-#os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
+os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
 
 import netket as nk
 import netket_foundational as nkf
@@ -33,7 +33,7 @@ import netket_pro.distributed as nkpd
 seed = 1
 rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
-L = 4              # Taille du système
+L = 16              # Taille du système
 h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]          # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0/np.e    # Couplage Ising (défini dans create_operator)
@@ -43,7 +43,7 @@ chains_per_replica = 4      # <--- ICI : Chaque réplica aura 4 chaînes indépe
 samples_per_chain = 2      # Nombre de points récoltés par chaque chaîne
 n_chains = total_configs_train * chains_per_replica 
 n_samples = n_chains * samples_per_chain             
-n_iter = 200       # Nombre d'étapes d'optimisation
+n_iter = 400       # Nombre d'étapes d'optimisation
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 1e-4
