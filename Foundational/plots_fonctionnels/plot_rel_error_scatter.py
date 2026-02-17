@@ -18,7 +18,7 @@ import zipfile
 # 1. CONFIGURATION
 # ==========================================
 # Mettez ici le chemin de votre run
-RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-11_13-31-21"
+RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-17_13-42-07"
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
@@ -220,7 +220,7 @@ plt.title(f"Energy Accuracy: Train vs Test (L={L})", fontsize=14)
 plt.grid(True, which="both", ls="--", alpha=0.3)
 plt.legend(loc='best', frameon=True, fontsize=10)
 
-output_file = os.path.join(RUN_DIR, "rel_error_scatter_train_test.pdf")
+output_file = os.path.join(RUN_DIR, f"rel_error_scatter_train_test_L={L}.pdf")
 plt.tight_layout()
 plt.savefig(output_file)
 print(f"\n✅ Graphique Erreur Relative sauvegardé : {output_file}")

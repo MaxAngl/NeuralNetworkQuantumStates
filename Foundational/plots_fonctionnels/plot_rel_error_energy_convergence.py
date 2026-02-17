@@ -13,7 +13,7 @@ from tqdm import tqdm
 # ==========================================
 
 # 👇 COLLEZ LE CHEMIN DE VOTRE RUN ENTRE LES GUILLEMETS CI-DESSOUS 👇
-CHEMIN_DU_RUN = "/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/test_L=16/run_2026-02-11_15-47-34"
+CHEMIN_DU_RUN = "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-17_13-42-07"
 
 # ==========================================
 # 2. LOGIQUE DE DÉTECTION DU DOSSIER

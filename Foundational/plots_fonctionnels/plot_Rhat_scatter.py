@@ -17,8 +17,9 @@ import zipfile
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
+
 # RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-04_17-13-25"
-RUN_DIR = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/test_L=16/run_2026-02-13_22-30-44"
+RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-17_13-42-07"
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
@@ -248,7 +249,7 @@ plt.title(f"Convergence Diagnostics ($\hat{{R}}$): Train vs Test (L={L})", fonts
 plt.grid(True, which="both", ls="--", alpha=0.3)
 plt.legend(loc='best', frameon=True, fontsize=10)
 
-output_file = os.path.join(RUN_DIR, "rhat_scatter_train_test.pdf")
+output_file = os.path.join(RUN_DIR, f"rhat_scatter_train_test_L={L}.pdf")
 plt.tight_layout()
 plt.savefig(output_file)
 print(f"\n✅ Scatter plot R-hat sauvegardé : {output_file}")

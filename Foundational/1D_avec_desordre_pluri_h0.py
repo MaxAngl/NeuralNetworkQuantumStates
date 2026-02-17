@@ -29,6 +29,9 @@ import matplotlib.pyplot as plt
 from netket_foundational._src.model.vit import ViTFNQS
 from advanced_drivers._src.callbacks.base import AbstractCallback
 import netket_pro.distributed as nkpd
+from netket.sampler import rules
+from flax import struct
+from flip_rules import GlobalFlipRule
 
 # ==========================================
 # 1. HYPERPARAMÈTRES ET CONFIGURATION
@@ -49,12 +52,18 @@ n_replicas = 10                             # Nombre de réalisations de désord
 total_configs_train = len(h0_train_list) * (n_replicas + 1)
 chains_per_replica = 4      
 samples_per_chain = 2       
-n_chains = total_configs_train * chains_per_replica 
-n_samples = n_chains * samples_per_chain    
+n_chains = total_configs_train * chains_per_replica
+n_samples = n_chains * samples_per_chain
+prob_global_flip = 0.01  # Probabilité de flip global dans le sampler personnalisé
+
+# --- PARAMÈTRES D'OPTIMISATION ---
+n_iter = 300       
+lr_init = 0.03
+lr_end = 0.005
+diag_shift = 2e-4
+logs_path = "logs"
 
 # --- CALCUL AUTOMATIQUE ET SYSTÉMATIQUE DU CHUNK_SIZE ---
-# Cible : On veut traiter environ 512 à 1024 samples à la fois pour éviter le OOM
-# tout en gardant une bonne vectorisation.
 TARGET_CHUNK = 64 
 
 if n_samples <= TARGET_CHUNK:
@@ -69,13 +78,6 @@ else:
 
 print(f"🔹 Configuration : {n_samples} samples total.")
 print(f"🔹 Chunk size auto-calculé : {chunk_size} (Diviseur optimal <= {TARGET_CHUNK})")
-
-# --- PARAMÈTRES D'OPTIMISATION ---
-n_iter = 500       
-lr_init = 0.03
-lr_end = 0.005
-diag_shift = 2e-4
-logs_path = "logs"
 
 
 # Paramètres du modèle ViT
@@ -128,10 +130,14 @@ ma = ViTFNQS(
     disorder=True, 
     transl_invariant=False, 
     two_dimensional=False, 
-)
-
+)        
+ 
 # Sampler & État Variationnel
-sa = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
+sa = nk.sampler.MetropolisSampler(
+    hi,
+    rule=GlobalFlipRule(prob_global_flip),
+    n_chains=n_chains
+)
 vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
 
 # Initialisation des paramètres (désordre)
@@ -158,30 +164,41 @@ mz_p = nkf.operator.ParametrizedOperator(hi, ps, lambda _: Mz)
 # ==========================================
 
 # Callback de sauvegarde
-class SaveState(AbstractCallback, mutable=True):
-    _path: str = struct.field(pytree_node=False, serialize=False)
-    _prefix: str = struct.field(pytree_node=False, serialize=False)
-    _save_every: int = struct.field(pytree_node=False, serialize=False)
+class SaveState(AbstractCallback):
+    _path: str = struct.field(pytree_node=False)
+    _prefix: str = struct.field(pytree_node=False)
+    _save_every: int = struct.field(pytree_node=False)
 
     def __init__(self, path: str, save_every: int, prefix: str = "state"):
         self._path = path
         self._prefix = prefix
         self._save_every = save_every
-
-    def on_run_start(self, step, driver, callbacks):
-        if nkpd.is_master_process() and not os.path.exists(self._path):
-            os.makedirs(self._path)
+        
+        # 1. On force la création du dossier dès l'initialisation si on est sur le master
+        if nkpd.is_master_process():
+            os.makedirs(self._path, exist_ok=True)
 
     def on_step_end(self, step, log_data, driver):
         if step % self._save_every == 0:
-            path = f"{self._path}/{self._prefix}_{driver.step_count}.nk"
+            
+            # 2. Sécurité ultime : on vérifie que le dossier existe juste avant d'écrire
+            # (Au cas où un nettoyage automatique l'aurait supprimé ou s'il y a un délai)
+            if nkpd.is_master_process() and not os.path.exists(self._path):
+                os.makedirs(self._path, exist_ok=True)
+            
+            # Construction du chemin
+            path = os.path.join(self._path, f"{self._prefix}_{driver.step_count}.nk")
+            
+            # Sauvegarde
             driver.state.save(path)
 
 # Optimiseur
-learning_rate = optax.linear_schedule(init_value=lr_init, end_value=lr_end, transition_steps=300) 
+learning_rate = optax.linear_schedule(init_value=lr_init, end_value=lr_end, transition_steps=300)
 optimizer = optax.sgd(learning_rate)
-solver = nk.optimizer.solver.cholesky
-gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift, solver=solver)
+def cg_solver(A, b):
+    # jax.scipy.sparse.linalg.cg renvoie (x, info), on ne garde que x [0]
+    return jax.scipy.sparse.linalg.cg(A, b, tol=1e-4)[0]
+gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift, linear_solver_fn=cg_solver)
 
 # Logger
 # On initialise le logger avec un dossier temporaire ou final
@@ -254,51 +271,62 @@ with open(os.path.join(run_dir, "meta.json"), 'w') as f:
     json.dump(meta, f, indent=4)
 
 # ==========================================
-# 4. ANALYSE ET PLOTS (CONVERGENCE)
+# 4. PLOTS ET ANALYSE FINALE
 # ==========================================
-print('Plotting convergence curves...')
-conv_data = []
+print('Analyse et sauvegarde...')
 
-# Sans calcul exact, on plotte juste l'énergie VMC
+# --- 1. Plot Convergence ---
+conv_data = []
 for i, pars in tqdm(enumerate(vs.parameter_array)):
-    # Récupération des données du log
     if hasattr(log.data["ham"], "__getitem__") and len(log.data["ham"]) > i:
         ham_log = log.data["ham"][i]
-        
-        # On ne calcule plus l'erreur relative car pas d'ed
-        conv_data.append({
-            "iters": ham_log.iters,
-            "e0": ham_log.Mean,
-        })
+        # On prend la partie réelle pour éviter les warnings ComplexWarning
+        conv_data.append({"iters": ham_log.iters, "e0": np.real(ham_log.Mean)})
 
 plt.figure()
-for _data in conv_data:
-    plt.plot(
-        _data["iters"],
-        _data["e0"], # On affiche l'énergie brute au lieu de l'erreur relative
-        alpha=0.3
-    )
-
-plt.xlabel("Iteration")
-plt.ylabel("Energy (VMC)")
-# plt.xscale("log") # Pas forcément pertinent pour l'énergie brute
-# plt.yscale("log") 
-plt.savefig(os.path.join(run_dir, f"Found_disordered_pluri_h0_L={L}_convergence.pdf"))
+for _data in conv_data: 
+    plt.plot(_data["iters"], _data["e0"], alpha=0.3)
+plt.xlabel("Iterations")
+plt.ylabel("Energy (Real)")
+plt.savefig(os.path.join(run_dir, "convergence.pdf"))
 plt.clf()
 
+# --- 2. Calcul des V-scores sur le Train ---
+print("Calcul des V-scores finaux sur le Train...")
+train_results = {"v_score": []}
 
-# --- SAUVEGARDE DES DONNÉES DE TRAIN ---
-# On récupère les h_0 correspondant à chaque réplica de train
+for r in tqdm(range(total_configs_train)):
+    pars = params_list[r]
+    _vs = vs.get_state(pars)
+    
+    # CORRECTION ICI : On retire l'argument 'hilbert=hi'
+    # Le sampler contient déjà l'info sur Hilbert.
+    vs_mc = nk.vqs.MCState(
+        sampler=nk.sampler.MetropolisLocal(hi, n_chains=16), 
+        model=_vs.model, 
+        variables=_vs.variables, 
+        n_samples=1024, 
+        chunk_size=64
+    )
+    
+    _e = vs_mc.expect(create_operator(pars))
+    val = _e.variance / (_e.Mean.real**2 + 1e-12)
+    train_results["v_score"].append(val)
+
+v_train = np.array(train_results["v_score"])
+
+# --- 3. Sauvegarde CSV ---
 h_mean_train_full = []
-for h_val in h0_train_list:
-    # Rappel : on a (n_replicas + 1) configs par h_val dans le train (random + homogene)
-    # total_configs_train est calculé plus haut sur cette base, mais ici il faut être précis
-    configs_per_h_train = n_replicas + 1 
-    h_mean_train_full.extend([h_val] * configs_per_h_train)
+for h_val in h0_train_list: 
+    h_mean_train_full.extend([h_val] * (n_replicas + 1))
+
+min_len = min(len(h_mean_train_full), len(v_train))
 
 df_train = pd.DataFrame({
-    "h_mean": h_mean_train_full,
-    "v_score": v_train,
+    "h_mean": h_mean_train_full[:min_len], 
+    "v_score": v_train[:min_len]
 })
-df_train.to_csv(os.path.join(run_dir, "train_results.csv"), index=False)
-print(f"✅ Données de train sauvegardées dans : {run_dir}/train_results.csv")
+
+output_csv = os.path.join(run_dir, "train_results.csv")
+df_train.to_csv(output_csv, index=False)
+print(f"✅ Terminé ! Résultats sauvegardés dans : {output_csv}")
