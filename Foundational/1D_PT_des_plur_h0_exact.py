@@ -1,0 +1,483 @@
+import os
+import sys
+# Ajouter le répertoire racine du projet au chemin Python
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+# Décommenter cette ligne pour L supérieur à 16 ou 20
+os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
+
+import netket as nk
+import netket_foundational as nkf
+import netket_pro.distributed as nkpd # Important pour l'environnement Pro
+
+from src.nqs_psc.utils import save_run 
+
+import time
+import pandas as pd
+import jax
+import jax.numpy as jnp
+import numpy as np
+from tqdm import tqdm
+import optax
+from scipy.stats import gaussian_kde
+from netket.utils import struct
+import matplotlib.pyplot as plt
+from netket_foundational._src.model.vit import ViTFNQS
+from advanced_drivers._src.callbacks.base import AbstractCallback
+
+# === IMPORT DE VOTRE RÈGLE DE FLIP ===
+# Assurez-vous que flip_rules.py est dans le même dossier
+from flip_rules import GlobalFlipRule 
+
+# ==========================================
+# FIX NQXPACK: Sérialisation absolue (JAX Arrays + PT Sampler)
+# ==========================================
+import jax
+import numpy as np
+
+try:
+    from nqxpack._src.lib_v1 import register_serialization
+    from netket.sampler import ParallelTemperingSampler
+    
+    # 1. Sécurité globale : On apprend à nqxpack à lire n'importe quel Array JAX
+    def _serialize_jax_array(arr):
+        # Transforme un Array JAX en type Python natif (float/int si scalaire, list si tableau)
+        return np.array(arr).tolist()
+        
+    # On enregistre la classe de base des arrays JAX
+    try:
+        register_serialization(jax.Array, _serialize_jax_array)
+    except Exception:
+        pass # Déjà enregistré ou erreur mineure
+
+    # 2. Sécurité ciblée : On "nettoie" le dictionnaire du sampler PT
+    def _to_builtin(x):
+        if x is None:
+            return None
+        return np.array(x).tolist()
+
+    def _serialize_pt_sampler(sampler):
+        # On extrait les attributs et on force la conversion en Python pur
+        return {
+            "n_replicas": _to_builtin(getattr(sampler, "n_replicas", 1)),
+            "n_chains": _to_builtin(getattr(sampler, "n_chains", 0)),
+            "machine_pow": _to_builtin(getattr(sampler, "machine_pow", 2.0)),
+        }
+
+    register_serialization(ParallelTemperingSampler, _serialize_pt_sampler)
+    print("✅ FIX NQXPACK: Sérialisation (PT + JAX Arrays) enregistrée et sécurisée !")
+    
+except ImportError:
+    print("ℹ️ nqxpack n'est pas détecté, on ignore la sérialisation custom.")
+except Exception as e:
+    print(f"⚠️ Erreur lors de l'enregistrement de la sérialisation : {e}")
+    
+    
+# ==========================================
+# 1. HYPERPARAMÈTRES ET CONFIGURATION
+# ==========================================
+seed = 1
+rng = np.random.default_rng(seed)
+k = jax.random.key(seed)
+L = 16              
+h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]          
+sigma_disorder = 0.1 
+J_val = 1.0/np.e    
+n_replicas = 10    # Nombre de réalisations de désordre
+total_configs_train = len(h0_train_list) * (n_replicas + 1)
+
+# --- CONFIGURATION MCMC & PARALLEL TEMPERING ---
+chains_per_replica = 4      
+samples_per_chain = 2      
+n_chains = total_configs_train * chains_per_replica 
+n_samples = n_chains * samples_per_chain             
+
+# Paramètres spécifiques au Parallel Tempering
+n_pt_temperatures = 4      # Nombre de températures (répliques PT)
+prob_global_flip = 0.01     # 0.0 = Mouvements locaux uniquement (le PT gère le global)
+
+n_iter = 400       
+lr_init = 0.03
+lr_end = 0.005
+diag_shift = 1e-4
+logs_path = "logs"  
+
+h0_test_list = [ 0.05, 0.15, 0.3, 0.5, 0.85, 1.05, 1.3, 1.5, 3] 
+N_test_per_h0 = 10  
+
+# Paramètres du modèle ViT
+vit_params = {
+    "num_layers": 2,
+    "d_model": 16,
+    "heads": 4,
+    "b": 1,
+    "L_eff": L,
+}
+
+# ==========================================
+# 2. DEFINITION DU SYSTEME
+# ==========================================
+
+hi = nk.hilbert.Spin(0.5, L)
+ps = nkf.ParameterSpace(N=hi.size, min=0, max=10*max(h0_train_list))
+
+def generate_multi_h0_disorder(h0_list, n_reps, system_size, sigma, rng=None):
+    if rng is None:
+        rng = np.random.default_rng()
+    
+    all_configs = []
+    
+    for h_m in h0_list:
+        # 1. Génération des 'n_reps' configurations désordonnées
+        random_configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
+        
+        # 2. Création de la configuration homogène
+        homogeneous_config = np.full((1, system_size), h_m)
+        
+        # 3. On empile les deux
+        batch_configs = np.vstack([random_configs, homogeneous_config])
+        all_configs.append(batch_configs)
+        
+    return np.vstack(all_configs)
+
+# Modèle
+ma = ViTFNQS(
+    num_layers=vit_params["num_layers"],
+    d_model=vit_params["d_model"],
+    heads=vit_params["heads"],
+    b=vit_params["b"],
+    L_eff=vit_params["L_eff"], 
+    n_coups=ps.size, 
+    complex=True, 
+    disorder=True, 
+    transl_invariant=False, 
+    two_dimensional=False, 
+)
+
+# --- SAMPLER PARALLEL TEMPERING ---
+
+# 1. On instancie votre règle personnalisée
+rule = GlobalFlipRule(prob_global=prob_global_flip)
+
+# 2. On instancie DIRECTEMENT le sampler PT
+# Il prend les mêmes arguments qu'un Metropolis classique, 
+# plus l'argument spécifique `n_replicas` pour les températures.
+sa = nk.sampler.ParallelTemperingSampler(
+    hi,                            # L'espace de Hilbert
+    rule=rule,                     # Votre règle de transition personnalisée
+    n_replicas=n_pt_temperatures,  # Le nombre de températures
+    n_chains=n_chains              # Le nombre de chaînes par température
+)
+
+# État Variationnel
+# FoundationalQuantumState va utiliser la chaîne à beta=1 (froide) pour l'apprentissage
+vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed)
+
+# Initialisation des paramètres (désordre)
+params_list = generate_multi_h0_disorder(h0_train_list, n_replicas, hi.size, sigma=sigma_disorder)
+print(f"Forme des paramètres de désordre : {params_list.shape}")
+vs.parameter_array = params_list
+
+# Opérateurs
+Mz = sum(nkf.operator.sigmaz(hi, i) for i in range(hi.size)) * (1 / float(hi.size))
+
+def create_operator(params):
+    assert params.shape == (hi.size,)
+    ha_X = sum(params[i] * nkf.operator.sigmax(hi, i) for i in range(hi.size))
+    ha_ZZ = sum(nkf.operator.sigmaz(hi, i) @ nkf.operator.sigmaz(hi, (i + 1) % hi.size) for i in range(hi.size))
+    return -ha_X - J_val * ha_ZZ
+
+ha_p = nkf.operator.ParametrizedOperator(hi, ps, create_operator)
+mz_p = nkf.operator.ParametrizedOperator(hi, ps, lambda _: Mz)
+
+# ==========================================
+# 3. LOGGING ET OPTIMISATION
+# ==========================================
+
+class SaveState(AbstractCallback, mutable=True):
+    _path: str = struct.field(pytree_node=False, serialize=False)
+    _prefix: str = struct.field(pytree_node=False, serialize=False)
+    _save_every: int = struct.field(pytree_node=False, serialize=False)
+
+    def __init__(self, path: str, save_every: int, prefix: str = "state"):
+        self._path = path
+        self._prefix = prefix
+        self._save_every = save_every
+
+    def on_run_start(self, step, driver, callbacks):
+        if nkpd.is_master_process() and not os.path.exists(self._path):
+            os.makedirs(self._path)
+
+    def on_step_end(self, step, log_data, driver):
+        if step % self._save_every == 0:
+            path = f"{self._path}/{self._prefix}_{driver.step_count}.nk"
+            driver.state.save(path)
+
+# Optimiseur
+learning_rate = optax.linear_schedule(init_value=lr_init, end_value=lr_end, transition_steps=300) 
+optimizer = optax.sgd(learning_rate)
+gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift)
+
+# Logger
+log = nk.logging.JsonLog("log_data", save_params=False) 
+
+# Dictionnaire META mis à jour
+meta = {
+    "L": L,
+    "graph": "Hypercube 1D",
+    "n_dim": 1,
+    "pbc": True,
+    "hamiltonian": {
+        "type": "Ising Disorder", 
+        "J": J_val, 
+        "h0_train_list": h0_train_list, 
+        "sigma": sigma_disorder
+    },
+    "model": "ViTFNQS",
+    "vit_config": vit_params,
+    "sampler": {
+        "type": "ParallelTemperingSampler",
+        "n_pt_temperatures": n_pt_temperatures,
+        "n_chains_per_temp": n_chains, 
+        "n_samples": n_samples,
+        "rule": "GlobalFlipRule",
+        "prob_global_flip": prob_global_flip
+    },
+    "optimizer": {
+        "type": "SGD", 
+        "lr_init": lr_init, 
+        "lr_end": lr_end, 
+        "diag_shift": diag_shift
+    },
+    "n_iter": n_iter,
+    "n_replicas_per_h0": n_replicas,
+    "total_configs_train": total_configs_train,
+    "seed": seed,
+}
+
+try:
+    run_dir = save_run(log, meta, create_only=True, base_dir=logs_path)
+except Exception as e:
+    print(f"Warning: save_run issue ({e}), using default path.")
+    run_dir = "checkpoints"
+
+log = nk.logging.JsonLog(os.path.join(run_dir, "log_data.json"), save_params=False)
+
+disorder_path = os.path.join(run_dir, "disorder_configs.npy")
+np.save(disorder_path, params_list)
+print(f"Configurations de désordre sauvegardées dans : {disorder_path}")
+
+start_time = time.time()
+
+# Lancement du run
+gs.run(
+    n_iter,
+    out=log,
+    obs={"ham": ha_p, "mz": mz_p},
+    callback=SaveState(run_dir, 10), 
+)
+
+duration = time.time() - start_time
+print(f"⏱️ Temps total d'entraînement : {duration:.2f} secondes")
+
+meta["execution_time_seconds"] = duration
+import json
+with open(os.path.join(run_dir, "meta.json"), 'w') as f:
+    json.dump(meta, f, indent=4)
+
+# ==========================================
+# 4. ANALYSE ET PLOTS (CONVERGENCE)
+# ==========================================
+print('Plotting convergence curves...')
+conv_data = []
+
+for i, pars in tqdm(enumerate(vs.parameter_array)):
+    _ha = create_operator(pars)
+    ed = nk.exact.lanczos_ed(_ha, k=1, compute_eigenvectors=False).item()
+
+    if hasattr(log.data["ham"], "__getitem__") and len(log.data["ham"]) > i:
+        ham_log = log.data["ham"][i]
+        err_val = ham_log.Mean - ed
+        conv_data.append({
+            "iters": ham_log.iters,
+            "e0": ham_log.Mean,
+            "err_val": err_val
+        })
+
+plt.figure()
+for _data in conv_data:
+    plt.plot(
+        _data["iters"],
+        np.abs(_data["err_val"] / _data["e0"]),
+        alpha=0.3
+    )
+
+plt.xlabel("Iteration")
+plt.ylabel("Rel Error")
+plt.xscale("log")
+plt.yscale("log")
+plt.savefig(os.path.join(run_dir, f"Found_disordered_pluri_h0_L={L}_convergence.pdf"))
+plt.clf()
+
+# ==========================================
+# 5. TEST SUR NOUVEL ENSEMBLE
+# ==========================================
+
+params_list_test = generate_multi_h0_disorder(h0_test_list, N_test_per_h0, hi.size, sigma_disorder)
+N_test_total = params_list_test.shape[0]
+
+vmc_vals = {"Energy": [], "Mz2": [], "V_score": []}
+
+print(f'Computing NQS predictions on test set ({N_test_total} samples)...')
+
+for i in tqdm(range(0, N_test_total)):
+    pars = params_list_test[i]
+    _vs = vs.get_state(pars)
+
+    # Note: FullSumState est coûteux mais précis pour L=16. 
+    # Si L augmente, il faudra repasser par du sampling (vs.expect).
+    vs_fs = nk.vqs.FullSumState(
+        hilbert=hi,
+        model=_vs.model,
+        variables=_vs.variables
+    )
+
+    _ha = create_operator(pars)
+    _e = vs_fs.expect(_ha)
+    _o = vs_fs.expect(Mz @ Mz)
+
+    v_score = _e.variance / (_e.Mean.real**2 + 1e-12)
+
+    vmc_vals["Energy"].append(_e.Mean)
+    vmc_vals["Mz2"].append(_o.Mean)
+    vmc_vals["V_score"].append(v_score)
+
+# --- Calcul Exact de Test ---
+exact_vals = {"Energy": [], "Mz2": []}
+print('Computing exact values on test set...')
+Mz2_op = Mz @ Mz
+Mz2_mat = Mz2_op.to_sparse()
+
+for pars in tqdm(params_list_test):
+    _ha = create_operator(pars)
+    E0, psi0 = nk.exact.lanczos_ed(_ha, k=1, compute_eigenvectors=True)
+    exact_vals["Energy"].append(E0.item())
+    exact_vals["Mz2"].append((psi0.T.conj() @ (Mz2_mat @ psi0.reshape(-1))).item().real)
+
+# --- Conversion ---
+vmc_final = {
+    "Energy": np.array([np.real(e) for e in vmc_vals["Energy"]]),
+    "Mz2": np.array([np.real(m) for m in vmc_vals["Mz2"]]),
+    "V_score": np.array(vmc_vals["V_score"])
+}
+
+ex_energy = np.array(exact_vals["Energy"])
+ex_mz2 = np.array(exact_vals["Mz2"])
+
+err_test = np.abs(vmc_final['Mz2'] - ex_mz2) / (np.abs(ex_mz2) + 1e-12)
+
+# ==========================================
+# 5bis. SAUVEGARDE DES RESULTATS (CSV)
+# ==========================================
+h_mean_test_full = []
+for h_val in h0_test_list:
+    h_mean_test_full.extend([h_val] * N_test_per_h0)
+
+df_results = pd.DataFrame({
+    "h_mean": h_mean_test_full, 
+    "exact_energy": exact_vals["Energy"],
+    "vmc_energy": vmc_final["Energy"],
+    "exact_mz2": exact_vals["Mz2"],
+    "vmc_mz2": vmc_final["Mz2"],
+    "v_score": vmc_final["V_score"]
+})
+
+csv_path = os.path.join(run_dir, "test_results.csv")
+df_results.to_csv(csv_path, index=False)
+print(f"✅ Données de test sauvegardées dans : {csv_path}")
+
+# ==========================================
+# 6. ANALYSE COMPARATIVE : TRAIN VS TEST
+# ==========================================
+
+print("Ré-évaluation des points de Train pour comparaison...")
+vs.parameter_array = params_list 
+
+train_results = {"V_score": [], "Mz2": [], "Ex_Mz2": []}
+
+for r in range(total_configs_train):
+    pars = params_list[r]
+    _vs = vs.get_state(pars)
+    vs_fs = nk.vqs.FullSumState(hilbert=hi, model=_vs.model, variables=_vs.variables)
+    
+    _e = vs_fs.expect(create_operator(pars))
+    _o = vs_fs.expect(Mz @ Mz)
+    
+    E0, psi0 = nk.exact.lanczos_ed(create_operator(pars), k=1, compute_eigenvectors=True)
+    ex_mz2_val = (psi0.reshape(-1).T.conj() @ (Mz2_mat @ psi0.reshape(-1))).item().real
+    
+    train_results["V_score"].append(_e.variance / (_e.Mean.real**2 + 1e-12))
+    train_results["Mz2"].append(_o.Mean.real)
+    train_results["Ex_Mz2"].append(ex_mz2_val)
+
+v_train = np.array(train_results["V_score"])
+err_train = np.abs(np.array(train_results["Mz2"]) - np.array(train_results["Ex_Mz2"])) / (np.abs(np.array(train_results["Ex_Mz2"])) + 1e-12)
+v_test = vmc_final['V_score']
+
+# --- TRACÉ DES HISTOGRAMMES ---
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+all_v = np.concatenate([v_train, v_test])
+bins_v = np.logspace(np.log10(all_v.min() + 1e-18), np.log10(all_v.max() + 1e-2), 25)
+ax1.hist(v_test, bins=bins_v, alpha=0.5, label='Test', color='orange', edgecolor='darkorange')
+ax1.hist(v_train, bins=bins_v, alpha=0.8, label='Train', color='red', edgecolor='black')
+ax1.set_xscale('log')
+ax1.set_title("Distribution du V-score")
+ax1.legend()
+
+all_err = np.concatenate([err_train, err_test])
+bins_e = np.logspace(np.log10(all_err.min() + 1e-18), np.log10(all_err.max() + 1e-1), 25)
+ax2.hist(err_test, bins=bins_e, alpha=0.5, label='Test', color='blue', edgecolor='darkblue')
+ax2.hist(err_train, bins=bins_e, alpha=0.8, label='Train', color='cyan', edgecolor='black')
+ax2.set_xscale('log')
+ax2.set_title("Distribution de l'Erreur Relative $M_z^2$")
+ax2.legend()
+
+plt.tight_layout()
+plt.savefig(os.path.join(run_dir, f"Found_disordered_pluri_h0_L={L}_extrapolation_analysis.pdf"))
+print(f"✅ Analyse terminée dans : {run_dir}")
+
+
+# --- SAUVEGARDE DES DONNÉES DE TRAIN ---
+h_mean_train_full = []
+for h_val in h0_train_list:
+    h_mean_train_full.extend([h_val] * n_replicas)
+
+df_train = pd.DataFrame({
+    "h_mean": h_mean_train_full,
+    "v_score": v_train,
+    "relative_error": err_train
+})
+df_train.to_csv(os.path.join(run_dir, "train_results.csv"), index=False)
+
+# ==========================================
+# 7. CALCUL ET ENREGISTREMENT DES ENERGIES EXACTES
+# ==========================================
+print("\nComputing and saving exact energies for each training replica...")
+exact_energies_train = {}
+
+for i, pars in tqdm(enumerate(params_list)):
+    _ha = create_operator(pars)
+    E0 = nk.exact.lanczos_ed(_ha, k=1, compute_eigenvectors=False).item()
+    exact_energies_train[str(i)] = float(np.real(E0))
+
+log_data_file = os.path.join(run_dir, "log_data.json")
+with open(log_data_file, 'r') as f:
+    log_json = json.load(f)
+
+log_json["exact_energies"] = exact_energies_train
+
+with open(log_data_file, 'w') as f:
+    json.dump(log_json, f, indent=4)
+print(f"✅ Exact energies saved to: {log_data_file}")
