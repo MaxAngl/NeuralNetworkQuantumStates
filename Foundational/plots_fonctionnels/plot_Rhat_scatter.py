@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pandas as pd
 import zipfile 
+import jax.numpy as jnp  # <--- INDISPENSABLE POUR LA CONVERSION
 
 # ==========================================
 # 1. CONFIGURATION
@@ -23,12 +24,25 @@ RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
+prob_global_flip = 0.01
 
 # ==========================================
 # 2. SETUP
 # ==========================================
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+from flip_rules import GlobalFlipRule
+
+# ==========================================
+# FIX : ENVELOPPE SÉCURISÉE POUR LE TYPE JAX
+# ==========================================
+class SafeGlobalFlipRule(GlobalFlipRule):
+    def transition(self, sampler, machine, parameters, state, key, sigma):
+        # On appelle votre règle originale
+        sigma_new, log_prob = super().transition(sampler, machine, parameters, state, key, sigma)
+        # On force la conversion vers le type attendu par l'échantillonneur (int8)
+        return jnp.asarray(sigma_new, dtype=sigma.dtype), log_prob
+
 
 if not os.path.exists(RUN_DIR):
     print(f"❌ Erreur : Le dossier {RUN_DIR} n'existe pas.")
@@ -60,8 +74,8 @@ ma = ViTFNQS(
     two_dimensional=False, 
 )
 
-# Sampler de base (utilisé juste pour l'init)
-sa = nk.sampler.MetropolisLocal(hi, n_chains=1) 
+# Sampler de base avec la règle sécurisée
+sa = nk.sampler.MetropolisSampler(hi, rule=SafeGlobalFlipRule(prob_global_flip), n_chains=1)
 vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=1, seed=1)
 
 checkpoints = glob.glob(os.path.join(RUN_DIR, "*.nk"))
@@ -107,33 +121,33 @@ except Exception as e:
 # ==========================================
 def create_operator(params):
     ha_X = sum(params[i] * nk.operator.spin.sigmax(hi, i) for i in range(L))
-    ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) * nk.operator.spin.sigmaz(hi, (i + 1) % L) for i in range(L))
+    # FIX WARNING : Remplacement du * par @
+    ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmaz(hi, (i + 1) % L) for i in range(L))
     return -ha_X - J_val * ha_ZZ
 
 def compute_rhat(params_batch):
     r_hats = []
     
-    # Pour R-hat, il FAUT plusieurs chaînes. On crée un sampler dédié ici.
-    # n_chains=16 est suffisant pour une bonne estimation.
-    sa_rhat = nk.sampler.MetropolisLocal(hi, n_chains=16) 
+    # Sampler avec la règle sécurisée
+    sa_rhat = nk.sampler.MetropolisSampler(hi, rule=SafeGlobalFlipRule(prob_global_flip), n_chains=16)
 
-    # Désactivation des warnings de compilation JAX dans la boucle
+    # OPTIMISATION : On initialise le MCState une seule fois hors de la boucle
+    _vs_init = vs.get_state(params_batch[0] if not hasattr(params_batch, 'iterable') else list(params_batch)[0])
+    mc_vs = nk.vqs.MCState(
+        sampler=sa_rhat, 
+        model=_vs_init.model, 
+        variables=_vs_init.variables,
+        n_samples=4096,        # Nombre de samples total
+        n_discard_per_chain=16 # Burn-in
+    )
+
     for pars in params_batch:
-        _vs = vs.get_state(pars) 
-        
-        # On utilise MCState (Monte Carlo) pour avoir des statistiques de sampling
-        mc_vs = nk.vqs.MCState(
-            sampler=sa_rhat, 
-            model=_vs.model, 
-            variables=_vs.variables,
-            n_samples=4096,        # Nombre de samples total
-            n_discard_per_chain=16 # Burn-in
-        )
+        # Mise à jour des poids et reset des chaînes
+        mc_vs.variables = vs.get_state(pars).variables
+        mc_vs.reset()
         
         H = create_operator(pars)
         
-        # Le calcul de l'espérance via MC calcule automatiquement R_hat
-        # sur les chaînes de Markov
         stats = mc_vs.expect(H)
         r_hats.append(stats.R_hat)
         
@@ -144,7 +158,7 @@ def compute_rhat(params_batch):
 # ==========================================
 print("\n🏗️  Traitement des données TRAIN...")
 train_h0 = []
-train_rhats = [] # Changé de v_score à rhats
+train_rhats = [] 
 
 disorder_file = os.path.join(RUN_DIR, "disorder.configs.npy")
 if not os.path.exists(disorder_file):
@@ -152,8 +166,10 @@ if not os.path.exists(disorder_file):
 
 if os.path.exists(disorder_file):
     train_params = np.load(disorder_file)
+    train_params_list = list(train_params) # Converti en liste pour l'optimisation MCState
+    
     # Calcul R-hat sur Train
-    train_rhats = compute_rhat(tqdm(train_params, desc="R-hat Train"))
+    train_rhats = compute_rhat(tqdm(train_params_list, desc="R-hat Train"))
     
     n_h0_train = len(h0_train_list)
     replicas_per_h0_train = len(train_params) // n_h0_train
@@ -164,12 +180,13 @@ else:
 
 print("\n🧪 Traitement des données TEST...")
 test_h0 = []
-test_rhats = [] # Changé de v_score à rhats
+test_rhats = [] 
 rng = np.random.default_rng(seed=42)
 
 for h0 in tqdm(H0_TEST_LIST, desc="R-hat Test"):
-    test_configs = rng.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L))
-    scores = compute_rhat(test_configs)
+    test_configs = np.abs(rng.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L)))
+    test_configs_list = list(test_configs) # Converti en liste pour l'optimisation MCState
+    scores = compute_rhat(test_configs_list)
     test_h0.extend([h0] * N_TEST_PER_H0)
     test_rhats.extend(scores)
 
@@ -237,8 +254,6 @@ if len(train_h0) > 0:
     plt.scatter(mean_train.index, mean_train.values, color='blue', marker='s', s=60, edgecolor='black', zorder=3)
 
 # --- MISE EN FORME ---
-# R-hat est proche de 1. L'échelle linéaire est souvent préférable pour voir les écarts à 1.
-# Si vous voulez voir les très petites variations, vous pouvez décommenter la ligne log
 plt.yscale('linear') 
 # plt.yscale('log') # Décommenter si vous voulez une échelle log
 

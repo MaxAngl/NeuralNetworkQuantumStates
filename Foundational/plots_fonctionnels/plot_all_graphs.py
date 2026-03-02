@@ -13,21 +13,32 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pandas as pd
 import zipfile
+import jax.numpy as jnp
 
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
 # 👇 MODIFIEZ LE CHEMIN ICI 👇
-RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-02-17_17-21-41"
+RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-03-02_20-12-16"
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
+prob_global_flip = 0.01
 
 # ==========================================
 # 2. SETUP ET CHARGEMENT
 # ==========================================
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+from flip_rules import GlobalFlipRule
+
+# On crée une "enveloppe" sécurisée autour de votre règle
+class SafeGlobalFlipRule(GlobalFlipRule):
+    def transition(self, sampler, machine, parameters, state, key, sigma):
+        # On appelle votre règle originale
+        sigma_new, log_prob = super().transition(sampler, machine, parameters, state, key, sigma)
+        # On force la conversion vers le type attendu par l'échantillonneur (int8)
+        return jnp.asarray(sigma_new, dtype=sigma.dtype), log_prob
 
 if not os.path.exists(RUN_DIR):
     print(f"❌ Erreur : Le dossier {RUN_DIR} n'existe pas.")
@@ -43,7 +54,12 @@ sigma_disorder = meta["hamiltonian"]["sigma"]
 h0_train_list = meta["hamiltonian"]["h0_train_list"]
 vit_params = meta["vit_config"]
 
+# 🔥 OPTION AUTOMATIQUE POUR LES GRANDS SYSTÈMES 🔥
+# Désactive la diagonalisation exacte et le plot d'erreur relative si L > 20
+PLOT_RELATIVE_ERROR = True if L <= 20 else False
+
 print(f"🔹 Configuration : L={L}, J={J_val:.4f}")
+print(f"🔹 Calcul Erreur Relative (Exact) : {'ACTIVÉ' if PLOT_RELATIVE_ERROR else 'DÉSACTIVÉ (L trop grand)'}")
 
 hi = nk.hilbert.Spin(0.5, L)
 ps = nkf.ParameterSpace(N=hi.size, min=0, max=10*max(H0_TEST_LIST + h0_train_list))
@@ -61,7 +77,7 @@ ma = ViTFNQS(
     two_dimensional=False, 
 )
 
-sa = nk.sampler.MetropolisLocal(hi, n_chains=1) 
+sa = nk.sampler.MetropolisSampler(hi, rule=SafeGlobalFlipRule(prob_global_flip), n_chains=1)
 vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=1, seed=1)
 
 checkpoints = glob.glob(os.path.join(RUN_DIR, "*.nk"))
@@ -123,63 +139,62 @@ rng_gen = np.random.default_rng(seed=42)
 test_params = []
 test_h0 = []
 for h0 in H0_TEST_LIST:
-    configs = rng_gen.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L))
+    configs = np.abs(rng_gen.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L)))
     test_params.append(configs)
     test_h0.extend([h0] * N_TEST_PER_H0)
 test_params = np.vstack(test_params)
 
 
 # ==========================================
-# 4. FONCTIONS DE CALCUL (UNIFIÉES)
+# 4. FONCTIONS DE CALCUL (VMC ONLY)
 # ==========================================
 def get_hamiltonian_op(params):
     ha_X = sum(params[i] * nk.operator.spin.sigmax(hi, i) for i in range(L))
-    ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) * nk.operator.spin.sigmaz(hi, (i + 1) % L) for i in range(L))
+    ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmaz(hi, (i + 1) % L) for i in range(L))
     return -ha_X - J_val * ha_ZZ
 
 def compute_metrics(params_batch, desc="metrics"):
-    # Stockage
     rel_errors = []
-    v_scores = []
+    v_scores_mc = [] 
     r_hats = []
     tau_corrs = []
     
-    # Sampler pour stats MC
-    sa_multi = nk.sampler.MetropolisLocal(hi, n_chains=16)
+    sa_multi = nk.sampler.MetropolisSampler(hi, rule=SafeGlobalFlipRule(prob_global_flip), n_chains=16)
+
+    # Initialisation MCState une seule fois
+    _vs_init = vs.get_state(params_batch[0])
+    mc_vs = nk.vqs.MCState(
+        sampler=sa_multi,
+        model=_vs_init.model,
+        variables=_vs_init.variables,
+        n_samples=2048, 
+        n_discard_per_chain=200 
+    )
 
     for pars in tqdm(params_batch, desc=desc):
         H = get_hamiltonian_op(pars)
-        _vs = vs.get_state(pars)
         
-        # 1. Exact & V-score (FullSum)
-        E_exact = nk.exact.lanczos_ed(H, k=1, compute_eigenvectors=False)[0]
+        mc_vs.variables = vs.get_state(pars).variables
+        mc_vs.reset()
+        stats_mc = mc_vs.expect(H)
         
-        vs_fs = nk.vqs.FullSumState(hilbert=hi, model=_vs.model, variables=_vs.variables)
-        res_fs = vs_fs.expect(H)
-        E_vmc_exact = res_fs.Mean.real
-        var_vmc = res_fs.variance
+        E_vmc_est = stats_mc.Mean.real
         
-        err = abs(E_vmc_exact - E_exact) / abs(E_exact)
-        rel_errors.append(err)
-        
-        v_val = var_vmc / (E_vmc_exact**2 + 1e-12)
-        v_scores.append(v_val)
-        
-        # 2. R-hat & Tau (MCState)
-        mc_vs = nk.vqs.MCState(
-            sampler=sa_multi,
-            model=_vs.model,
-            variables=_vs.variables,
-            n_samples=2048, 
-            n_discard_per_chain=32
-        )
-        stats = mc_vs.expect(H)
-        r_hats.append(stats.R_hat)
-        tau_corrs.append(stats.tau_corr)
+        # 1. EXACT (Seulement si la taille le permet)
+        if PLOT_RELATIVE_ERROR:
+            E_exact = nk.exact.lanczos_ed(H, k=1, compute_eigenvectors=False)[0]
+            err = abs(E_vmc_est - E_exact) / abs(E_exact)
+            rel_errors.append(err)
+            
+        # 2. MONTE CARLO
+        r_hats.append(stats_mc.R_hat)
+        tau_corrs.append(stats_mc.tau_corr)
+        v_mc = stats_mc.variance / (E_vmc_est**2 + 1e-12)
+        v_scores_mc.append(v_mc)
 
     return {
-        "rel_error": np.array(rel_errors),
-        "v_score": np.array(v_scores),
+        "rel_error": np.array(rel_errors) if PLOT_RELATIVE_ERROR else None,
+        "v_score_mc": np.array(v_scores_mc),
         "r_hat": np.array(r_hats),
         "tau_corr": np.array(tau_corrs)
     }
@@ -196,66 +211,67 @@ if len(train_params) > 0:
 
 
 # ==========================================
-# 6. PLOTS (CODE ORIGINAL RESTAURÉ)
+# 6. PLOTS
 # ==========================================
 
-# --- PLOT 1 : RELATIVE ERROR ---
+# --- PLOT 1 : RELATIVE ERROR (OPTIONNEL) ---
+if PLOT_RELATIVE_ERROR:
+    plt.figure(figsize=(10, 6))
+    plt.scatter(test_h0, metrics_test["rel_error"], color='crimson', alpha=0.3, s=40, label='Test Replicas', edgecolor='none', marker='o', zorder=1)
+    if metrics_train:
+        plt.scatter(train_h0, metrics_train["rel_error"], color='royalblue', alpha=0.3, s=40, label='Train Replicas', edgecolor='none', marker='^', zorder=1)
+
+    df_test = pd.DataFrame({"h0": test_h0, "err": metrics_test["rel_error"]})
+    mean_test = df_test.groupby("h0")["err"].mean()
+    plt.plot(mean_test.index, mean_test.values, color='red', linestyle='--', linewidth=1.5, label='Test Mean', zorder=2)
+    plt.scatter(mean_test.index, mean_test.values, color='red', marker='s', s=60, edgecolor='black', zorder=3)
+
+    if metrics_train:
+        df_train = pd.DataFrame({"h0": train_h0, "err": metrics_train["rel_error"]})
+        mean_train = df_train.groupby("h0")["err"].mean()
+        plt.plot(mean_train.index, mean_train.values, color='blue', linestyle='--', linewidth=1.5, label='Train Mean', zorder=2)
+        plt.scatter(mean_train.index, mean_train.values, color='blue', marker='s', s=60, edgecolor='black', zorder=3)
+
+    plt.yscale('log')
+    plt.xlabel(r"Transverse Field $h_0$", fontsize=12)
+    plt.ylabel(r"Relative Energy Error $|E_{VMC} - E_{exact}| / |E_{exact}|$", fontsize=12)
+    plt.title(f"Energy Accuracy: Train vs Test (L={L})", fontsize=14)
+    plt.grid(True, which="both", ls="--", alpha=0.3)
+    plt.legend(loc='best', frameon=True, fontsize=10)
+    out1 = os.path.join(RUN_DIR, f"rel_error_scatter_train_test_L={L}.pdf")
+    plt.tight_layout()
+    plt.savefig(out1)
+    print(f"✅ Plot RelError sauvegardé : {out1}")
+    plt.close()
+
+
+# --- PLOT 2 : V-SCORE (MONTE CARLO) ---
 plt.figure(figsize=(10, 6))
-plt.scatter(test_h0, metrics_test["rel_error"], color='crimson', alpha=0.3, s=40, label='Test Replicas', edgecolor='none', marker='o', zorder=1)
+plt.scatter(test_h0, metrics_test["v_score_mc"], color='crimson', alpha=0.3, s=40, label='Test Replicas', edgecolor='none', marker='o', zorder=1)
 if metrics_train:
-    plt.scatter(train_h0, metrics_train["rel_error"], color='royalblue', alpha=0.3, s=40, label='Train Replicas', edgecolor='none', marker='^', zorder=1)
+    plt.scatter(train_h0, metrics_train["v_score_mc"], color='royalblue', alpha=0.3, s=40, label='Train Replicas', edgecolor='none', marker='^', zorder=1)
 
-df_test = pd.DataFrame({"h0": test_h0, "err": metrics_test["rel_error"]})
-mean_test = df_test.groupby("h0")["err"].mean()
-plt.plot(mean_test.index, mean_test.values, color='red', linestyle='--', linewidth=1.5, label='Test Mean', zorder=2)
-plt.scatter(mean_test.index, mean_test.values, color='red', marker='s', s=60, edgecolor='black', zorder=3)
-
-if metrics_train:
-    df_train = pd.DataFrame({"h0": train_h0, "err": metrics_train["rel_error"]})
-    mean_train = df_train.groupby("h0")["err"].mean()
-    plt.plot(mean_train.index, mean_train.values, color='blue', linestyle='--', linewidth=1.5, label='Train Mean', zorder=2)
-    plt.scatter(mean_train.index, mean_train.values, color='blue', marker='s', s=60, edgecolor='black', zorder=3)
-
-plt.yscale('log')
-plt.xlabel(r"Transverse Field $h_0$", fontsize=12)
-plt.ylabel(r"Relative Energy Error $|E_{VMC} - E_{exact}| / |E_{exact}|$", fontsize=12)
-plt.title(f"Energy Accuracy: Train vs Test (L={L})", fontsize=14)
-plt.grid(True, which="both", ls="--", alpha=0.3)
-plt.legend(loc='best', frameon=True, fontsize=10)
-out1 = os.path.join(RUN_DIR, f"rel_error_scatter_train_test_L={L}.pdf")
-plt.tight_layout()
-plt.savefig(out1)
-print(f"✅ Plot RelError sauvegardé : {out1}")
-plt.close()
-
-
-# --- PLOT 2 : V-SCORE ---
-plt.figure(figsize=(10, 6))
-plt.scatter(test_h0, metrics_test["v_score"], color='crimson', alpha=0.3, s=40, label='Test Replicas', edgecolor='none', marker='o', zorder=1)
-if metrics_train:
-    plt.scatter(train_h0, metrics_train["v_score"], color='royalblue', alpha=0.3, s=40, label='Train Replicas', edgecolor='none', marker='^', zorder=1)
-
-df_test = pd.DataFrame({"h0": test_h0, "v": metrics_test["v_score"]})
+df_test = pd.DataFrame({"h0": test_h0, "v": metrics_test["v_score_mc"]})
 mean_test = df_test.groupby("h0")["v"].mean()
 plt.plot(mean_test.index, mean_test.values, color='red', linestyle='--', linewidth=1.5, label='Test Mean', zorder=2)
 plt.scatter(mean_test.index, mean_test.values, color='red', marker='s', s=60, edgecolor='black', zorder=3)
 
 if metrics_train:
-    df_train = pd.DataFrame({"h0": train_h0, "v": metrics_train["v_score"]})
+    df_train = pd.DataFrame({"h0": train_h0, "v": metrics_train["v_score_mc"]})
     mean_train = df_train.groupby("h0")["v"].mean()
     plt.plot(mean_train.index, mean_train.values, color='blue', linestyle='--', linewidth=1.5, label='Train Mean', zorder=2)
     plt.scatter(mean_train.index, mean_train.values, color='blue', marker='s', s=60, edgecolor='black', zorder=3)
 
 plt.yscale('log')
 plt.xlabel(r"Transverse Field $h_0$", fontsize=12)
-plt.ylabel(r"V-score ($\text{Var}(E) / E^2$)", fontsize=12)
-plt.title(f"Accuracy Landscape: Train vs Test (L={L})", fontsize=14)
+plt.ylabel(r"V-score (MC) ($\text{Var}(E) / E^2$)", fontsize=12)
+plt.title(f"Accuracy Landscape (MC Est.): Train vs Test (L={L})", fontsize=14)
 plt.grid(True, which="both", ls="--", alpha=0.3)
 plt.legend(loc='best', frameon=True, fontsize=10)
-out2 = os.path.join(RUN_DIR, f"vscore_scatter_train_test_L={L}.pdf")
+out2 = os.path.join(RUN_DIR, f"vscore_mc_scatter_train_test_L={L}.pdf")
 plt.tight_layout()
 plt.savefig(out2)
-print(f"✅ Plot V-score sauvegardé : {out2}")
+print(f"✅ Plot V-score (MC) sauvegardé : {out2}")
 plt.close()
 
 
@@ -335,15 +351,6 @@ if log_path:
         log_json = json.load(f)
     ham_data = log_json.get("ham", log_json.get("Energy", []))
     
-    # Recalcul des exact energies pour l'historique de train
-    exact_energies_train = []
-    if len(train_params) > 0:
-        # On ne recalcule que si nécessaire, mais ici c'est rapide
-        for pars in train_params:
-            H = get_hamiltonian_op(pars)
-            E = nk.exact.lanczos_ed(H, k=1, compute_eigenvectors=False)[0]
-            exact_energies_train.append(E)
-
     n_h0 = len(h0_train_list)
     cols = 3
     rows = (n_h0 + cols - 1) // cols
@@ -361,22 +368,33 @@ if log_path:
         
         for rep_offset in range(n_rep_per_h0_log):
             global_idx = start_idx + rep_offset
-            if global_idx < len(ham_data) and global_idx < len(exact_energies_train):
+            if global_idx < len(ham_data):
                 data = ham_data[global_idx]
                 iters = np.array(data.get("iters", []))
+                
+                # Extraction Mean
                 means_raw = data.get("Mean", {})
                 if isinstance(means_raw, dict):
                     means = np.array(means_raw.get("real", means_raw.get("value", [])))
                 else:
                     means = np.real(np.array(means_raw))
-                e_ex = exact_energies_train[global_idx]
-                if len(iters) > 0:
-                    rel_err = np.abs((means - e_ex) / e_ex)
-                    ax.plot(iters, rel_err, color=current_color, alpha=0.5, linewidth=1)
+                
+                # Extraction Variance pour calculer le V-Score au lieu de l'erreur
+                vars_raw = data.get("Variance", {})
+                if isinstance(vars_raw, dict):
+                    variances = np.array(vars_raw.get("real", vars_raw.get("value", [])))
+                else:
+                    variances = np.real(np.array(vars_raw))
+                
+                if len(iters) > 0 and len(means) > 0 and len(variances) > 0:
+                    # Calcul : V-score (mais plot sous les noms originaux)
+                    plot_metric = variances / (means**2 + 1e-12)
+                    ax.plot(iters, plot_metric, color=current_color, alpha=0.5, linewidth=1)
 
         ax.set_yscale('log')
         ax.set_title(f"$h_0 = {h0_val}$", fontweight='bold', color=current_color)
         ax.set_xlabel("Iteration")
+        # On garde le ylabel exact d'avant comme demandé
         ax.set_ylabel("Rel Error $|E_{VMC} - E_{ex}|/|E_{ex}|$", fontsize=10)
         ax.grid(True, which="both", ls="--", alpha=0.3)
 
@@ -384,6 +402,7 @@ if log_path:
         axes[idx].axis('off')
 
     plt.tight_layout()
+    # On garde le nom de fichier exact d'avant comme demandé
     out5 = os.path.join(RUN_DIR, f"relative_error_energy_convergence_L={L}.pdf")
     plt.savefig(out5)
     print(f"✅ Plot Convergence sauvegardé : {out5}")
@@ -392,4 +411,4 @@ if log_path:
 else:
     print("⚠️ Pas de fichier log trouvé, plot de convergence ignoré.")
 
-print("\n TERMINÉ ! Tous les graphiques sont générés.")
+print("\n✨ TERMINÉ ! Tous les graphiques sont générés.")

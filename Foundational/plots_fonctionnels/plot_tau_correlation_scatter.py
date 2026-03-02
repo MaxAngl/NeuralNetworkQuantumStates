@@ -4,6 +4,7 @@ import glob
 import json
 import numpy as np
 import jax
+import jax.numpy as jnp  # <--- Ajouté pour la conversion de type
 import netket as nk
 import netket_foundational as nkf
 from netket_foundational._src.model.vit import ViTFNQS
@@ -22,12 +23,24 @@ RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
+prob_global_flip = 0.01
 
 # ==========================================
 # 2. SETUP
 # ==========================================
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+from flip_rules import GlobalFlipRule
+
+# ==========================================
+# FIX : ENVELOPPE SÉCURISÉE POUR LE TYPE JAX
+# ==========================================
+class SafeGlobalFlipRule(GlobalFlipRule):
+    def transition(self, sampler, machine, parameters, state, key, sigma):
+        # On appelle votre règle originale
+        sigma_new, log_prob = super().transition(sampler, machine, parameters, state, key, sigma)
+        # On force la conversion vers le type attendu par l'échantillonneur (int8)
+        return jnp.asarray(sigma_new, dtype=sigma.dtype), log_prob
 
 if not os.path.exists(RUN_DIR):
     print(f"❌ Erreur : Le dossier {RUN_DIR} n'existe pas.")
@@ -59,7 +72,8 @@ ma = ViTFNQS(
     two_dimensional=False, 
 )
 
-sa = nk.sampler.MetropolisLocal(hi, n_chains=1) 
+# 👇 UTILISATION DE LA RÈGLE SÉCURISÉE ICI 👇
+sa = nk.sampler.MetropolisSampler(hi, rule=SafeGlobalFlipRule(prob_global_flip), n_chains=1)
 vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=1, seed=1)
 
 checkpoints = glob.glob(os.path.join(RUN_DIR, "*.nk"))
@@ -109,7 +123,8 @@ except Exception as e:
 
 def create_operator(params):
     ha_X = sum(params[i] * nk.operator.spin.sigmax(hi, i) for i in range(L))
-    ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) * nk.operator.spin.sigmaz(hi, (i + 1) % L) for i in range(L))
+    # FIX WARNING : Remplacement du * par @
+    ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmaz(hi, (i + 1) % L) for i in range(L))
     return -ha_X - J_val * ha_ZZ
 
 def compute_tau_mc(params_batch):
@@ -118,26 +133,27 @@ def compute_tau_mc(params_batch):
     """
     taus = []
     
-    # On utilise 16 chaînes pour avoir une statistique robuste sur le sampling
-    sa_multi = nk.sampler.MetropolisLocal(hi, n_chains=16)
+    # 👇 UTILISATION DE LA RÈGLE SÉCURISÉE ICI 👇
+    sa_multi = nk.sampler.MetropolisSampler(hi, rule=SafeGlobalFlipRule(prob_global_flip), n_chains=16)
+
+    # OPTIMISATION : On initialise le MCState une seule fois hors de la boucle
+    _vs_init = vs.get_state(params_batch[0] if not hasattr(params_batch, 'iterable') else list(params_batch)[0])
+    mc_vs = nk.vqs.MCState(
+        sampler=sa_multi, 
+        model=_vs_init.model, 
+        variables=_vs_init.variables,
+        n_samples=4096,         
+        n_discard_per_chain=50  
+    )
 
     for pars in params_batch:
-        _vs_single = vs.get_state(pars) 
-        
-        # MCState nécessaire pour mesurer les corrélations de chaîne
-        mc_vs = nk.vqs.MCState(
-            sampler=sa_multi, 
-            model=_vs_single.model, 
-            variables=_vs_single.variables,
-            n_samples=4096,         
-            n_discard_per_chain=50  
-        )
+        # Mise à jour des poids et reset des chaînes
+        mc_vs.variables = vs.get_state(pars).variables
+        mc_vs.reset()
         
         H = create_operator(pars)
         stats = mc_vs.expect(H)
         
-        # Extraction du temps de corrélation
-        # C'est une mesure de l'efficacité du sampler Metropolis pour cet état spécifique
         taus.append(stats.tau_corr)
         
     return np.array(taus)
@@ -155,7 +171,8 @@ if not os.path.exists(disorder_file):
 
 if os.path.exists(disorder_file):
     train_params = np.load(disorder_file)
-    train_taus = compute_tau_mc(tqdm(train_params, desc="Tau Train"))
+    train_params_list = list(train_params) # Converti en liste pour l'optimisation MCState
+    train_taus = compute_tau_mc(tqdm(train_params_list, desc="Tau Train"))
     
     n_h0_train = len(h0_train_list)
     replicas_per_h0_train = len(train_params) // n_h0_train
@@ -170,8 +187,9 @@ test_taus = []
 rng = np.random.default_rng(seed=42)
 
 for h0 in tqdm(H0_TEST_LIST, desc="Tau Test"):
-    test_configs = rng.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L))
-    scores = compute_tau_mc(test_configs)
+    test_configs = np.abs(rng.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L)))
+    test_configs_list = list(test_configs) # Converti en liste pour l'optimisation MCState
+    scores = compute_tau_mc(test_configs_list)
     test_h0.extend([h0] * N_TEST_PER_H0)
     test_taus.extend(scores)
 

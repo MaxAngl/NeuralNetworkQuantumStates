@@ -45,7 +45,7 @@ k = jax.random.key(seed)
 L = 16                                      # Taille du système
 h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]
 sigma_disorder = 0.1 
-J_val = 1.0/np.e    
+J_val = 1.0    
 n_replicas = 10                             # Nombre de réalisations de désordre
 
 # --- PARAMÈTRES MONTE CARLO ---
@@ -76,6 +76,8 @@ else:
             chunk_size = i
             break
 
+chunk_size_bwd=chunk_size
+
 print(f"🔹 Configuration : {n_samples} samples total.")
 print(f"🔹 Chunk size auto-calculé : {chunk_size} (Diviseur optimal <= {TARGET_CHUNK})")
 
@@ -104,7 +106,12 @@ def generate_multi_h0_disorder(h0_list, n_reps, system_size, sigma, rng=None):
     
     for h_m in h0_list:
         # 1. Génération des 'n_reps' configurations désordonnées (Aléatoire)
-        random_configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
+        # On tire d'abord selon la gaussienne (peut contenir des négatifs)
+        raw_configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
+        
+        # --- NOUVELLE OPTION : VALEUR ABSOLUE (Repliement) ---
+        # Les valeurs négatives "rebondissent" en positif, gardant une distribution lisse
+        random_configs = np.abs(raw_configs)
         
         # 2. Création de la configuration homogène (h_m, h_m, ..., h_m) (Exacte)
         # Shape (1, system_size)
@@ -198,7 +205,7 @@ optimizer = optax.sgd(learning_rate)
 def cg_solver(A, b):
     # jax.scipy.sparse.linalg.cg renvoie (x, info), on ne garde que x [0]
     return jax.scipy.sparse.linalg.cg(A, b, tol=1e-4)[0]
-gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift, linear_solver_fn=cg_solver)
+gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift, linear_solver_fn=cg_solver, chunk_size_bwd=chunk_size_bwd)
 
 # Logger
 # On initialise le logger avec un dossier temporaire ou final

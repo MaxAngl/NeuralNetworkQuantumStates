@@ -22,12 +22,14 @@ RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
+prob_global_flip = 0.01
 
 # ==========================================
 # 2. SETUP
 # ==========================================
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+from flip_rules import GlobalFlipRule
 
 if not os.path.exists(RUN_DIR):
     print(f"❌ Erreur : Le dossier {RUN_DIR} n'existe pas.")
@@ -59,7 +61,7 @@ ma = ViTFNQS(
     two_dimensional=False, 
 )
 
-sa = nk.sampler.MetropolisLocal(hi, n_chains=1) 
+sa = nk.sampler.MetropolisSampler(hi, rule=GlobalFlipRule(prob_global_flip), n_chains=1)
 vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=1, seed=1)
 
 checkpoints = glob.glob(os.path.join(RUN_DIR, "*.nk"))
@@ -173,7 +175,7 @@ test_errors = []
 rng = np.random.default_rng(seed=42)
 
 for h0 in tqdm(H0_TEST_LIST, desc="RelErr Test"):
-    test_configs = rng.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L))
+    test_configs = np.abs(rng.normal(loc=h0, scale=sigma_disorder, size=(N_TEST_PER_H0, L)))
     scores = compute_rel_error(test_configs)
     test_h0.extend([h0] * N_TEST_PER_H0)
     test_errors.extend(scores)
