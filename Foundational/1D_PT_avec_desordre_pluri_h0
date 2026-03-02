@@ -93,11 +93,11 @@ n_chains = total_configs_train * chains_per_replica
 n_samples = n_chains * samples_per_chain
 
 # >>>> HYPERPARAMÈTRES PT <<<<
-n_pt_temperatures = 4      # Nombre de températures PT
+n_pt_temperatures = 8      # Nombre de températures PT
 prob_global_flip = 0.01    # Probabilité de flip global dans le sampler personnalisé
 
 # --- PARAMÈTRES D'OPTIMISATION ---
-n_iter = 300       
+n_iter = 400       
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 2e-4

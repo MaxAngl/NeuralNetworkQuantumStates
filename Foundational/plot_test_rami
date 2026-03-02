@@ -1,0 +1,77 @@
+import os
+import json
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# --- Chemins vers vos deux dossiers de résultats ---
+dir_local = "logs/run_local"  # Remplacez par le vrai nom du dossier
+dir_pt = "logs/run_pt"        # Remplacez par le vrai nom du dossier
+
+# 1. Chargement des logs JSON (pour le R-hat au cours du temps)
+with open(os.path.join(dir_local, "log_data.json"), 'r') as f:
+    log_local = json.load(f)
+with open(os.path.join(dir_pt, "log_data.json"), 'r') as f:
+    log_pt = json.load(f)
+
+# 2. Chargement des CSV finaux (pour V-score et Énergies)
+df_local = pd.read_csv(os.path.join(dir_local, "train_results.csv"))
+df_pt = pd.read_csv(os.path.join(dir_pt, "train_results.csv"))
+
+fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+
+# ==========================================
+# Graphe 1 : Évolution du R-hat moyen (Gelman-Rubin)
+# ==========================================
+# NetKet stocke le R_hat dans la variable "ham" de l'History
+iters = log_local["Energy"]["iters"] # Ou "ham" selon la version de NetKet
+
+# On moyenne le R-hat sur toutes les configurations de désordre
+rhat_local_mean = np.mean([log_local["ham"][str(i)]["R_hat"] for i in range(len(df_local))], axis=0)
+rhat_pt_mean = np.mean([log_pt["ham"][str(i)]["R_hat"] for i in range(len(df_pt))], axis=0)
+
+axs[0].plot(iters, rhat_local_mean, label="Local Flips", color="red", alpha=0.8)
+axs[0].plot(iters, rhat_pt_mean, label="Parallel Tempering", color="blue", alpha=0.8)
+axs[0].axhline(1.05, color="black", linestyle="--", label="Seuil idéal (< 1.05)")
+axs[0].set_xlabel("Itérations")
+axs[0].set_ylabel(r"Moyenne du $\hat{R}$ (R-hat)")
+axs[0].set_title("Convergence des chaînes MCMC")
+axs[0].set_yscale("log") # Souvent utile si le R-hat explose
+axs[0].legend()
+
+# ==========================================
+# Graphe 2 : Distribution des V-scores
+# ==========================================
+bins_v = np.logspace(np.log10(min(df_local["v_score"].min(), df_pt["v_score"].min())), 
+                     np.log10(max(df_local["v_score"].max(), df_pt["v_score"].max())), 20)
+
+axs[1].hist(df_local["v_score"], bins=bins_v, alpha=0.5, label="Local Flips", color="red")
+axs[1].hist(df_pt["v_score"], bins=bins_v, alpha=0.5, label="Parallel Tempering", color="blue")
+axs[1].set_xscale("log")
+axs[1].set_xlabel("V-score final")
+axs[1].set_ylabel("Nombre de configurations")
+axs[1].set_title("Précision de l'état variationnel")
+axs[1].legend()
+
+# ==========================================
+# Graphe 3 : Comparaison point par point (V-score)
+# ==========================================
+# Un point sous la diagonale signifie que le PT est meilleur
+axs[2].scatter(df_local["v_score"], df_pt["v_score"], color="purple", alpha=0.7)
+# Tracer la diagonale y = x
+lims = [
+    np.min([axs[2].get_xlim(), axs[2].get_ylim()]),
+    np.max([axs[2].get_xlim(), axs[2].get_ylim()]),
+]
+axs[2].plot(lims, lims, 'k--', alpha=0.75, label="Égalité (PT = Local)")
+axs[2].set_xscale("log")
+axs[2].set_yscale("log")
+axs[2].set_aspect('equal')
+axs[2].set_xlabel("V-score (Local Flips)")
+axs[2].set_ylabel("V-score (Parallel Tempering)")
+axs[2].set_title("Bénéfice direct par configuration")
+axs[2].legend()
+
+plt.tight_layout()
+plt.savefig("comparaison_PT_vs_Local.pdf")
+print("Graphique de comparaison généré : comparaison_PT_vs_Local.pdf")
