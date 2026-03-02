@@ -19,11 +19,19 @@ import jax.numpy as jnp
 # 1. CONFIGURATION
 # ==========================================
 # 👇 MODIFIEZ LE CHEMIN ICI 👇
+<<<<<<< HEAD
 RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-03-02_20-12-16"
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
 prob_global_flip = 0.01
+=======
+RUN_DIR = r"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/logs/run_2026-02-18_15-07-47"
+
+H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
+N_TEST_PER_H0 = 20 
+nb_steps_thermalization = 10 #A augmenter quand h0 décroit
+>>>>>>> 93bcb2764cc776fc7e52bc22dae5e21e41e3efc7
 
 # ==========================================
 # 2. SETUP ET CHARGEMENT
@@ -180,6 +188,7 @@ def compute_metrics(params_batch, desc="metrics"):
         
         E_vmc_est = stats_mc.Mean.real
         
+<<<<<<< HEAD
         # 1. EXACT (Seulement si la taille le permet)
         if PLOT_RELATIVE_ERROR:
             E_exact = nk.exact.lanczos_ed(H, k=1, compute_eigenvectors=False)[0]
@@ -191,6 +200,30 @@ def compute_metrics(params_batch, desc="metrics"):
         tau_corrs.append(stats_mc.tau_corr)
         v_mc = stats_mc.variance / (E_vmc_est**2 + 1e-12)
         v_scores_mc.append(v_mc)
+=======
+        err = abs(E_vmc_exact - E_exact) / abs(E_exact)
+        rel_errors.append(err)
+        
+        v_val = var_vmc / (E_vmc_exact**2 + 1e-12)
+        v_scores.append(v_val)
+        
+        # 2. R-hat & Tau (MCState)
+        mc_vs = nk.vqs.MCState(
+            sampler=sa_multi,
+            model=_vs.model,
+            variables=_vs.variables,
+            n_samples=2048, 
+            n_discard_per_chain=32
+        )
+        
+        #Exemple thermalisation  :
+        for _ in range(nb_steps_thermalization):
+            mc_vs.sample()
+        
+        stats = mc_vs.expect(H)
+        r_hats.append(stats.R_hat)
+        tau_corrs.append(stats.tau_corr)
+>>>>>>> 93bcb2764cc776fc7e52bc22dae5e21e41e3efc7
 
     return {
         "rel_error": np.array(rel_errors) if PLOT_RELATIVE_ERROR else None,
