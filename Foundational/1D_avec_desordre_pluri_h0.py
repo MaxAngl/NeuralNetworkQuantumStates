@@ -42,7 +42,7 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
-L = 16                                      # Taille du système
+L = 25                                      # Taille du système
 h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]
 sigma_disorder = 0.1 
 J_val = 1.0    
