@@ -5,14 +5,50 @@ Charge un etat foundational (mcstate) entraine sur tout (h, sigma),
 evalue <Mz^2> sur une grille fine en h pour differentes valeurs de sigma,
 calcule la derivee numerique, et trace le max de la derivee vs sigma.
 
-Usage:
-    NETKET_EXPERIMENTAL_SHARDING=1 python Foundational/plot_dMz_vs_sigma.py \
+La grille en h est NON-UNIFORME, divisee en 3 zones:
+  - [h_min, h_trans_min]  : n_h_before points, zone avant transition
+  - [h_trans_min, h_trans_max] : n_h_trans points, zone de transition (grille fine)
+  - [h_trans_max, h_max]  : n_h_after points, zone apres transition
+Cela permet de concentrer la resolution autour de la transition de phase
+(typiquement h/J ~ 1 pour Ising 1D propre) tout en couvrant un large intervalle.
+
+Le nombre de realisations de desordre varie aussi par zone de h:
+  - Zone avant transition (h < h_trans_min) : n_disorder realisations
+  - Zone de transition (h_trans_min <= h <= h_trans_max) : n_disorder_trans realisations
+  - Zone apres transition (h > h_trans_max) : n_disorder_far realisations
+On met plus de realisations dans la zone de transition car c est la que la
+derivee est maximale et ou la statistique est la plus importante.
+
+Usage (depuis NeuralNetworkQuantumStates/Foundational/):
+    NETKET_EXPERIMENTAL_SHARDING=1 python plots_fonctionnels/plot_dMz_vs_sigma.py \
+        --run_dir logs/run_XXXX/ \
+        --checkpoint state_400.nk
+
+    # Ajuster la grille en h autour de la transition (defaut: 0.5-1.5):
+    NETKET_EXPERIMENTAL_SHARDING=1 python plots_fonctionnels/plot_dMz_vs_sigma.py \
         --run_dir logs/run_XXXX/ \
         --checkpoint state_400.nk \
-        [--n_h 50] [--n_sigma 20] [--n_disorder 30] \
-        [--h_min 0.1] [--h_max 5.0] \
-        [--sigma_min 0.0] [--sigma_max 1.5] \
-        [--fullsum] [--seed 42] [--n_sweeps_burn 100]
+        --h_min 0.1 --h_max 5.0 \
+        --h_trans_min 0.5 --h_trans_max 1.5 \
+        --n_h_before 4 --n_h_trans 20 --n_h_after 3
+
+    # Plus de realisations dans la zone de transition:
+    NETKET_EXPERIMENTAL_SHARDING=1 python plots_fonctionnels/plot_dMz_vs_sigma.py \
+        --run_dir logs/run_XXXX/ \
+        --checkpoint state_400.nk \
+        --n_disorder 30 --n_disorder_trans 100 --n_disorder_far 10
+
+    # Sigma plus large, plus de points:
+    NETKET_EXPERIMENTAL_SHARDING=1 python plots_fonctionnels/plot_dMz_vs_sigma.py \
+        --run_dir logs/run_XXXX/ \
+        --checkpoint state_400.nk \
+        --sigma_min 0.0 --sigma_max 3.0 --n_sigma 30
+
+    # Calcul exact (full sum, pour petits L seulement):
+    NETKET_EXPERIMENTAL_SHARDING=1 python plots_fonctionnels/plot_dMz_vs_sigma.py \
+        --run_dir logs/run_XXXX/ \
+        --checkpoint state_400.nk \
+        --fullsum
 """
 
 import os
