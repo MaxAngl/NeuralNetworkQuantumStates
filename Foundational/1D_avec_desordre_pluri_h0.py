@@ -42,7 +42,7 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
-L = 25                                      # Taille du système
+L = 36                                      # Taille du système
 h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]
 sigma_disorder = 0.1 
 J_val = 1.0    
@@ -64,7 +64,7 @@ diag_shift = 2e-4
 logs_path = "logs"
 
 # --- CALCUL AUTOMATIQUE ET SYSTÉMATIQUE DU CHUNK_SIZE ---
-TARGET_CHUNK = 64 
+TARGET_CHUNK = 8 
 
 if n_samples <= TARGET_CHUNK:
     chunk_size = n_samples
@@ -76,7 +76,7 @@ else:
             chunk_size = i
             break
 
-chunk_size_bwd=chunk_size
+chunk_size_bwd=2
 
 print(f"🔹 Configuration : {n_samples} samples total.")
 print(f"🔹 Chunk size auto-calculé : {chunk_size} (Diviseur optimal <= {TARGET_CHUNK})")
