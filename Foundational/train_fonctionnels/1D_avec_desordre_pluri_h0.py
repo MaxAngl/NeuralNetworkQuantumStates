@@ -1,7 +1,9 @@
 import os
 import sys
 # Ajouter le répertoire racine du projet au chemin Python
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+foundational_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, foundational_dir)
 sys.path.insert(0, project_root)
 
 #Décommenter cette ligne pour L supérieur à 16 ou 20
@@ -61,7 +63,7 @@ n_iter = 300
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 2e-4
-logs_path = "logs"
+logs_path = os.path.join(foundational_dir, "logs")
 
 # --- CALCUL AUTOMATIQUE ET SYSTÉMATIQUE DU CHUNK_SIZE ---
 TARGET_CHUNK = 8 
@@ -205,7 +207,7 @@ optimizer = optax.sgd(learning_rate)
 def cg_solver(A, b):
     # jax.scipy.sparse.linalg.cg renvoie (x, info), on ne garde que x [0]
     return jax.scipy.sparse.linalg.cg(A, b, tol=1e-4)[0]
-gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift, linear_solver_fn=cg_solver, chunk_size_bwd=chunk_size_bwd)
+gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift, linear_solver_fn=cg_solver, chunk_size_bwd=chunk_size_bwd, use_ntk=True)
 
 # Logger
 # On initialise le logger avec un dossier temporaire ou final

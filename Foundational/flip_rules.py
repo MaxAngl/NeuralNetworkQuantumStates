@@ -32,7 +32,7 @@ class GlobalFlipRule(rules.MetropolisRule):
         rand_vals = jax.random.uniform(key_prob, shape=(n_chains, 1))
         sigma_prop = jnp.where(rand_vals < self.prob_global, sigma_global, sigma_local)
 
-        return sigma_prop, None
+        return sigma_prop.astype(sigma.dtype), None
 
     # Méthodes JAX Pytree
     def tree_flatten(self):
