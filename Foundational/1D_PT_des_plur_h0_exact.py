@@ -217,7 +217,7 @@ class SaveState(AbstractCallback, mutable=True):
 # Optimiseur
 learning_rate = optax.linear_schedule(init_value=lr_init, end_value=lr_end, transition_steps=300) 
 optimizer = optax.sgd(learning_rate)
-gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift)
+gs = nkf.VMC_NG(ha_p, optimizer, variational_state=vs, diag_shift=diag_shift, use_ntk=True)
 
 # Logger
 log = nk.logging.JsonLog("log_data", save_params=False) 

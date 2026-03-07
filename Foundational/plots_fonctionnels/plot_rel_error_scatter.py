@@ -27,7 +27,9 @@ prob_global_flip = 0.01
 # ==========================================
 # 2. SETUP
 # ==========================================
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+foundational_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, foundational_dir)
 sys.path.insert(0, project_root)
 from flip_rules import GlobalFlipRule
 

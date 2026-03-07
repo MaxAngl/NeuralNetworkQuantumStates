@@ -1,0 +1,84 @@
+{
+  "L": 16,
+  "J": 1.0,
+  "h0_train_list": [
+    0.1,
+    0.36,
+    0.62,
+    0.87,
+    1.13,
+    1.39,
+    1.65,
+    1.91,
+    2.16,
+    2.42,
+    2.68,
+    2.94,
+    3.19,
+    3.45,
+    3.71,
+    3.97,
+    4.23,
+    4.48,
+    4.74,
+    5.0
+  ],
+  "sigma_disorder": 0.1,
+  "model": "ViTFNQS",
+  "vit_params": {
+    "num_layers": 2,
+    "d_model": 16,
+    "heads": 4,
+    "b": 1,
+    "L_eff": 16
+  },
+  "standard": {
+    "n_replicas_per_h0": 5,
+    "total_configs_train": 120,
+    "n_iter": 450,
+    "disorder": "fixed throughout training, abs(gaussian) + homogeneous"
+  },
+  "epoch": {
+    "n_h0_per_epoch": 10,
+    "n_reps_per_h0_epoch": 11,
+    "total_configs_train": 120,
+    "n_iter_per_epoch": 75,
+    "n_epochs": 6,
+    "n_iter_total": 450,
+    "disorder": "random h0 subset + fresh abs(gaussian) + homogeneous each epoch",
+    "h0_selection": "random subset without replacement"
+  },
+  "sampler": {
+    "type": "MetropolisSampler + GlobalFlipRule",
+    "prob_global_flip": 0.01,
+    "chains_per_replica": 4,
+    "samples_per_chain": 2,
+    "n_chains": 480,
+    "n_samples": 960
+  },
+  "optimizer": {
+    "type": "SGD + CG solver",
+    "lr_init": 0.03,
+    "lr_end": 0.005,
+    "diag_shift": 0.0002
+  },
+  "evaluation": {
+    "method": "MCState (Monte Carlo sampling)",
+    "n_chains": 16,
+    "n_samples": 1024
+  },
+  "test_grid": {
+    "h0_range": [
+      0.1,
+      6.0
+    ],
+    "n_h0": 15,
+    "sigma_range": [
+      0.01,
+      0.3
+    ],
+    "n_sigma": 16,
+    "N_test_per_point": 5
+  },
+  "seed": 1
+}

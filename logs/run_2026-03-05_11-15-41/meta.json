@@ -1,0 +1,67 @@
+{
+  "L": 36,
+  "graph": "Hypercube 1D",
+  "n_dim": 1,
+  "pbc": true,
+  "hamiltonian": {
+    "type": "Ising Disorder",
+    "J": 1.0,
+    "h0_train_list": [
+      0.1,
+      0.36,
+      0.62,
+      0.87,
+      1.13,
+      1.39,
+      1.65,
+      1.91,
+      2.16,
+      2.42,
+      2.68,
+      2.94,
+      3.19,
+      3.45,
+      3.71,
+      3.97,
+      4.23,
+      4.48,
+      4.74,
+      5.0
+    ],
+    "sigma": 0.1
+  },
+  "training_method": "epoch",
+  "epoch_config": {
+    "n_epochs": 8,
+    "n_iter_per_epoch": 50,
+    "n_h0_per_epoch": 10,
+    "n_reps_per_h0_epoch": 11,
+    "h0_selection": "random subset without replacement",
+    "disorder_refresh": "fresh abs(gaussian) + homogeneous each epoch"
+  },
+  "total_configs_train": 120,
+  "n_iter_total": 400,
+  "vit_config": {
+    "num_layers": 2,
+    "d_model": 16,
+    "heads": 4,
+    "b": 4,
+    "L_eff": 9
+  },
+  "sampler": {
+    "type": "MetropolisSampler + GlobalFlipRule",
+    "prob_global_flip": 0.05,
+    "chains_per_replica": 4,
+    "samples_per_chain": 2,
+    "n_chains": 480,
+    "n_samples": 960
+  },
+  "optimizer": {
+    "type": "SGD + CG solver",
+    "lr_init": 0.03,
+    "lr_end": 0.005,
+    "diag_shift": 0.0002
+  },
+  "seed": 1,
+  "execution_time_seconds": 320.74772787094116
+}

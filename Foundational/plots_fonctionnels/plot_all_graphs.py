@@ -36,7 +36,9 @@ nb_steps_thermalization = 10 #A augmenter quand h0 décroit
 # ==========================================
 # 2. SETUP ET CHARGEMENT
 # ==========================================
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+foundational_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, foundational_dir)
 sys.path.insert(0, project_root)
 from flip_rules import GlobalFlipRule
 
