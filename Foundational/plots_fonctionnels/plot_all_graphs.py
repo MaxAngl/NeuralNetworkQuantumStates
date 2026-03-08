@@ -19,11 +19,11 @@ import jax.numpy as jnp
 # 1. CONFIGURATION
 # ==========================================
 # 👇 MODIFIEZ LE CHEMIN ICI 👇
-RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/run_2026-03-04_19-43-01"
+RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-03-07_20-22-49"
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
-prob_global_flip = 0.01
+prob_global_flip = 0.03
 
 # ==========================================
 # 2. SETUP ET CHARGEMENT
@@ -170,7 +170,7 @@ def compute_metrics(params_batch, desc="metrics"):
         model=_vs_init.model,
         variables=_vs_init.variables,
         n_samples=2048, 
-        n_discard_per_chain=200 
+        n_discard_per_chain=500 
     )
 
     for pars in tqdm(params_batch, desc=desc):
@@ -178,6 +178,19 @@ def compute_metrics(params_batch, desc="metrics"):
         
         mc_vs.variables = vs.get_state(pars).variables
         mc_vs.reset()
+
+        # 👇 ON INTERCEPTE ET ON FORCE LE 50/50 POUR LE TEST 👇
+        sigma_orig = mc_vs.sampler_state.σ
+        flat_sigma = sigma_orig.reshape(-1, sigma_orig.shape[-1])
+        half = flat_sigma.shape[0] // 2
+        
+        flat_sigma = flat_sigma.at[:half, :L].set(1)
+        flat_sigma = flat_sigma.at[half:, :L].set(-1)
+        
+        sigma_new = flat_sigma.reshape(sigma_orig.shape)
+        mc_vs.sampler_state = mc_vs.sampler_state.replace(σ=sigma_new)
+        # 👆 FIN DE L'ASTUCE 👆
+
         stats_mc = mc_vs.expect(H)
         
         E_vmc_est = stats_mc.Mean.real

@@ -18,7 +18,7 @@ import zipfile
 # 1. CONFIGURATION
 # ==========================================
 # 👇 MODIFIEZ LE CHEMIN ICI 👇
-RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/Trains_disordered_1D/run_2026-03-02_20-12-16"
+RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/tests_echantillonnage_L=25/run_2026-03-04_19-43-01"
 
 # Paramètres de test
 H0_TEST_LIST = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.925, 0.95, 0.975, 1.0, 1.025, 1.05, 1.075, 1.1, 1.15, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] 

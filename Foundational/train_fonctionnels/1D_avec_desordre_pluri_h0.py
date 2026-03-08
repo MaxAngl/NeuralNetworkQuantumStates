@@ -44,7 +44,11 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
-L = 36                                      # Taille du système
+L = 25                                     # Taille du système
+# Si on passe un argument dans le terminal, on le prend pour L, sinon L=16 par défaut
+if len(sys.argv) > 1:
+    L = int(sys.argv[1])
+
 h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]
 sigma_disorder = 0.1 
 J_val = 1.0    
@@ -56,7 +60,7 @@ chains_per_replica = 4
 samples_per_chain = 2       
 n_chains = total_configs_train * chains_per_replica
 n_samples = n_chains * samples_per_chain
-prob_global_flip = 0.01  # Probabilité de flip global dans le sampler personnalisé
+prob_global_flip = 0.03  # Probabilité de flip global dans le sampler personnalisé
 
 # --- PARAMÈTRES D'OPTIMISATION ---
 n_iter = 300       
@@ -66,7 +70,7 @@ diag_shift = 2e-4
 logs_path = os.path.join(foundational_dir, "logs")
 
 # --- CALCUL AUTOMATIQUE ET SYSTÉMATIQUE DU CHUNK_SIZE ---
-TARGET_CHUNK = 8 
+TARGET_CHUNK = 16 
 
 if n_samples <= TARGET_CHUNK:
     chunk_size = n_samples
@@ -78,7 +82,7 @@ else:
             chunk_size = i
             break
 
-chunk_size_bwd=2
+chunk_size_bwd=4
 
 print(f"🔹 Configuration : {n_samples} samples total.")
 print(f"🔹 Chunk size auto-calculé : {chunk_size} (Diviseur optimal <= {TARGET_CHUNK})")
@@ -148,6 +152,24 @@ sa = nk.sampler.MetropolisSampler(
     n_chains=n_chains
 )
 vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+
+# 1. On récupère le tableau d'états exact généré par NetKet (qui contient Spins + Couplings)
+sigma_orig = vs.sampler_state.σ
+
+# 2. On l'aplatit temporairement pour gérer n'importe quelle forme (réplicas/chaînes)
+flat_sigma = sigma_orig.reshape(-1, sigma_orig.shape[-1])
+half = flat_sigma.shape[0] // 2
+
+# 3. On utilise .at[...].set(...) car les tableaux JAX sont immuables.
+# On écrase UNIQUEMENT les L premières colonnes (qui correspondent aux spins)
+# Moitié UP (+1)
+flat_sigma = flat_sigma.at[:half, :L].set(1)
+# Moitié DOWN (-1)
+flat_sigma = flat_sigma.at[half:, :L].set(-1)
+
+# 4. On lui redonne sa forme d'origine et on met à jour le sampler
+sigma_new = flat_sigma.reshape(sigma_orig.shape)
+vs.sampler_state = vs.sampler_state.replace(σ=sigma_new)
 
 # Initialisation des paramètres (désordre)
 params_list = generate_multi_h0_disorder(h0_train_list, n_replicas, hi.size, sigma=sigma_disorder)
