@@ -60,7 +60,7 @@ chains_per_replica = 4
 samples_per_chain = 2       
 n_chains = total_configs_train * chains_per_replica
 n_samples = n_chains * samples_per_chain
-prob_global_flip = 0.03  # Probabilité de flip global dans le sampler personnalisé
+prob_global_flip = 0.05  # Probabilité de flip global dans le sampler personnalisé
 
 # --- PARAMÈTRES D'OPTIMISATION ---
 n_iter = 300       
