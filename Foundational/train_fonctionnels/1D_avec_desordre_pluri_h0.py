@@ -44,7 +44,7 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
-L = 25                                     # Taille du système
+L = 16                                     # Taille du système
 # Si on passe un argument dans le terminal, on le prend pour L, sinon L=16 par défaut
 if len(sys.argv) > 1:
     L = int(sys.argv[1])
@@ -63,7 +63,7 @@ n_samples = n_chains * samples_per_chain
 prob_global_flip = 0.05  # Probabilité de flip global dans le sampler personnalisé
 
 # --- PARAMÈTRES D'OPTIMISATION ---
-n_iter = 300       
+n_iter = 400      
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 2e-4
@@ -91,7 +91,7 @@ print(f"🔹 Chunk size auto-calculé : {chunk_size} (Diviseur optimal <= {TARGE
 # Paramètres du modèle ViT
 vit_params = {
     "num_layers": 2,
-    "d_model": 16,
+    "d_model": 32,
     "heads": 4,
     "b": 1,
     "L_eff": L,
@@ -190,6 +190,62 @@ def create_operator(params):
 ha_p = nkf.operator.ParametrizedOperator(hi, ps, create_operator)
 mz_p = nkf.operator.ParametrizedOperator(hi, ps, lambda _: Mz)
 
+# === NOUVEAU CALLBACK POUR LOGGER LES REPLICAS SANS CRASH XLA ===
+class ReplicaLogger(AbstractCallback):
+    # DÉCLARATION OBLIGATOIRE POUR JAX/NETKET :
+    params_list: np.ndarray = struct.field(pytree_node=False)
+    L: int = struct.field(pytree_node=False)
+    eval_every: int = struct.field(pytree_node=False)
+    
+    def __init__(self, params_list, L, eval_every=10):
+        self.params_list = params_list
+        self.L = L
+        self.eval_every = eval_every
+        
+    def __call__(self, step, log_data, driver):
+        if step % self.eval_every != 0:
+            return True
+            
+        vs = driver.state
+        hi = vs.hilbert
+        sa_eval = nk.sampler.MetropolisLocal(hi, n_chains=4)
+        ham_dict = {}
+        
+        # Évaluation séquentielle (1 réplica à la fois = 0 crash mémoire)
+        for i, pars in enumerate(self.params_list):
+            _vs = vs.get_state(pars)
+            
+            mc_vs = nk.vqs.MCState(
+                sampler=sa_eval, 
+                model=_vs.model, 
+                variables=_vs.variables, 
+                n_samples=256,  # Léger pour ne pas ralentir l'entraînement
+                chunk_size=16
+            )
+            mc_vs.reset()
+            
+            # Application de ton astuce 50/50 pour la mesure
+            sigma_orig = np.array(mc_vs.sampler_state.σ)
+            flat_sigma = sigma_orig.reshape(-1, sigma_orig.shape[-1])
+            half = flat_sigma.shape[0] // 2
+            flat_sigma[:half, :self.L] = 1
+            flat_sigma[half:, :self.L] = -1
+            sigma_new = jnp.array(flat_sigma.reshape(sigma_orig.shape))
+            mc_vs.sampler_state = mc_vs.sampler_state.replace(**{'σ': sigma_new})
+            
+            # Mesure
+            H_op = create_operator(pars)
+            stats = mc_vs.expect(H_op)
+            
+            # On recrée la structure exacte attendue par ton script de plot
+            ham_dict[str(i)] = {
+                "Mean": float(np.real(stats.Mean)),
+                "Variance": float(stats.variance)
+            }
+            
+        log_data["ham"] = ham_dict
+        return True
+    
 # ==========================================
 # 3. LOGGING ET OPTIMISATION
 # ==========================================
@@ -282,15 +338,24 @@ disorder_path = os.path.join(run_dir, "disorder_configs.npy")
 np.save(disorder_path, params_list)
 print(f"Configurations de désordre sauvegardées dans : {disorder_path}")
 
+vs.chunk_size = chunk_size
+
 start_time = time.time()
 
+# Lancement du run
 # Lancement du run
 gs.run(
     n_iter,
     out=log,
-    obs={"ham": ha_p, "mz": mz_p},
-    callback=SaveState(run_dir, 10), # Sauvegarde dans le dossier créé
+    # On met les deux callbacks dans une liste, et SURTOUT pas de paramètre 'obs='
+    callback=[
+        SaveState(run_dir, 10), 
+        ReplicaLogger(params_list, L, eval_every=10)
+    ]
 )
+
+if "Energy" in log.data:
+    log.data["ham"] = log.data["Energy"]
 
 duration = time.time() - start_time
 print(f"⏱️ Temps total d'entraînement : {duration:.2f} secondes")
