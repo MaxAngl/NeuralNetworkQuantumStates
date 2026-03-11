@@ -104,7 +104,7 @@ lr_end = 0.005
 diag_shift = 2e-4
 logs_path = "logs/2D_FNQS"
 
-# --- CALCUL DU CHUNK_SIZE ---
+# --- CALCUL DU CHUNK_SIZE --- 
 TARGET_CHUNK = 64 
 
 if n_samples <= TARGET_CHUNK:
@@ -142,7 +142,9 @@ def generate_multi_h0_disorder(h0_list, n_reps, system_size, sigma, rng=None):
     all_configs = []
     
     for h_m in h0_list:
-        random_configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
+        raw_configs = rng.normal(loc=h_m, scale=sigma, size=(n_reps, system_size))
+        # Les valeurs négatives "rebondissent" en positif, gardant une distribution lisse
+        random_configs = np.abs(raw_configs)
         homogeneous_config = np.full((1, system_size), h_m)
         batch_configs = np.vstack([random_configs, homogeneous_config])
         all_configs.append(batch_configs)
