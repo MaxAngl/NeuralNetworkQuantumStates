@@ -1,0 +1,185 @@
+import os
+import json
+import zipfile
+import flax
+import jax                      # <-- Import obligatoire pour jax.random
+import jax.numpy as jnp
+import numpy as np
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+from pathlib import Path
+
+os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
+
+import netket as nk
+import netket_foundational as nkf
+from netket_foundational._src.model.vit import ViTFNQS
+
+# --- CONFIGURATION ET DOSSIERS ---
+output_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/logs/2D_FNQS/run_2026-03-10_20-04-43")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+# --- CHARGEMENT META ET INITIALISATION SYSTÈME 2D ---
+meta_path = output_dir / "meta.json"
+with open(meta_path, 'r') as f:
+    meta = json.load(f)
+
+L = meta["L"]
+n_spins = L**2
+
+print(f"🔹 Système détecté via meta : Grille {L}x{L} | Total spins={n_spins}")
+
+# Utilisation correcte du générateur aléatoire JAX
+k = jax.random.key(1) 
+hi = nk.hilbert.Spin(0.5, n_spins)
+ps = nkf.ParameterSpace(N=1, min=2.5, max=3.5)
+
+# --- RECONSTRUCTION DU MODÈLE ET CHARGEMENT ---
+vit_params = meta["vit_config"]
+
+ma = ViTFNQS(
+    num_layers=vit_params["num_layers"],
+    d_model=vit_params["d_model"],
+    heads=vit_params["heads"],
+    b=vit_params["b"],
+    L_eff=vit_params["L_eff"], 
+    n_coups=ps.size, 
+    complex=True, 
+    disorder=True, 
+    transl_invariant=False, 
+    two_dimensional=True, 
+)
+
+sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=16)
+
+checkpoint_path = str(output_dir / "state_390.nk")
+with zipfile.ZipFile(checkpoint_path, 'r') as zf:
+    target = [name for name in zf.namelist() if name.endswith('.msgpack')][-1]
+    state_dict = flax.serialization.msgpack_restore(zf.read(target))
+
+vars_dict = state_dict.get('variables', state_dict.get('model', {}).get('variables', state_dict))
+vs.variables = flax.serialization.from_state_dict(vs.variables, vars_dict)
+print("✅ Modèle reconstruit et Poids chargés avec succès !")
+
+# --- DÉFINITION DE L'OPÉRATEUR ---
+def create_operator(params):
+    assert params.shape == (1,)
+    h = params[0]
+    
+    ha_X = sum(nkf.operator.sigmax(hi, i) for i in range(n_spins))
+    
+    # Interactions 2D avec conditions aux limites périodiques
+    ha_ZZ = sum(nkf.operator.sigmaz(hi, i) @ nkf.operator.sigmaz(hi, (i % L + 1) % L + (i // L) * L) for i in range(n_spins))
+    ha_ZZ += sum(nkf.operator.sigmaz(hi, i) @ nkf.operator.sigmaz(hi, (i + L) % n_spins) for i in range(n_spins))
+    
+    return -h * ha_X - ha_ZZ
+
+# --- OPÉRATEURS ET MATRICES ---
+Mz = sum(nkf.operator.sigmaz(hi, i) for i in range(n_spins)) * (1 / float(n_spins))
+
+exact_possible = hi.is_indexable
+if exact_possible:
+    Mz2_mat = (Mz @ Mz).to_sparse()
+else:
+    print(f"⚠️ Système trop grand (N={n_spins}). Calculs de diagonalisation exacte ignorés.")
+
+# --- 1. DEFINITION DES POINTS ---
+h_train = np.linspace(2.5, 3.5, 8)
+h_test = np.linspace(1.5, 4.5, 50) 
+
+# --- 2. CALCULS EXACTS ---
+h_all = np.sort(np.unique(np.concatenate([h_train, h_test])))
+exact_data = {"h": [], "Energy": [], "Mz2": []}
+
+if exact_possible:
+    for h_val in tqdm(h_all, desc="Calculs Exacts"):
+        _ha = create_operator(jnp.array([h_val]))
+        E0, psi0 = nk.exact.lanczos_ed(_ha, k=1, compute_eigenvectors=True)
+        exact_data["h"].append(h_val)
+        exact_data["Energy"].append(E0.item())
+        exact_data["Mz2"].append((psi0.T.conj() @ (Mz2_mat @ psi0.reshape(-1))).item())
+
+# --- 3. EVALUATION VMC ---
+def evaluate_vmc(h_list):
+    results = {"h": [], "Energy": [], "Mz2": []}
+    for val in tqdm(h_list, desc="VMC Eval"):
+        pars = jnp.array([val])
+        _ha = create_operator(pars)
+        _vs = vs.get_state(pars)
+        _vs.sample()
+        results["h"].append(val)
+        results["Energy"].append(_vs.expect(_ha).Mean.real.item())
+        results["Mz2"].append(_vs.expect(Mz @ Mz).Mean.real.item())
+    return results
+
+print("Évaluation des points d'entraînement...")
+vmc_train = evaluate_vmc(h_train)
+
+print("Évaluation des points de test...")
+vmc_test = evaluate_vmc(h_test)
+
+# --- 4. CALCUL ERREURS ---
+def get_relative_error(h_vals, vmc_vals, exact_h, exact_vals):
+    if not exact_possible:
+        return np.full(len(h_vals), np.nan)
+    errors = []
+    for h, vmc_v in zip(h_vals, vmc_vals):
+        idx = np.argmin(np.abs(np.array(exact_h) - h))
+        exact_v = exact_vals[idx]
+        errors.append(np.abs((vmc_v - exact_v) / exact_v))
+    return np.array(errors)
+
+err_e_train = get_relative_error(vmc_train["h"], vmc_train["Energy"], exact_data["h"], exact_data["Energy"])
+err_e_test  = get_relative_error(vmc_test["h"], vmc_test["Energy"], exact_data["h"], exact_data["Energy"])
+
+err_m_train = get_relative_error(vmc_train["h"], vmc_train["Mz2"], exact_data["h"], exact_data["Mz2"])
+err_m_test  = get_relative_error(vmc_test["h"], vmc_test["Mz2"], exact_data["h"], exact_data["Mz2"])
+
+# --- 5. TRACÉ (Grille 2x2) ---
+fig, ax = plt.subplots(2, 2, figsize=(15, 12))
+
+# LIGNE 1 : ENERGIE
+if exact_possible:
+    ax[0, 0].plot(exact_data["h"], exact_data["Energy"], color='blue', label="Exact", zorder=1)
+ax[0, 0].scatter(vmc_test["h"], vmc_test["Energy"], color='orange', marker='x', s=40, label="VMC Test", zorder=2)
+ax[0, 0].scatter(vmc_train["h"], vmc_train["Energy"], color='red', marker='o', s=60, edgecolors='black', label="VMC Train", zorder=3)
+ax[0, 0].set_ylabel("Énergie")
+ax[0, 0].set_title("Comparaison Énergie")
+
+if exact_possible:
+    # Filtrer les NaN pour éviter les erreurs Matplotlib en log-scale
+    valid_test = ~np.isnan(err_e_test)
+    valid_train = ~np.isnan(err_e_train)
+    ax[0, 1].scatter(np.array(vmc_test["h"])[valid_test], err_e_test[valid_test], color='orange', marker='x', s=40, label="Err. Test")
+    ax[0, 1].scatter(np.array(vmc_train["h"])[valid_train], err_e_train[valid_train], color='red', marker='o', s=60, edgecolors='black', label="Err. Train")
+    ax[0, 1].set_yscale('log')
+ax[0, 1].set_ylabel("Erreur Relative")
+ax[0, 1].set_title("Précision de l'Énergie")
+
+# LIGNE 2 : MAGNETISATION Mz2
+if exact_possible:
+    ax[1, 0].plot(exact_data["h"], exact_data["Mz2"], color='blue', label="Exact", zorder=1)
+ax[1, 0].scatter(vmc_test["h"], vmc_test["Mz2"], color='orange', marker='x', s=40, label="VMC Test", zorder=2)
+ax[1, 0].scatter(vmc_train["h"], vmc_train["Mz2"], color='red', marker='o', s=60, edgecolors='black', label="VMC Train", zorder=3)
+ax[1, 0].set_ylabel("$M_z^2$")
+ax[1, 0].set_title("Comparaison $M_z^2$")
+
+if exact_possible:
+    valid_m_test = ~np.isnan(err_m_test)
+    valid_m_train = ~np.isnan(err_m_train)
+    ax[1, 1].scatter(np.array(vmc_test["h"])[valid_m_test], err_m_test[valid_m_test], color='orange', marker='x', s=40)
+    ax[1, 1].scatter(np.array(vmc_train["h"])[valid_m_train], err_m_train[valid_m_train], color='red', marker='o', s=60, edgecolors='black')
+    ax[1, 1].set_yscale('log')
+ax[1, 1].set_ylabel("Erreur Relative")
+ax[1, 1].set_title("Précision de $M_z^2$")
+
+for a in ax.flat:
+    a.axvspan(2.5, 3.5, color='gray', alpha=0.1)
+    a.set_xlabel("Champ h")
+    a.legend()
+    a.grid(True, which="both", alpha=0.2)
+
+plt.tight_layout()
+plt.savefig(output_dir / "Foundational_extrapolation_test_with_errors_2D.pdf")
+print(f"\n✅ Simulation terminée. Graphiques sauvegardés dans {output_dir}")
