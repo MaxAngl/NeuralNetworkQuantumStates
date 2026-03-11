@@ -32,8 +32,27 @@ ps = nkf.ParameterSpace(N=1, min=2.5, max=3.5)
 
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
-# /!\ Attention : Assure-toi que ce checkpoint correspond bien au meta.json
-vs = nk.vqs.MCState.load(str(output_dir / "state_990.nk"), new_seed=False)
+import zipfile
+import flax
+
+# 1. Créer un sampler d'évaluation standard
+sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+
+# 2. Instancier l'état variationnel vide (utilise le modèle 'ma' que tu dois avoir défini juste avant)
+vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=16)
+
+# 3. Charger manuellement uniquement les poids du réseau depuis le fichier
+checkpoint_path = str(output_dir / "state_390.nk")
+with zipfile.ZipFile(checkpoint_path, 'r') as zf:
+    # Récupérer le fichier msgpack à l'intérieur de l'archive .nk (qui est un zip)
+    target = [name for name in zf.namelist() if name.endswith('.msgpack')][-1]
+    state_dict = flax.serialization.msgpack_restore(zf.read(target))
+
+# 4. Injecter les poids dans notre état
+vars_dict = state_dict.get('variables', state_dict.get('model', {}).get('variables', state_dict))
+vs.variables = flax.serialization.from_state_dict(vs.variables, vars_dict)
+
+print("✅ Poids du réseau chargés avec succès !")
 
 def create_operator(params):
     assert params.shape == (1,)
