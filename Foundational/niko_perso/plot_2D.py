@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 IS_2D = True 
 RUN_DIR = r"/users/eleves-a/2024/nikola.audit/NeuralNetworkQuantumStates/logs/2D_FNQS/run_2026-03-11_01-19-42"
 
-H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
+H0_TEST_LIST = [0.5, 1.5, 2.2, 2.5, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.5, 4.0, 5.0]
 N_TEST_PER_H0 = 20 
 nb_steps_thermalization = 10 
 
