@@ -30,7 +30,7 @@ from flax import struct
 
 from src.nqs_psc.utils import save_run # Assure-toi que ce module est accessible
 from netket_foundational._src.model.vit import ViTFNQS
-from advanced_drivers._src.callbacks.base import AbstractCallback
+from advanced_drivers._src.callbacks import AbstractCallback
 from flip_rules import GlobalFlipRule
 
 # ==========================================

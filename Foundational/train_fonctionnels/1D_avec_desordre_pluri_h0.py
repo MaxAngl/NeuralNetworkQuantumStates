@@ -29,7 +29,7 @@ from scipy.stats import gaussian_kde
 from netket.utils import struct
 import matplotlib.pyplot as plt
 from netket_foundational._src.model.vit import ViTFNQS
-from advanced_drivers._src.callbacks.base import AbstractCallback
+from advanced_drivers._src.callbacks import AbstractCallback
 import netket_pro.distributed as nkpd
 from netket.sampler import rules
 from flax import struct

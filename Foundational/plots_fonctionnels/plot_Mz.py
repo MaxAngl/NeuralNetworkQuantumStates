@@ -18,10 +18,10 @@ import zipfile
 # 1. CONFIGURATION
 # ==========================================
 # 👇 MODIFIEZ LE CHEMIN ICI 👇
-RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/logs/tests_echantillonnage_L=25/run_2026-03-04_19-43-01"
+RUN_DIR = r"/users/eleves-a/2024/adel.mana/Documents/NeuralNetworkQuantumStates/Foundational/logs/Trains_disordered_1D/run_2026-03-08_00-16-49"
 
 # Paramètres de test
-H0_TEST_LIST = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.925, 0.95, 0.975, 1.0, 1.025, 1.05, 1.075, 1.1, 1.15, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] 
+H0_TEST_LIST = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.925, 0.95, 0.975,0.980,0.985,0.990,0.993,0.995,0.997, 1.0,1.003,1.005,1.010,1.012,1.015,1.025,1.035, 1.05, 1.075, 1.1, 1.15, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 3.0, 4.0] 
 SIGMA_TEST_LIST = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5, 0.7]  # Liste des désordres à tester
 N_TEST_PER_H0 = 20 
 
@@ -147,7 +147,12 @@ for sigma in SIGMA_TEST_LIST:
     
     for h0 in tqdm(H0_TEST_LIST, desc=f"Balayage h0"):
         # Génération des N réplicas avec la valeur absolue (comme pour l'entraînement)
-        configs = np.abs(rng.normal(loc=h0, scale=sigma, size=(N_TEST_PER_H0, L)))
+        if 0.9 <= h0 <= 1.1 and sigma>0.15:
+            n_test = 100
+        else:
+            n_test=20
+        configs = np.abs(rng.normal(loc=h0, scale=sigma, size=(n_test, L)))
+        #configs = np.abs(rng.normal(loc=h0, scale=sigma, size=(N_TEST_PER_H0, L)))
         
         mz2_batch = []
         for pars in configs:
