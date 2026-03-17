@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 # 1. CONFIGURATION
 # ==========================================
 IS_2D = True 
-RUN_DIR = r"/users/eleves-a/2024/rami.chagnaud/Documents/logs/2D_FNQS/run_2026-03-10_23-36-45"
+RUN_DIR = r"/users/eleves-a/2024/rami.chagnaud/Documents/logs/2D_FNQS/Run_2D_L8_FNQS"
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 

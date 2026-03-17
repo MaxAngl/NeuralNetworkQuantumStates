@@ -95,7 +95,7 @@ n_samples = n_chains * samples_per_chain
 
 # >>>> HYPERPARAMÃˆTRES PT <<<<
 n_pt_temperatures = 8      
-prob_global_flip = 0.01    
+prob_global_flip = 0.03    
 
 # --- PARAMÃˆTRES D'OPTIMISATION ---
 n_iter = 400       

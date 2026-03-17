@@ -16,7 +16,7 @@ import netket_foundational as nkf
 from netket_foundational._src.model.vit import ViTFNQS
 
 # --- CONFIGURATION ET DOSSIERS ---
-output_dir = Path("/users/eleves-a/2024/nikola.audit/NeuralNetworkQuantumStates/logs/2D_FNQS/run_2026-03-10_17-57-24")
+output_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/logs/2D_FNQS/Run_2D_L6_FNQS")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # --- CHARGEMENT META ET INITIALISATION SYSTÈME 2D ---
