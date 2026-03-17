@@ -84,9 +84,9 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÃˆTRES PHYSIQUES ---
-L = 5                                      # CÃ´tÃ© de la grille
+L = 4                                      # CÃ´tÃ© de la grille
 n_spins = L**2                             # Nombre total de spins
-b = 1                                      # Taille du patch
+b = 2                                      # Taille du patch
 h0_train_list = [0.1, 1.0, 2.0, 2.5, 2.8, 3.0, 3.2, 3.5, 4.5, 6.0]
 sigma_disorder = 0.1 
 J_val = 1.0    
