@@ -1,8 +1,10 @@
-import os
 import sys
-# Ajouter le rÃ©pertoire racine du projet au chemin Python
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
+import os
+# Chemin absolu garanti vers la racine de ton projet
+project_root = "/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1"
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 
 #DÃ©commenter cette ligne pour L supÃ©rieur Ã  16 ou 20
 os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
@@ -78,10 +80,10 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMAMETRES PHYSIQUES ---
-L = 6                                      # Côté de la grille
+L = 10                                      # Côté de la grille
 n_spins = L**2                             # Nombre total de spins
 b = 2                                      # Taille du patch
-h0_train_list = [ 0.2, 0.6, 1.0, 1.5, 2, 2.8, 2.9, 3.0,3.2, 3.4, 3.6, 4.0, 5.0]
+h0_train_list = [ 0.2, 0.6, 0.8, 1.0, 1.5, 2, 2.8, 2.9, 3.0, 3.2, 3.4, 3.6, 4.0, 5.0]
 sigma_disorder = 0.1 
 J_val = 1.0    
 n_replicas = 10                             
