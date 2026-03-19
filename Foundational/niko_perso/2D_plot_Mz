@@ -15,17 +15,41 @@ import netket as nk
 import netket_foundational as nkf
 from netket_foundational._src.model.vit import ViTFNQS
 
-# --- CONFIGURATION ET DOSSIERS ---
-output_dir = Path("/users/eleves-a/2024/rami.chagnaud/Documents/logs/2D_FNQS/run_2026-03-10_20-04-43")
-output_dir.mkdir(parents=True, exist_ok=True)
+# ==========================================
+# 1. CONFIGURATION DES CHEMINS
+# ==========================================
+# 👇 C'est ici que tu définis le dossier source (et destination)
+RUN_DIR_STR = r"/users/eleves-a/2024/nikola.audit/NeuralNetworkQuantumStates/logs/2D_FNQS/run_2026-03-10_17-57-24"
+output_dir = Path(RUN_DIR_STR)
 
-# --- CHARGEMENT META ET INITIALISATION SYSTÈME 2D ---
+if not output_dir.exists():
+    print(f"❌ Erreur : Le dossier {output_dir} n'existe pas.")
+    sys.exit(1)
+
+# --- CHARGEMENT META ---
 meta_path = output_dir / "meta.json"
 with open(meta_path, 'r') as f:
     meta = json.load(f)
 
 L = meta["L"]
 n_spins = L**2
+
+# --- DÉTECTION AUTOMATIQUE DU CHECKPOINT ---
+# On cherche tous les fichiers .nk et on prend le plus récent (le plus grand numéro)
+checkpoints = list(output_dir.glob("*.nk"))
+if not checkpoints:
+    print(f"❌ Aucun fichier .nk trouvé dans {output_dir}")
+    sys.exit(1)
+checkpoint_path = str(sorted(checkpoints, key=lambda x: int(x.stem.split('_')[-1]))[-1])
+
+print(f"🔹 Run détecté : {output_dir.name}")
+print(f"🔹 Checkpoint utilisé : {Path(checkpoint_path).name}")
+
+
+
+
+
+
 
 print(f"🔹 Système détecté via meta : Grille {L}x{L} | Total spins={n_spins}")
 
@@ -53,7 +77,7 @@ ma = ViTFNQS(
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=16)
 
-checkpoint_path = str(output_dir / "state_390.nk")
+checkpoint_path = str(output_dir / "state_200.nk")
 with zipfile.ZipFile(checkpoint_path, 'r') as zf:
     target = [name for name in zf.namelist() if name.endswith('.msgpack')][-1]
     state_dict = flax.serialization.msgpack_restore(zf.read(target))
