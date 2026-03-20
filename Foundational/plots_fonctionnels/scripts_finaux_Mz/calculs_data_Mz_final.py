@@ -45,7 +45,8 @@ MAX_KEEP = max(N_KEEP_BEFORE, N_KEEP_TRANS, N_KEEP_AFTER)
 # ==========================================
 # 2. SETUP ET CHARGEMENT
 # ==========================================
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Chemin absolu "en dur" vers la racine de ton dépôt où se trouve flip_rules.py
+project_root = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational" 
 sys.path.insert(0, project_root)
 from flip_rules import GlobalFlipRule
 
