@@ -19,6 +19,8 @@ import zipfile
 # ==========================================
 # 👇 MODIFIEZ LE CHEMIN ICI 👇
 RUN_DIR = r"/users/eleves-a/2024/rami.chagnaud/Documents/logs/2D_FNQS/Run_2D_L6_FNQS"
+RUN_DIR = r"/users/eleves-a/2024/rami.chagnaud/Documents/logs/2D_FNQS/Run_2D_L8_FNQS"
+RUN_DIR = r"/users/eleves-a/2024/nikola.audit/NeuralNetworkQuantumStates/logs/2D_FNQS/run_2026-03-18_00-53-05"
 
 # Paramètres de test
 H0_TEST_LIST = [0.0, 0.1, 0.2, 0.4, 0.8, 1, 1.5, 1.7, 2.0, 2.5, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.5, 4.0, 4.5, 5.0] 

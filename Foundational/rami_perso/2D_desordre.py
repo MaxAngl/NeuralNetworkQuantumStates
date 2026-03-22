@@ -1,11 +1,23 @@
-import sys
+# --- VERSION ULTRA-ROBUSTE DES CHEMINS ---
 import os
-# Chemin absolu garanti vers la racine de ton projet
-project_root = "/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1"
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+import sys
 
+# 1. Chemin absolu du script actuel
+script_path = os.path.abspath(__file__)
 
+# 2. Dossier parent (Foundational/) -> Là où se trouve flip_rules.py
+foundational_dir = os.path.dirname(os.path.dirname(script_path))
+
+# 3. Dossier grand-parent (NeuralNetworkQuantumStates/) -> Là où se trouve src/
+project_root = os.path.dirname(foundational_dir)
+
+# On ajoute les deux au chemin Python
+sys.path.insert(0, project_root)
+sys.path.insert(0, foundational_dir)
+
+print(f"✅ Chemins configurés :")
+print(f"   - Racine : {project_root}")
+print(f"   - Foundational : {foundational_dir}")
 #DÃ©commenter cette ligne pour L supÃ©rieur Ã  16 ou 20
 os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
 # Gestionnaire de mÃ©moire plus efficace pour Ã©viter la fragmentation
@@ -80,10 +92,10 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMAMETRES PHYSIQUES ---
-L = 10                                      # Côté de la grille
+L = 5                                      # Côté de la grille
 n_spins = L**2                             # Nombre total de spins
-b = 2                                      # Taille du patch
-h0_train_list = [ 0.2, 0.6, 0.8, 1.0, 1.5, 2, 2.8, 2.9, 3.0, 3.2, 3.4, 3.6, 4.0, 5.0]
+b = 1                                      # Taille du patch
+h0_train_list = [ 0.2, 0.6, 1.0, 1.5, 2, 2.8, 2.9, 3.0,3.2, 3.4, 3.6, 4.0, 5.0]
 sigma_disorder = 0.1 
 J_val = 1.0    
 n_replicas = 10                             
