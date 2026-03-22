@@ -25,7 +25,7 @@ import zipfile
 # ==========================================
 RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_finaux_disordered_1D/run_L=49"
 
-H0_TEST_LIST = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.925, 0.95, 0.975,0.980,0.985,0.990,0.993,0.995,0.997,1.0,1.003,1.005,1.010,1.012,1.015,1.025,1.035, 1.05, 1.075, 1.1, 1.15, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 3.0, 4.0, 5.0] 
+H0_TEST_LIST = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.925, 0.95, 0.975,0.980,0.985,0.990,0.993,0.995,0.997, 1.0,1.003,1.005,1.010,1.012,1.015,1.025,1.035, 1.05, 1.075, 1.1, 1.15, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 3.0, 4.0, 5.0] 
 SIGMA_TEST_LIST = [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 0.7]  
 
 prob_global_flip = 0.03
@@ -45,7 +45,6 @@ MAX_KEEP = max(N_KEEP_BEFORE, N_KEEP_TRANS, N_KEEP_AFTER)
 # ==========================================
 # 2. SETUP ET CHARGEMENT
 # ==========================================
-# Chemin absolu "en dur" vers la racine de ton dépôt où se trouve flip_rules.py
 project_root = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational" 
 sys.path.insert(0, project_root)
 from flip_rules import GlobalFlipRule
@@ -119,71 +118,35 @@ Mz2_operator = Mz_operator @ Mz_operator
 
 
 # ==========================================
-# 3. GESTION DU DICTIONNAIRE ET REPRISE
+# 3. GESTION DE LA REPRISE (CHECKPOINT INTELLIGENT)
 # ==========================================
 data_path = os.path.join(RUN_DIR, f"mz2_full_data_L={L}.npz")
-results = {}
 
 if os.path.exists(data_path):
     print(f"\n🔄 Reprise depuis le checkpoint : {data_path}")
     loaded_data = np.load(data_path)
     
-    saved_sigmas = loaded_data['sigma_grid']
-    mz2_mean = loaded_data['mz2_mean']
-    mz2_min  = loaded_data['mz2_min']
-    mz2_max  = loaded_data['mz2_max']
-    # Sécurité au cas où l'ancien fichier npz n'aurait pas encore la clé mz2_raw
-    mz2_raw  = loaded_data.get('mz2_raw', None) 
-    
-    for i, s in enumerate(saved_sigmas):
-        if not np.isnan(mz2_mean[i]).all():
-            results[float(s)] = {
-                "mean": mz2_mean[i].tolist(),
-                "min":  mz2_min[i].tolist(),
-                "max":  mz2_max[i].tolist(),
-                "raw":  []
-            }
-            # Reconstitution de la liste brute sans les NaN de remplissage
-            if mz2_raw is not None:
-                for j in range(len(H0_TEST_LIST)):
-                    batch_complet = mz2_raw[i, j]
-                    # On garde uniquement les valeurs qui ne sont pas des NaN
-                    valeurs_valides = batch_complet[~np.isnan(batch_complet)].tolist()
-                    results[float(s)]["raw"].append(valeurs_valides)
-
-    print(f"✅ Données rechargées pour les sigmas : {list(results.keys())}")
-
+    mz2_mean_array = loaded_data['mz2_mean']
+    mz2_min_array  = loaded_data['mz2_min']
+    mz2_max_array  = loaded_data['mz2_max']
+    mz2_raw_array  = loaded_data['mz2_raw']
+else:
+    print("\n🆕 Création d'un nouveau fichier de données.")
+    mz2_mean_array = np.full((len(SIGMA_TEST_LIST), len(H0_TEST_LIST)), np.nan)
+    mz2_min_array  = np.full((len(SIGMA_TEST_LIST), len(H0_TEST_LIST)), np.nan)
+    mz2_max_array  = np.full((len(SIGMA_TEST_LIST), len(H0_TEST_LIST)), np.nan)
+    mz2_raw_array  = np.full((len(SIGMA_TEST_LIST), len(H0_TEST_LIST), MAX_KEEP), np.nan)
 
 def save_checkpoint():
-    """Sauvegarde les données, y compris les valeurs brutes complètes."""
-    curves_array = []
-    min_array = []
-    max_array = []
-    raw_array = np.full((len(SIGMA_TEST_LIST), len(H0_TEST_LIST), MAX_KEEP), np.nan)
-    
-    for idx_s, s in enumerate(SIGMA_TEST_LIST):
-        if s in results and len(results[s]["mean"]) == len(H0_TEST_LIST):
-            curves_array.append(results[s]["mean"])
-            min_array.append(results[s]["min"])
-            max_array.append(results[s]["max"])
-            
-            # Remplissage du tableau 3D pour les valeurs brutes
-            for idx_h, batch in enumerate(results[s]["raw"]):
-                raw_array[idx_s, idx_h, :len(batch)] = batch
-        else:
-            nan_list = np.full(len(H0_TEST_LIST), np.nan).tolist()
-            curves_array.append(nan_list)
-            min_array.append(nan_list)
-            max_array.append(nan_list)
-            
+    """Écrase le fichier avec les tableaux actuels."""
     np.savez(
         data_path,
         sigma_grid      = np.array(SIGMA_TEST_LIST),
         h0_grid         = np.array(H0_TEST_LIST),
-        mz2_mean        = np.array(curves_array),
-        mz2_min         = np.array(min_array),
-        mz2_max         = np.array(max_array),
-        mz2_raw         = raw_array,  # NOUVEAU : Sauvegarde des données brutes
+        mz2_mean        = mz2_mean_array,
+        mz2_min         = mz2_min_array,
+        mz2_max         = mz2_max_array,
+        mz2_raw         = mz2_raw_array,
         L               = L,
         N_KEEP_BEFORE   = N_KEEP_BEFORE,
         N_KEEP_TRANS    = N_KEEP_TRANS,
@@ -193,15 +156,11 @@ def save_checkpoint():
         N_SAMPLES_MC    = N_SAMPLES_MC,
     )
 
-save_checkpoint()
-
-
 # ==========================================
 # 4. FONCTION DE CALCUL (ÉCHANTILLONNAGE)
 # ==========================================
 print("\n🚀 Lancement des calculs de l'aimantation...")
 
-rng = np.random.default_rng(seed=42)
 sa_multi = nk.sampler.MetropolisSampler(hi, rule=SafeGlobalFlipRule(prob_global_flip), n_chains=n_chains)
 
 dummy_params = np.zeros(L)
@@ -214,18 +173,19 @@ mc_vs = nk.vqs.MCState(
     n_discard_per_chain=n_discard_per_chain
 )
 
-for sigma in SIGMA_TEST_LIST:
-    # On vérifie si ce sigma a déjà été entièrement calculé
-    if sigma in results and len(results[sigma]["mean"]) == len(H0_TEST_LIST):
+for idx_s, sigma in enumerate(SIGMA_TEST_LIST):
+    # Si la moyenne n'a aucun NaN pour ce sigma, c'est qu'il est 100% fini.
+    if not np.isnan(mz2_mean_array[idx_s]).any():
         print(f"\n⏭️ Sigma = {sigma} déjà calculé. Passage au suivant.")
         continue
 
     print(f"\n▶️ Traitement pour sigma = {sigma}")
-    results[sigma] = {"mean": [], "min": [], "max": [], "raw": []}
     
+    # Génération du bruit liée à l'index du sigma pour une reproductibilité parfaite
+    rng = np.random.default_rng(seed=42 + idx_s)
     base_noise = rng.normal(loc=0.0, scale=sigma, size=(MAX_KEEP, L))
     
-    for h0 in tqdm(H0_TEST_LIST, desc=f"Balayage h0"):
+    for idx_h, h0 in enumerate(tqdm(H0_TEST_LIST, desc=f"Balayage h0")):
         if h0 <= H0_TRANS_MIN:
             n_keep = N_KEEP_BEFORE
         elif h0 >= H0_TRANS_MAX:
@@ -245,11 +205,11 @@ for sigma in SIGMA_TEST_LIST:
             mz2_val = float(stats.Mean.real)
             mz2_batch.append(mz2_val)
             
-        # SAUVEGARDE DES DONNÉES BRUTES + STATISTIQUES
-        results[sigma]["raw"].append(mz2_batch)
-        results[sigma]["mean"].append(np.mean(mz2_batch))
-        results[sigma]["min"].append(np.min(mz2_batch))
-        results[sigma]["max"].append(np.max(mz2_batch))
+        # Remplissage direct dans les tableaux NumPy
+        mz2_raw_array[idx_s, idx_h, :n_keep] = mz2_batch
+        mz2_mean_array[idx_s, idx_h] = np.mean(mz2_batch)
+        mz2_min_array[idx_s, idx_h]  = np.min(mz2_batch)
+        mz2_max_array[idx_s, idx_h]  = np.max(mz2_batch)
 
     # 💾 SAUVEGARDE CHECKPOINT APRÈS CHAQUE SIGMA
     save_checkpoint()
