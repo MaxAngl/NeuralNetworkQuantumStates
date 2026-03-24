@@ -343,7 +343,6 @@ vs.chunk_size = chunk_size
 start_time = time.time()
 
 # Lancement du run
-# Lancement du run
 gs.run(
     n_iter,
     out=log,

@@ -80,9 +80,9 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
-L = 10
+L = 7
 n_spins = L**2
-b = 2
+b = 1
 h0_train_list = [ 0.2, 0.6, 1.0, 1.5, 2, 2.8, 2.9, 3.0, 3.2, 3.4, 3.6, 4.0, 5.0 ]
 sigma_disorder = 0.1 
 J_val = 1.0    
@@ -94,7 +94,7 @@ chains_per_replica = 4
 samples_per_chain = 2       
 n_chains = total_configs_train * chains_per_replica
 n_samples = n_chains * samples_per_chain
-prob_global_flip = 0.03    
+prob_global_flip = 0.2    
 
 # --- PARAMÈTRES D'OPTIMISATION ---
 n_iter = 400       
