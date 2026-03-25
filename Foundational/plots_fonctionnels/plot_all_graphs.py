@@ -19,7 +19,7 @@ import jax.numpy as jnp
 # 1. CONFIGURATION
 # ==========================================
 # 👇 MODIFIEZ LE CHEMIN ICI 👇
-RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_disordered_1D/run_2026-03-08_00-16-49"
+RUN_DIR = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-03-09_22-03-41"
 
 H0_TEST_LIST = [0.0, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.5, 2.5, 3.5, 4.5] 
 N_TEST_PER_H0 = 20 
@@ -230,6 +230,7 @@ if len(train_params) > 0:
 # 6. PLOTS
 # ==========================================
 
+
 # --- PLOT 1 : RELATIVE ERROR (OPTIONNEL) ---
 if PLOT_RELATIVE_ERROR:
     plt.figure(figsize=(10, 6))
@@ -352,6 +353,7 @@ print(f"✅ Plot Tau-Corr sauvegardé : {out4}")
 plt.close()
 
 
+
 # --- PLOT 5 : CONVERGENCE HISTORY (ORIGINAL) ---
 print("\n📈 Génération du Plot de Convergence (Historique)...")
 candidates = ["log_data.json.log", "log_data.log", "log_data.json"]
@@ -384,28 +386,39 @@ if log_path:
         
         for rep_offset in range(n_rep_per_h0_log):
             global_idx = start_idx + rep_offset
-            if global_idx < len(ham_data):
+            
+            # 1. Récupération sécurisée (gère les listes ET les dictionnaires JSON)
+            data = None
+            if isinstance(ham_data, dict):
+                data = ham_data.get(str(global_idx), ham_data.get(global_idx))
+            elif isinstance(ham_data, list) and global_idx < len(ham_data):
                 data = ham_data[global_idx]
-                iters = np.array(data.get("iters", []))
-                
-                # Extraction Mean
-                means_raw = data.get("Mean", {})
-                if isinstance(means_raw, dict):
-                    means = np.array(means_raw.get("real", means_raw.get("value", [])))
-                else:
-                    means = np.real(np.array(means_raw))
-                
-                # Extraction Variance pour calculer le V-Score au lieu de l'erreur
-                vars_raw = data.get("Variance", {})
-                if isinstance(vars_raw, dict):
-                    variances = np.array(vars_raw.get("real", vars_raw.get("value", [])))
-                else:
-                    variances = np.real(np.array(vars_raw))
-                
-                if len(iters) > 0 and len(means) > 0 and len(variances) > 0:
-                    # Calcul : V-score (mais plot sous les noms originaux)
-                    plot_metric = variances / (means**2 + 1e-12)
-                    ax.plot(iters, plot_metric, color=current_color, alpha=0.5, linewidth=1)
+            
+            # 2. LA SÉCURITÉ ANTI-CRASH (Si la donnée n'existe pas, on passe au suivant)
+            if data is None:
+                print(f"⚠️ Index {global_idx} introuvable dans le log, on l'ignore.")
+                continue
+            
+            # 3. Extraction (ne s'exécute que si data existe vraiment)
+            iters = np.array(data.get("iters", []))
+            
+            # Extraction Mean
+            means_raw = data.get("Mean", {})
+            if isinstance(means_raw, dict):
+                means = np.array(means_raw.get("real", means_raw.get("value", [])))
+            else:
+                means = np.real(np.array(means_raw))
+            
+            # Extraction Variance
+            vars_raw = data.get("Variance", {})
+            if isinstance(vars_raw, dict):
+                variances = np.array(vars_raw.get("real", vars_raw.get("value", [])))
+            else:
+                variances = np.real(np.array(vars_raw))
+            
+            if len(iters) > 0 and len(means) > 0 and len(variances) > 0:
+                plot_metric = variances / (means**2 + 1e-12)
+                ax.plot(iters, plot_metric, color=current_color, alpha=0.5, linewidth=1)
 
         ax.set_yscale('log')
         ax.set_title(f"$h_0 = {h0_val}$", fontweight='bold', color=current_color)
