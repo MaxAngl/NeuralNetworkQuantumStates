@@ -1,0 +1,116 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:26: DeprecationWarning: netket.utils.mpi is deprecated, as MPI support has been removed. Refer to `jax.process_count()` and `jax.process_index()` for process count and rank. And to other jax functions for distributed operations.
+  print(f"Bonjour depuis le noeud {mpi.rank} sur {mpi.n_nodes} !")
+Bonjour depuis le noeud 0 sur 1 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:26: DeprecationWarning: netket.utils.mpi is deprecated, as MPI support has been removed. Refer to `jax.process_count()` and `jax.process_index()` for process count and rank. And to other jax functions for distributed operations.
+  print(f"Bonjour depuis le noeud {mpi.rank} sur {mpi.n_nodes} !")
+Bonjour depuis le noeud 0 sur 1 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:26: DeprecationWarning: netket.utils.mpi is deprecated, as MPI support has been removed. Refer to `jax.process_count()` and `jax.process_index()` for process count and rank. And to other jax functions for distributed operations.
+  print(f"Bonjour depuis le noeud {mpi.rank} sur {mpi.n_nodes} !")
+Bonjour depuis le noeud 0 sur 1 !
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:26: DeprecationWarning: netket.utils.mpi is deprecated, as MPI support has been removed. Refer to `jax.process_count()` and `jax.process_index()` for process count and rank. And to other jax functions for distributed operations.
+  print(f"Bonjour depuis le noeud {mpi.rank} sur {mpi.n_nodes} !")
+Bonjour depuis le noeud 0 sur 1 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:26: DeprecationWarning: netket.utils.mpi is deprecated, as MPI support has been removed. Refer to `jax.process_count()` and `jax.process_index()` for process count and rank. And to other jax functions for distributed operations.
+  print(f"Bonjour depuis le noeud {mpi.rank} sur {mpi.n_nodes} !")
+Bonjour depuis le noeud 0 sur 1 !
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Forme des paramètres de désordre : (110, 48)
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+Configurations de désordre sauvegardées dans : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-03-28_22-04-07/disorder_configs.npy
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Forme des paramètres de désordre : (110, 48)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:26: DeprecationWarning: netket.utils.mpi is deprecated, as MPI support has been removed. Refer to `jax.process_count()` and `jax.process_index()` for process count and rank. And to other jax functions for distributed operations.
+  print(f"Bonjour depuis le noeud {mpi.rank} sur {mpi.n_nodes} !")
+Bonjour depuis le noeud 0 sur 1 !
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Forme des paramètres de désordre : (110, 48)
+Configurations de désordre sauvegardées dans : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-03-28_22-04-09/disorder_configs.npy
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+Configurations de désordre sauvegardées dans : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-03-28_22-04-09/disorder_configs.npy
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Forme des paramètres de désordre : (110, 48)
+Forme des paramètres de désordre : (110, 48)
+Configurations de désordre sauvegardées dans : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-03-28_22-04-11/disorder_configs.npy
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]Configurations de désordre sauvegardées dans : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-03-28_22-04-11/disorder_configs.npy
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Forme des paramètres de désordre : (110, 48)
+Configurations de désordre sauvegardées dans : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-03-28_22-04-13/disorder_configs.npy
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:36<?, ?it/s, Energy=-42.2-0.0j ± 8.7 [σ²=2.9e+03]]Package 'netket_foundational' is not installed, so you may not be able to reload this.
+  0%|          | 0/600 [00:36<?, ?it/s, Energy=-42.2-0.0j ± 8.7 [σ²=2.9e+03]]  0%|          | 0/600 [00:36<?, ?it/s, Energy=-42.2-0.0j ± 8.7 [σ²=2.9e+03]]  0%|          | 0/600 [00:37<?, ?it/s, Energy=-42.2-0.2j ± 8.7 [σ²=2.9e+03]]Package 'netket_foundational' is not installed, so you may not be able to reload this.
+  0%|          | 0/600 [00:37<?, ?it/s, Energy=-42.2-0.2j ± 8.7 [σ²=2.9e+03]]  0%|          | 0/600 [00:37<?, ?it/s, Energy=-42.2-0.2j ± 8.7 [σ²=2.9e+03]]  0%|          | 0/600 [00:37<?, ?it/s, Energy=-41.8-0.3j ± 8.7 [σ²=2.9e+03]]Package 'netket_foundational' is not installed, so you may not be able to reload this.
+  0%|          | 0/600 [00:37<?, ?it/s, Energy=-41.8-0.3j ± 8.7 [σ²=2.9e+03]]  0%|          | 0/600 [00:37<?, ?it/s, Energy=-41.8-0.3j ± 8.7 [σ²=2.9e+03]]  0%|          | 0/600 [00:37<?, ?it/s, Energy=-41.8+0.2j ± 8.8 [σ²=2.9e+03]]Package 'netket_foundational' is not installed, so you may not be able to reload this.
+  0%|          | 0/600 [00:37<?, ?it/s, Energy=-41.8+0.2j ± 8.8 [σ²=2.9e+03]]  0%|          | 0/600 [00:37<?, ?it/s, Energy=-41.8+0.2j ± 8.8 [σ²=2.9e+03]]W0328 22:04:49.242869  452492 bfc_allocator.cc:310] Allocator (GPU_0_bfc) ran out of memory trying to allocate 2.11GiB with freed_by_count=0. The caller indicates that this is not a failure, but this may mean that there could be performance gains if more memory were available.
+  0%|          | 0/600 [00:37<?, ?it/s]
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 349, in <module>
+    gs.run(
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 452, in run
+    raise error
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 413, in run
+    self._loss_stats, self._dp = self.compute_loss_and_update()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/utils/timing.py", line 292, in timed_function
+    result = fun(*args, **kwargs)  # type: ignore[misc]
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/driver/ngd/driver_vmc_ngd.py", line 196, in compute_loss_and_update
+    self._dp, self._old_updates, self.info = self.update_fn(
+                                             ^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/utils/timing.py", line 292, in timed_function
+    result = fun(*args, **kwargs)  # type: ignore[misc]
+             ^^^^^^^^^^^^^^^^^^^^
+jaxlib._jax.XlaRuntimeError: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 2269436416 bytes.
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+  0%|          | 0/600 [00:37<?, ?it/s, Energy=-42.0-0.1j ± 8.7 [σ²=2.9e+03]]Package 'netket_foundational' is not installed, so you may not be able to reload this.
+  0%|          | 0/600 [00:38<?, ?it/s, Energy=-42.0-0.1j ± 8.7 [σ²=2.9e+03]]  0%|          | 0/600 [00:38<?, ?it/s, Energy=-42.0-0.1j ± 8.7 [σ²=2.9e+03]]--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun detected that one or more processes exited with non-zero status, thus causing
+the job to be terminated. The first process to do so was:
+
+  Process name: [[40140,1],1]
+  Exit code:    1
+--------------------------------------------------------------------------

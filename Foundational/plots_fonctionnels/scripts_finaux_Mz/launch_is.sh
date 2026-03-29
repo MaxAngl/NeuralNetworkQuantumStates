@@ -12,7 +12,7 @@ L=${2:?"Usage: $0 <dim> <L> <run-dir> [nchunks]"}
 RUNDIR=${3:?"Usage: $0 <dim> <L> <run-dir> [nchunks]"}
 NCHUNKS=${4:-20}
 
-PROJECT="/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates"
+PROJECT="/users/eleves-b/2024/nathan.dupuy/Documents/NeuralNetworkQuantumStates"
 SCRIPT="Foundational/plots_fonctionnels/scripts_finaux_Mz/importance_sampling.py"
 
 cd "$PROJECT"

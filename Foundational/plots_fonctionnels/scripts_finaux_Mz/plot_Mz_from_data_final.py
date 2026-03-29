@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
-L = 49  
+L = 64 
 DATA_PATH = f"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_finaux_disordered_1D/run_L={L}/mz2_full_data_L={L}.npz"
 
 DERIVATIVE_STEP = 3  # L'écartement choisi pour la dérivée robuste

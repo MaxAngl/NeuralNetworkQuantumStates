@@ -1,0 +1,26 @@
+JAX Cluster initialisé : Processus 0 / 2
+👋 Bonjour depuis le noeud 0 sur 2 !
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 48, in <module>
+JAX Cluster initialisé : Processus 1 / 2
+👋 Bonjour depuis le noeud 1 sur 2 !
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 48, in <module>
+    from netket.callbacks import Callback
+    from netket.callbacks import Callback
+ImportError: cannot import name 'Callback' from 'netket.callbacks' (/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/callbacks/__init__.py)
+ImportError: cannot import name 'Callback' from 'netket.callbacks' (/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/callbacks/__init__.py)
+W0329 11:49:02.268434  578118 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr   job_name: "jax_worker" task_id: 1: CANCELLED: CANCELLED
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"CANCELLED", grpc_status:1} [type.googleapis.com/tensorflow.DerivedStatus='']
+W0329 11:49:03.269135  578118 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr   job_name: "jax_worker" task_id: 1: UNAVAILABLE: failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.254.39:61461: Failed to connect to remote host: Connection refused
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_status:14, grpc_message:"failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.254.39:61461: Failed to connect to remote host: Connection refused"}
+srun: error: doubs: task 1: Exited with exit code 1
+W0329 11:49:07.269369  547710 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr   job_name: "jax_worker": UNAVAILABLE: Cancelling all calls
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"Cancelling all calls", grpc_status:14}
+W0329 11:49:08.269833  547710 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr   job_name: "jax_worker": UNAVAILABLE: failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.254.39:61461: Failed to connect to remote host: Connection refused
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.254.39:61461: Failed to connect to remote host: Connection refused", grpc_status:14}
+srun: error: dordogne: task 0: Exited with exit code 1

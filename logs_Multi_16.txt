@@ -1,0 +1,120 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+JAX Cluster initialisé : Processus 2 / 4
+👋 Bonjour depuis le noeud 2 sur 4 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+JAX Cluster initialisé : Processus 3 / 4
+👋 Bonjour depuis le noeud 3 sur 4 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+Traceback (most recent call last):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 217, in __init__
+    self.chunk_size = chunk_size
+    ^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 409, in chunk_size
+    check_chunk_size(self.n_samples, chunk_size)
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/utils/deprecation.py", line 45, in wrapper
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 217, in __init__
+    self.chunk_size = chunk_size
+    ^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 409, in chunk_size
+    check_chunk_size(self.n_samples, chunk_size)
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/utils/deprecation.py", line 45, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/vqs/mc/mc_state/state.py", line 88, in check_chunk_size
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/vqs/mc/mc_state/state.py", line 88, in check_chunk_size
+    raise ValueError(
+ValueError: chunk_size=8`<`n_samples_per_rank=220, chunk_size is not an integer fraction of `n_samples_per rank`. This isunsupported. Please change `chunk_size` so that it divides evenly thenumber of samples per rank or set it to `None` to disable chunking.
+    raise ValueError(
+ValueError: chunk_size=8`<`n_samples_per_rank=220, chunk_size is not an integer fraction of `n_samples_per rank`. This isunsupported. Please change `chunk_size` so that it divides evenly thenumber of samples per rank or set it to `None` to disable chunking.
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+JAX Cluster initialisé : Processus 1 / 4
+👋 Bonjour depuis le noeud 1 sur 4 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+JAX Cluster initialisé : Processus 0 / 4
+👋 Bonjour depuis le noeud 0 sur 4 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    return bare_fun(*args, **kwargs)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 217, in __init__
+    self.chunk_size = chunk_size
+    ^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 409, in chunk_size
+    check_chunk_size(self.n_samples, chunk_size)
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/utils/deprecation.py", line 45, in wrapper
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 217, in __init__
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/vqs/mc/mc_state/state.py", line 88, in check_chunk_size
+    self.chunk_size = chunk_size
+    ^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 409, in chunk_size
+    check_chunk_size(self.n_samples, chunk_size)
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/utils/deprecation.py", line 45, in wrapper
+    raise ValueError(
+ValueError: chunk_size=8`<`n_samples_per_rank=220, chunk_size is not an integer fraction of `n_samples_per rank`. This isunsupported. Please change `chunk_size` so that it divides evenly thenumber of samples per rank or set it to `None` to disable chunking.
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/vqs/mc/mc_state/state.py", line 88, in check_chunk_size
+    raise ValueError(
+ValueError: chunk_size=8`<`n_samples_per_rank=220, chunk_size is not an integer fraction of `n_samples_per rank`. This isunsupported. Please change `chunk_size` so that it divides evenly thenumber of samples per rank or set it to `None` to disable chunking.
+W0328 22:31:46.584994  410856 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr  job_name: "jax_worker" task_id: 1: CANCELLED: CANCELLED
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"CANCELLED", grpc_status:1} [type.googleapis.com/tensorflow.DerivedStatus='']
+W0328 22:31:47.586482  410856 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr  job_name: "jax_worker" task_id: 1: UNAVAILABLE: failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.253.42:61456: Failed to connect to remote host: Connection refused
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.253.42:61456: Failed to connect to remote host: Connection refused", grpc_status:14}
+srun: error: jaguar: task 1: Exited with exit code 1
+srun: error: jura: task 2: Exited with exit code 1
+srun: error: kamiche: task 3: Exited with exit code 1
+W0328 22:31:51.584645  438745 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr    job_name: "jax_worker": UNAVAILABLE: Cancelling all calls
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_status:14, grpc_message:"Cancelling all calls"}
+W0328 22:31:52.585560  438745 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr    job_name: "jax_worker": UNAVAILABLE: failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.253.42:61456: Failed to connect to remote host: Connection refused
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_status:14, grpc_message:"failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.253.42:61456: Failed to connect to remote host: Connection refused"}
+srun: error: jabiru: task 0: Exited with exit code 1

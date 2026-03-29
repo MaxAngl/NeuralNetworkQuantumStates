@@ -1,0 +1,224 @@
+/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/sampler/metropolis.py:296: UserWarning: Using 74 chains per rank among 6 ranks (total=444 instead of n_chains=440). To directly control the number of chains on every rank, specify `n_chains_per_rank` when constructing the sampler. To silence this warning, either use `n_chains_per_rank` or use `n_chains` that is a multiple of the number of ranks
+  n_chains = _round_n_chains_to_next_multiple(
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:206: UserWarning: n_samples=880 (146 per JAX device) does not divide n_chains=444, increased to 888 (148 per JAX device)
+  self.n_samples = n_samples
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:206: UserWarning: n_samples=880 (146 per JAX device) does not divide n_chains=444, increased to 888 (148 per JAX device)
+  self.n_samples = n_samples
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:206: UserWarning: n_samples=880 (146 per JAX device) does not divide n_chains=444, increased to 888 (148 per JAX device)
+  self.n_samples = n_samples
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:206: UserWarning: n_samples=880 (146 per JAX device) does not divide n_chains=444, increased to 888 (148 per JAX device)
+  self.n_samples = n_samples
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:206: UserWarning: n_samples=880 (146 per JAX device) does not divide n_chains=444, increased to 888 (148 per JAX device)
+  self.n_samples = n_samples
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:206: UserWarning: n_samples=880 (146 per JAX device) does not divide n_chains=444, increased to 888 (148 per JAX device)
+  self.n_samples = n_samples
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+JAX Cluster initialisé : Processus 5 / 6
+👋 Bonjour depuis le noeud 5 sur 6 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+JAX Cluster initialisé : Processus 4 / 6
+👋 Bonjour depuis le noeud 4 sur 6 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+JAX Cluster initialisé : Processus 0 / 6
+👋 Bonjour depuis le noeud 0 sur 6 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+Traceback (most recent call last):
+    return bare_fun(*args, **kwargs)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 215, in __init__
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 215, in __init__
+    self.parameter_array = self._parameter_array
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 532, in parameter_array
+    self.parameter_array = self._parameter_array
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 532, in parameter_array
+    σ=replace_parameters(self.sampler_state.σ, parameter_array)
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    σ=replace_parameters(self.sampler_state.σ, parameter_array)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 600, in replace_parameters
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 600, in replace_parameters
+    samples_reshaped = samples.reshape(Np, Ns // Np, NM)
+JAX Cluster initialisé : Processus 3 / 6
+👋 Bonjour depuis le noeud 3 sur 6 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 1147, in meth
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+    samples_reshaped = samples.reshape(Np, Ns // Np, NM)
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 1147, in meth
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 215, in __init__
+    self.parameter_array = self._parameter_array
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 532, in parameter_array
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+JAX Cluster initialisé : Processus 2 / 6
+👋 Bonjour depuis le noeud 2 sur 6 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 215, in __init__
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+    σ=replace_parameters(self.sampler_state.σ, parameter_array)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 600, in replace_parameters
+    self.parameter_array = self._parameter_array
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 532, in parameter_array
+    samples_reshaped = samples.reshape(Np, Ns // Np, NM)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 1147, in meth
+    σ=replace_parameters(self.sampler_state.σ, parameter_array)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 600, in replace_parameters
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+    samples_reshaped = samples.reshape(Np, Ns // Np, NM)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 1147, in meth
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 215, in __init__
+    self.parameter_array = self._parameter_array
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 532, in parameter_array
+    σ=replace_parameters(self.sampler_state.σ, parameter_array)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 600, in replace_parameters
+    return getattr(self.aval, name).fun(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 316, in _reshape
+    return getattr(self.aval, name).fun(self, *args, **kwargs)
+    samples_reshaped = samples.reshape(Np, Ns // Np, NM)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 316, in _reshape
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 1147, in meth
+    newshape = _compute_newshape(self, args[0] if len(args) == 1 else args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 477, in _compute_newshape
+    raise TypeError(f"cannot reshape array of shape {arr.shape} (size {arr.size}) "
+TypeError: cannot reshape array of shape (444, 96) (size 42624) into shape (110, 4, 96) (size 42240)
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+JAX Cluster initialisé : Processus 1 / 6
+👋 Bonjour depuis le noeud 1 sur 6 !
+🔹 Configuration : 880 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 8)
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 165, in <module>
+    newshape = _compute_newshape(self, args[0] if len(args) == 1 else args)
+    return getattr(self.aval, name).fun(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 316, in _reshape
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 477, in _compute_newshape
+    return getattr(self.aval, name).fun(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 316, in _reshape
+    newshape = _compute_newshape(self, args[0] if len(args) == 1 else args)
+    raise TypeError(f"cannot reshape array of shape {arr.shape} (size {arr.size}) "
+TypeError: cannot reshape array of shape (444, 96) (size 42624) into shape (110, 4, 96) (size 42240)
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 477, in _compute_newshape
+    newshape = _compute_newshape(self, args[0] if len(args) == 1 else args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 477, in _compute_newshape
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+    raise TypeError(f"cannot reshape array of shape {arr.shape} (size {arr.size}) "
+TypeError: cannot reshape array of shape (444, 96) (size 42624) into shape (110, 4, 96) (size 42240)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    raise TypeError(f"cannot reshape array of shape {arr.shape} (size {arr.size}) "
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+TypeError: cannot reshape array of shape (444, 96) (size 42624) into shape (110, 4, 96) (size 42240)
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+    return getattr(self.aval, name).fun(self, *args, **kwargs)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 215, in __init__
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 316, in _reshape
+    newshape = _compute_newshape(self, args[0] if len(args) == 1 else args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 477, in _compute_newshape
+    self.parameter_array = self._parameter_array
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 532, in parameter_array
+    raise TypeError(f"cannot reshape array of shape {arr.shape} (size {arr.size}) "
+TypeError: cannot reshape array of shape (444, 96) (size 42624) into shape (110, 4, 96) (size 42240)
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+    σ=replace_parameters(self.sampler_state.σ, parameter_array)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 600, in replace_parameters
+    samples_reshaped = samples.reshape(Np, Ns // Np, NM)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 1147, in meth
+    return getattr(self.aval, name).fun(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 316, in _reshape
+    newshape = _compute_newshape(self, args[0] if len(args) == 1 else args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/array_methods.py", line 477, in _compute_newshape
+    raise TypeError(f"cannot reshape array of shape {arr.shape} (size {arr.size}) "
+TypeError: cannot reshape array of shape (444, 96) (size 42624) into shape (110, 4, 96) (size 42240)
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+srun: error: faisan: task 1: Exited with exit code 1
+srun: error: femur: task 2: Exited with exit code 1
+srun: error: finistere: task 5: Exited with exit code 1
+srun: error: ferrari: task 3: Exited with exit code 1
+srun: error: fiat: task 4: Exited with exit code 1
+W0328 22:15:06.463280  399528 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugproto  job_name: "jax_worker": UNAVAILABLE: Cancelling all calls
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"Cancelling all calls", grpc_status:14}
+W0328 22:15:07.464785  399528 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugproto  job_name: "jax_worker": UNAVAILABLE: failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.254.41:61455: Failed to connect to remote host: Connection refused
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_status:14, grpc_message:"failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.254.41:61455: Failed to connect to remote host: Connection refused"}
+srun: error: essonne: task 0: Exited with exit code 1

@@ -1,4 +1,16 @@
 import os
+import jax 
+
+# Initialisation du cluster JAX
+try:
+    jax.distributed.initialize()
+    print(f"JAX Cluster initialisé : Processus {jax.process_index()} / {jax.process_count()}")
+except Exception as e:
+    print(f"Simple exécution locale ou erreur d'init : {e}")
+
+# Remplace ton ancien print MPI par celui-ci, plus moderne
+print(f"👋 Bonjour depuis le noeud {jax.process_index()} sur {jax.process_count()} !")
+
 import sys
 # Ajouter le répertoire racine du projet au chemin Python
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -20,7 +32,6 @@ from src.nqs_psc.utils import save_run # Assure-toi que ce module est accessible
 
 import time
 import pandas as pd
-import jax
 import jax.numpy as jnp
 import numpy as np
 from tqdm import tqdm
@@ -44,12 +55,12 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
-L = 16                                     # Taille du système
+L = 48                                     # Taille du système
 # Si on passe un argument dans le terminal, on le prend pour L, sinon L=16 par défaut
 if len(sys.argv) > 1:
     L = int(sys.argv[1])
 
-h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]
+h0_train_list = [ 0.1, 0.4, 0.8, 0.9, 0.95, 1.0, 1.05, 1.2, 2.5, 4.0 ]
 sigma_disorder = 0.1 
 J_val = 1.0    
 n_replicas = 10                             # Nombre de réalisations de désordre
@@ -63,14 +74,14 @@ n_samples = n_chains * samples_per_chain
 prob_global_flip = 0.05  # Probabilité de flip global dans le sampler personnalisé
 
 # --- PARAMÈTRES D'OPTIMISATION ---
-n_iter = 400      
+n_iter = 600      
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 2e-4
 logs_path = os.path.join(foundational_dir, "logs")
 
 # --- CALCUL AUTOMATIQUE ET SYSTÉMATIQUE DU CHUNK_SIZE ---
-TARGET_CHUNK = 16 
+TARGET_CHUNK = 10 
 
 if n_samples <= TARGET_CHUNK:
     chunk_size = n_samples
@@ -90,11 +101,11 @@ print(f"🔹 Chunk size auto-calculé : {chunk_size} (Diviseur optimal <= {TARGE
 
 # Paramètres du modèle ViT
 vit_params = {
-    "num_layers": 2,
-    "d_model": 32,
-    "heads": 4,
-    "b": 1,
-    "L_eff": L,
+    "num_layers": 4,
+    "d_model": 60,
+    "heads": 10,
+    "b": 4,
+    "L_eff": L//4,  #L/b
 }
 
 # ==========================================
@@ -192,15 +203,24 @@ mz_p = nkf.operator.ParametrizedOperator(hi, ps, lambda _: Mz)
 
 # === NOUVEAU CALLBACK POUR LOGGER LES REPLICAS SANS CRASH XLA ===
 class ReplicaLogger(AbstractCallback):
-    # DÉCLARATION OBLIGATOIRE POUR JAX/NETKET :
     params_list: np.ndarray = struct.field(pytree_node=False)
     L: int = struct.field(pytree_node=False)
     eval_every: int = struct.field(pytree_node=False)
+    run_dir: str = struct.field(pytree_node=False) # Ajout du dossier de sauvegarde
     
-    def __init__(self, params_list, L, eval_every=10):
+    # On stocke les historiques en interne
+    iters: list = struct.field(pytree_node=False, default_factory=list)
+    energies: list = struct.field(pytree_node=False, default_factory=list)
+    variances: list = struct.field(pytree_node=False, default_factory=list)
+    
+    def __init__(self, params_list, L, run_dir, eval_every=10):
         self.params_list = params_list
         self.L = L
+        self.run_dir = run_dir
         self.eval_every = eval_every
+        self.iters = []
+        self.energies = []
+        self.variances = []
         
     def __call__(self, step, log_data, driver):
         if step % self.eval_every != 0:
@@ -209,7 +229,9 @@ class ReplicaLogger(AbstractCallback):
         vs = driver.state
         hi = vs.hilbert
         sa_eval = nk.sampler.MetropolisLocal(hi, n_chains=4)
-        ham_dict = {}
+        
+        step_energies = []
+        step_variances = []
         
         # Évaluation séquentielle (1 réplica à la fois = 0 crash mémoire)
         for i, pars in enumerate(self.params_list):
@@ -237,13 +259,21 @@ class ReplicaLogger(AbstractCallback):
             H_op = create_operator(pars)
             stats = mc_vs.expect(H_op)
             
-            # On recrée la structure exacte attendue par ton script de plot
-            ham_dict[str(i)] = {
-                "Mean": float(np.real(stats.Mean)),
-                "Variance": float(stats.variance)
-            }
+            # On stocke les valeurs brutes pour ce réplica
+            step_energies.append(float(np.real(stats.Mean)))
+            step_variances.append(float(stats.variance))
             
-        log_data["ham"] = ham_dict
+        # On ajoute la ligne de ce step à l'historique complet
+        self.iters.append(step)
+        self.energies.append(step_energies)
+        self.variances.append(step_variances)
+        
+        # SAUVEGARDE PHYSIQUE DIRECTE (Le cœur de la solution)
+        if nkpd.is_master_process():
+            np.save(os.path.join(self.run_dir, "replica_iters.npy"), np.array(self.iters))
+            np.save(os.path.join(self.run_dir, "replica_energies.npy"), np.array(self.energies))
+            np.save(os.path.join(self.run_dir, "replica_variances.npy"), np.array(self.variances))
+            
         return True
     
 # ==========================================
@@ -349,7 +379,7 @@ gs.run(
     # On met les deux callbacks dans une liste, et SURTOUT pas de paramètre 'obs='
     callback=[
         SaveState(run_dir, 10), 
-        ReplicaLogger(params_list, L, eval_every=10)
+        ReplicaLogger(params_list, L, run_dir=run_dir, eval_every=10) # <-- MODIFICATION ICI
     ]
 )
 
@@ -368,60 +398,108 @@ with open(os.path.join(run_dir, "meta.json"), 'w') as f:
 # ==========================================
 # 4. PLOTS ET ANALYSE FINALE
 # ==========================================
-print('Analyse et sauvegarde...')
+# Correction : on utilise nkpd au lieu de mpi
+if nkpd.is_master_process():
+    print('Analyse finale et génération des graphiques MCMC...')
+    train_results = {"v_score": [], "r_hat": []}
 
-# --- 1. Plot Convergence ---
-conv_data = []
-for i, pars in tqdm(enumerate(vs.parameter_array)):
-    if hasattr(log.data["ham"], "__getitem__") and len(log.data["ham"]) > i:
-        ham_log = log.data["ham"][i]
-        # On prend la partie réelle pour éviter les warnings ComplexWarning
-        conv_data.append({"iters": ham_log.iters, "e0": np.real(ham_log.Mean)})
+    for r in tqdm(range(total_configs_train)):
+        pars = params_list[r]
+        _vs = vs.get_state(pars)
+        
+        vs_mc = nk.vqs.MCState(
+            sampler=nk.sampler.MetropolisLocal(hi, n_chains=16), 
+            model=_vs.model, variables=_vs.variables, 
+            n_samples=1024, chunk_size=64
+        )
+        
+        _e = vs_mc.expect(create_operator(pars))
+        train_results["v_score"].append(float(_e.variance / (_e.Mean.real**2 + 1e-12)))
+        train_results["r_hat"].append(float(getattr(_e, 'R_hat', np.nan)))
 
-plt.figure()
-for _data in conv_data: 
-    plt.plot(_data["iters"], _data["e0"], alpha=0.3)
-plt.xlabel("Iterations")
-plt.ylabel("Energy (Real)")
-plt.savefig(os.path.join(run_dir, "convergence.pdf"))
-plt.clf()
+    v_train = np.array(train_results["v_score"])
+    r_train = np.array(train_results["r_hat"])
 
-# --- 2. Calcul des V-scores sur le Train ---
-print("Calcul des V-scores finaux sur le Train...")
-train_results = {"v_score": []}
-
-for r in tqdm(range(total_configs_train)):
-    pars = params_list[r]
-    _vs = vs.get_state(pars)
+    # Sauvegarde CSV
+    h_mean_train_full = []
+    for h_val in h0_train_list: h_mean_train_full.extend([h_val] * (n_replicas + 1))
     
-    # CORRECTION ICI : On retire l'argument 'hilbert=hi'
-    # Le sampler contient déjà l'info sur Hilbert.
-    vs_mc = nk.vqs.MCState(
-        sampler=nk.sampler.MetropolisLocal(hi, n_chains=16), 
-        model=_vs.model, 
-        variables=_vs.variables, 
-        n_samples=1024, 
-        chunk_size=64
-    )
+    df_train = pd.DataFrame({
+        "h_mean": h_mean_train_full[:len(v_train)], 
+        "v_score": v_train, "r_hat": r_train
+    })
+    df_train.to_csv(os.path.join(run_dir, "train_results.csv"), index=False)
+
+    # --- PLOT A : Grille de Convergence V-score (Basé sur les .npy du Callback) ---
+    num_h0 = len(h0_train_list)
+    cols = 3
+    rows = (num_h0 + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 4), squeeze=False)
+    colors = plt.cm.viridis(np.linspace(0, 0.9, num_h0))
+
+    try:
+        # On charge les historiques sauvegardés par notre ReplicaLogger
+        hist_iters = np.load(os.path.join(run_dir, "replica_iters.npy"))
+        hist_energies = np.load(os.path.join(run_dir, "replica_energies.npy"))
+        hist_variances = np.load(os.path.join(run_dir, "replica_variances.npy"))
+        
+        for idx, h0 in enumerate(h0_train_list):
+            ax = axes[idx // cols, idx % cols]
+            c = colors[idx]
+            start_idx = idx * (n_replicas + 1)
+            end_idx = start_idx + (n_replicas + 1)
+            
+            for rep_i in range(start_idx, end_idx):
+                rep_energies = hist_energies[:, rep_i]
+                rep_variances = hist_variances[:, rep_i]
+                
+                v_scores = rep_variances / (rep_energies**2 + 1e-12)
+                ax.plot(hist_iters, v_scores, alpha=0.4, linewidth=1.0, color=c)
+                
+            ax.set_yscale('log')
+            ax.set_title(rf"$h_0 = {h0}$", color=c, fontweight='bold')
+            ax.set_xlabel("Iteration")
+            ax.set_ylabel(r"V-score $Var(E)/E^2$")
+            ax.grid(True, which="both", ls="--", alpha=0.3)
+
+    except FileNotFoundError:
+        print("⚠️ Fichiers .npy introuvables. Le tracé de la grille de convergence a été ignoré.")
+
+    for idx in range(num_h0, rows * cols): fig.delaxes(axes[idx // cols, idx % cols])
+    plt.tight_layout()
+    plt.savefig(os.path.join(run_dir, f"vscore_convergence_grid_L={L}.pdf"))
+    plt.clf()
+
+    # --- PLOT B : Scatter plot V-score ---
+    plt.figure(figsize=(10, 6))
+    plt.scatter(df_train["h_mean"], df_train["v_score"], alpha=0.3, color='royalblue', marker='^', label='Train Replicas')
+    mean_vscores = df_train.groupby("h_mean")["v_score"].mean().reset_index()
+    plt.plot(mean_vscores["h_mean"], mean_vscores["v_score"], marker='s', linestyle='--', color='mediumblue', label='Train Mean', markersize=7)
+    plt.yscale('log')
+    plt.xlabel(r"Transverse Field $h_0$", fontsize=12)
+    plt.ylabel(r"V-score (MC) $\left( Var(E)/E^2 \right)$", fontsize=12)
+    plt.title(f"Accuracy Landscape (MC Est.): V-score (L={L})", fontsize=14)
+    plt.grid(True, which='both', ls='--', alpha=0.4)
+    plt.legend(fontsize=11)
+    plt.tight_layout()
+    plt.savefig(os.path.join(run_dir, f"vscore_scatter_L={L}.pdf"))
+    plt.clf()
+
+    # --- PLOT C : Scatter plot R-hat ---
+    plt.figure(figsize=(10, 6))
+    plt.scatter(df_train["h_mean"], df_train["r_hat"], alpha=0.3, color='royalblue', marker='^', label='Train Replicas')
+    mean_rhats = df_train.groupby("h_mean")["r_hat"].mean().reset_index()
+    plt.plot(mean_rhats["h_mean"], mean_rhats["r_hat"], marker='s', linestyle='--', color='darkblue', label='Train Mean', markersize=7)
     
-    _e = vs_mc.expect(create_operator(pars))
-    val = _e.variance / (_e.Mean.real**2 + 1e-12)
-    train_results["v_score"].append(val)
+    plt.axhline(y=1.05, color='black', linestyle=':', linewidth=2, label='Convergence Threshold (1.05)')
+    
+    plt.xlabel(r"Transverse Field $h_0$", fontsize=12)
+    plt.ylabel(r"Gelman-Rubin $\hat{R}$", fontsize=12)
+    plt.title(f"Convergence Diagnostics ($\hat{{R}}$): Train only (L={L})", fontsize=14)
+    plt.grid(True, which='both', ls='--', alpha=0.4)
+    plt.legend(fontsize=11)
+    plt.tight_layout()
+    plt.savefig(os.path.join(run_dir, f"rhat_scatter_L={L}.pdf"))
+    plt.clf()
 
-v_train = np.array(train_results["v_score"])
-
-# --- 3. Sauvegarde CSV ---
-h_mean_train_full = []
-for h_val in h0_train_list: 
-    h_mean_train_full.extend([h_val] * (n_replicas + 1))
-
-min_len = min(len(h_mean_train_full), len(v_train))
-
-df_train = pd.DataFrame({
-    "h_mean": h_mean_train_full[:min_len], 
-    "v_score": v_train[:min_len]
-})
-
-output_csv = os.path.join(run_dir, "train_results.csv")
-df_train.to_csv(output_csv, index=False)
-print(f"✅ Terminé ! Résultats sauvegardés dans : {output_csv}")
+    print("✅ Run terminé à 100%. Graphiques et CSV générés avec succès !")
