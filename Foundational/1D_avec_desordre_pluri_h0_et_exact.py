@@ -1,11 +1,19 @@
 import os
 import sys
+import argparse
+
 # Ajouter le répertoire racine du projet au chemin Python
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-#Décommenter cette ligne pour L supérieur à 16 ou 20
 os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
+
+# --- JAX multi-node (SLURM) : DOIT etre avant tout import JAX ---
+if "SLURM_NTASKS" in os.environ and int(os.environ["SLURM_NTASKS"]) > 1:
+    import jax
+    jax.distributed.initialize()
+    print(f"JAX distributed: process {jax.process_index()}/{jax.process_count()}, "
+          f"local devices: {jax.local_device_count()}, total devices: {jax.device_count()}")
 
 import netket as nk
 import netket_foundational as nkf
@@ -27,13 +35,21 @@ from advanced_drivers._src.callbacks.base import AbstractCallback
 import netket_pro.distributed as nkpd
 
 # ==========================================
+# 0. ARGUMENTS
+# ==========================================
+parser = argparse.ArgumentParser()
+parser.add_argument("--L", type=int, default=48)
+parser.add_argument("--n-iter", type=int, default=400)
+args = parser.parse_args()
+
+# ==========================================
 # 1. HYPERPARAMÈTRES ET CONFIGURATION
 # ==========================================
 # On définit tout ici pour que le 'meta' soit cohérent
 seed = 1
 rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
-L = 16              # Taille du système
+L = args.L              # Taille du système
 h0_train_list = [ 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 2, 3.5, 5.0 ]          # Champ moyen
 sigma_disorder = 0.1 # Désordre
 J_val = 1.0    # Couplage Ising (défini dans create_operator)
@@ -43,23 +59,25 @@ chains_per_replica = 4      # <--- ICI : Chaque réplica aura 4 chaînes indépe
 samples_per_chain = 2      # Nombre de points récoltés par chaque chaîne
 n_chains = total_configs_train * chains_per_replica 
 n_samples = n_chains * samples_per_chain             
-n_iter = 400       # Nombre d'étapes d'optimisation
+n_iter = args.n_iter       # Nombre d'étapes d'optimisation
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 1e-4
-logs_path = "logs"  # Dossier racine pour les logs
+logs_path = "Foundational/logs"  # Dossier racine pour les logs
 
 h0_test_list = [ 0.05, 0.15, 0.3, 0.5, 0.85, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
 N_test_per_h0 = 10  # Nombre de configurations de désordre par h0 de test
 
 # Paramètres du modèle ViT
+assert L % 4 == 0, f"L={L} doit etre divisible par 4"
 vit_params = {
-    "num_layers": 2,
-    "d_model": 16,
-    "heads": 4,
-    "b": 1,
-    "L_eff": L,
+    "num_layers": 4,
+    "d_model": 60,
+    "heads": 10,
+    "b": 4,
+    "L_eff": L // 4,
 }
+print(f"L={L}, patches={L // 4}, params ViT: {vit_params}")
 
 # ==========================================
 # 2. DEFINITION DU SYSTEME
