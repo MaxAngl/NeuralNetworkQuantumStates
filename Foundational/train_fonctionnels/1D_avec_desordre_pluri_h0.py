@@ -56,7 +56,7 @@ k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
 L = int(sys.argv[1]) if len(sys.argv) > 1 else 48
-n_iter = int(sys.argv[2]) if len(sys.argv) > 2 else 600
+n_iter = 600
 
 h0_train_list = [ 0.1, 0.4, 0.8, 0.9, 0.95, 1.0, 1.05, 1.2, 2.5, 4.0 ]
 sigma_disorder = 0.1 
