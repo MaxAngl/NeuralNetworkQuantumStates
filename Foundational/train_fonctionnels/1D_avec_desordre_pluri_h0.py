@@ -55,10 +55,8 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
-L = 48                                     # Taille du système
-# Si on passe un argument dans le terminal, on le prend pour L, sinon L=16 par défaut
-if len(sys.argv) > 1:
-    L = int(sys.argv[1])
+L = int(sys.argv[1]) if len(sys.argv) > 1 else 48
+n_iter = int(sys.argv[2]) if len(sys.argv) > 2 else 600
 
 h0_train_list = [ 0.1, 0.4, 0.8, 0.9, 0.95, 1.0, 1.05, 1.2, 2.5, 4.0 ]
 sigma_disorder = 0.1 
@@ -74,7 +72,6 @@ n_samples = n_chains * samples_per_chain
 prob_global_flip = 0.05  # Probabilité de flip global dans le sampler personnalisé
 
 # --- PARAMÈTRES D'OPTIMISATION ---
-n_iter = 600      
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 2e-4
