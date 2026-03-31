@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
-L = 64 
-DATA_PATH = f"/users/eleves-a/2024/adel.mana/Documents/NeuralNetworkQuantumStates/Foundational/logs/Trains_disordered_1D/run_2026-03-08_00-16-49/mz2_full_data_L=64.npz"
+L = 100 
+DATA_PATH = f"/users/eleves-a/2024/adel.mana/Documents/NeuralNetworkQuantumStates/Foundational/logs/Trains_finaux_disordered_1D/run_L=100/mz2_full_data_L=100.npz"
 
 DERIVATIVE_STEP = 3  # L'écartement choisi pour la dérivée robuste
 

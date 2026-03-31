@@ -25,7 +25,7 @@ import zipfile
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
-RUN_DIR = r"/users/eleves-a/2024/adel.mana/Documents/NeuralNetworkQuantumStates/Foundational/logs/Trains_disordered_1D/run_2026-03-08_00-16-49"
+RUN_DIR = r"/users/eleves-a/2024/adel.mana/Documents/NeuralNetworkQuantumStates/Foundational/logs/Trains_finaux_disordered_1D/run_L=100"
 
 H0_TEST_LIST = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.925, 0.95, 0.975,0.980,0.985,0.990,0.993,0.995,0.997,1.0,1.003,1.005,1.010,1.012,1.015,1.025,1.035, 1.05, 1.075, 1.1, 1.15, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 3.0, 4.0, 5.0] 
 SIGMA_TEST_LIST = [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 0.7]  
@@ -39,7 +39,7 @@ H0_TRANS_MIN = 0.5
 H0_TRANS_MAX = 1.7
 
 N_KEEP_BEFORE = 20
-N_KEEP_TRANS  = 80
+N_KEEP_TRANS  =95
 N_KEEP_AFTER  = 10
 
 MAX_KEEP = max(N_KEEP_BEFORE, N_KEEP_TRANS, N_KEEP_AFTER)
