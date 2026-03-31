@@ -1,0 +1,40 @@
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:495: SyntaxWarning: invalid escape sequence '\h'
+  plt.title(f"Convergence Diagnostics ($\hat{{R}}$): Train only (L={L})", fontsize=14)
+W0330 17:09:08.335310 1027721 platform_util.cc:218] unable to create StreamExecutor for CUDA:0: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+Simple exécution locale ou erreur d'init : 'SLURM_STEP_NODELIST'
+Traceback (most recent call last):
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/jax/_src/xla_bridge.py", line 812, in backends
+    backend = _init_backend(platform)
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/jax/_src/xla_bridge.py", line 896, in _init_backend
+    backend = registration.factory()
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/jax/_src/xla_bridge.py", line 549, in make_pjrt_c_api_client
+    return xla_client.make_c_api_client(plugin_name, updated_options, None)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/jaxlib/xla_client.py", line 156, in make_c_api_client
+    return _xla.get_c_api_client(
+           ~~~~~~~~~~~~~~~~~~~~~^
+        plugin_name,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        transfer_server_factory,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+jaxlib._jax.XlaRuntimeError: INTERNAL: no supported devices found for platform CUDA
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 12, in <module>
+    print(f"👋 Bonjour depuis le noeud {jax.process_index()} sur {jax.process_count()} !")
+                                        ~~~~~~~~~~~~~~~~~^^
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/jax/_src/xla_bridge.py", line 1100, in process_index
+    return get_backend(backend).process_index()
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/jax/_src/xla_bridge.py", line 944, in get_backend
+    return _get_backend_uncached(platform)
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/jax/_src/xla_bridge.py", line 923, in _get_backend_uncached
+    bs = backends()
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/jax/_src/xla_bridge.py", line 828, in backends
+    raise RuntimeError(err_msg)
+RuntimeError: Unable to initialize backend 'cuda': INTERNAL: no supported devices found for platform CUDA (you may need to uninstall the failing plugin package, or set JAX_PLATFORMS=cpu to skip this backend.)

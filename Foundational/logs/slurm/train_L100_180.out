@@ -1,0 +1,70 @@
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:495: SyntaxWarning: invalid escape sequence '\h'
+  plt.title(f"Convergence Diagnostics ($\hat{{R}}$): Train only (L={L})", fontsize=14)
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:495: SyntaxWarning: invalid escape sequence '\h'
+  plt.title(f"Convergence Diagnostics ($\hat{{R}}$): Train only (L={L})", fontsize=14)
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+JAX Cluster initialisé : Processus 1 / 2
+👋 Bonjour depuis le noeud 1 sur 2 !
+🔹 Configuration : 1496 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 10)
+Traceback (most recent call last):
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 162, in <module>
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+    return bare_fun(*args, **kwargs)
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 217, in __init__
+    self.chunk_size = chunk_size
+    ^^^^^^^^^^^^^^^
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 409, in chunk_size
+    check_chunk_size(self.n_samples, chunk_size)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/netket/utils/deprecation.py", line 45, in wrapper
+    return func(*args, **kwargs)
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/netket/vqs/mc/mc_state/state.py", line 88, in check_chunk_size
+    raise ValueError(
+    ...<4 lines>...
+    )
+ValueError: chunk_size=8`<`n_samples_per_rank=748, chunk_size is not an integer fraction of `n_samples_per rank`. This isunsupported. Please change `chunk_size` so that it divides evenly thenumber of samples per rank or set it to `None` to disable chunking.
+JAX Cluster initialisé : Processus 0 / 2
+👋 Bonjour depuis le noeud 0 sur 2 !
+🔹 Configuration : 1496 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 10)
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Traceback (most recent call last):
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 162, in <module>
+    vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=total_configs_train, n_samples=n_samples, seed=seed, chunk_size=chunk_size)
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+    return bare_fun(*args, **kwargs)
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 217, in __init__
+    self.chunk_size = chunk_size
+    ^^^^^^^^^^^^^^^
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 409, in chunk_size
+    check_chunk_size(self.n_samples, chunk_size)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/netket/utils/deprecation.py", line 45, in wrapper
+    return func(*args, **kwargs)
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/netket/vqs/mc/mc_state/state.py", line 88, in check_chunk_size
+    raise ValueError(
+    ...<4 lines>...
+    )
+ValueError: chunk_size=8`<`n_samples_per_rank=748, chunk_size is not an integer fraction of `n_samples_per rank`. This isunsupported. Please change `chunk_size` so that it divides evenly thenumber of samples per rank or set it to `None` to disable chunking.
+W0330 19:23:26.134604 1311203 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr  job_name: "jax_worker": CANCELLED: CANCELLED
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"CANCELLED", grpc_status:1} [type.googleapis.com/tensorflow.DerivedStatus='']
+W0330 19:23:26.135102 1054267 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugonly  job_name: "jax_worker" task_id: 1: CANCELLED: CANCELLED
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"CANCELLED", grpc_status:1} [type.googleapis.com/tensorflow.DerivedStatus='']
+W0330 19:23:27.135132 1311203 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugstr  job_name: "jax_worker": UNAVAILABLE: failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.253.40:61620: Failed to connect to remote host: Connection refused
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.253.40:61620: Failed to connect to remote host: Connection refused", grpc_status:14}
+W0330 19:23:27.135836 1054267 pjrt_client.cc:1469] WatchJobStateAsync failed for task goo.gle/debugonly  job_name: "jax_worker" task_id: 1: UNAVAILABLE: failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.253.40:61620: Failed to connect to remote host: Connection refused
+Additional GRPC error information from remote target coordination_service while calling /tensorflow.CoordinationService/WatchJobState:
+:UNKNOWN:Error received from peer  {grpc_message:"failed to connect to all addresses; last error: UNKNOWN: ipv4:129.104.253.40:61620: Failed to connect to remote host: Connection refused", grpc_status:14}
+srun: error: kamiche: task 1: Exited with exit code 1
+srun: error: hibou: task 0: Exited with exit code 1
