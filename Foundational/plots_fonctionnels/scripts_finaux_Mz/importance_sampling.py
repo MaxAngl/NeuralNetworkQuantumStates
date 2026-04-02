@@ -58,7 +58,7 @@ SIGMA_TEST_LIST = [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
 # ==========================================
 # CHEMINS PAR DEFAUT
 # ==========================================
-PROJECT_ROOT = r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates"
+PROJECT_ROOT = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3"
 RUN_DIR_1D = os.path.join(PROJECT_ROOT, "Foundational/logs/Trains_finaux_disordered_1D/run_L={L}")
 RUN_DIR_2D = os.path.join(PROJECT_ROOT, "Foundational/rami_perso/2D_FNQS/Run_2D_L{L}_FNQS")
 
@@ -111,6 +111,7 @@ else:
 # ==========================================
 # SETUP ET CHARGEMENT
 # ==========================================
+sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "Foundational"))
 from flip_rules import GlobalFlipRule
 

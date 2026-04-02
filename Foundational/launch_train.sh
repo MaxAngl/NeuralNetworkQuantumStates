@@ -4,9 +4,9 @@
 #   bash launch_train.sh 64            # une taille
 #   bash launch_train.sh 48 64 80 100  # plusieurs en parallele
 
-PROJECT="/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates"
-SCRIPT="Foundational/1D_avec_desordre_pluri_h0_et_exact.py"
-NITER=400
+PROJECT="/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3"
+SCRIPT="Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py"
+NITER=600
 
 # Noeuds avec GPU >= 20GB verifies
 NODES=(bengali albatros autruche coucou epervier faisan gelinotte harpie hibou jabiru kamiche linotte mouette nandou)

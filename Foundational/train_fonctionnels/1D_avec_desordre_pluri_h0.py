@@ -60,10 +60,10 @@ L = 48                                     # Taille du système
 if len(sys.argv) > 1:
     L = int(sys.argv[1])
 
-h0_train_list = [ 0.1, 0.4, 0.8, 0.9, 0.95, 1.0, 1.05, 1.2, 2.5, 4.0 ]
+h0_train_list = [ 0.1, 0.4, 0.8, 0.85, 0.9, 0.925, 0.95, 0.975, 0.999, 1.0, 1.001, 1.025, 1.05, 1.075, 1.1, 1.15, 1.2, 1.3, 2.5, 4.0 ]
 sigma_disorder = 0.1 
 J_val = 1.0    
-n_replicas = 10                             # Nombre de réalisations de désordre
+n_replicas = 20                             # Nombre de réalisations de désordre
 
 # --- PARAMÈTRES MONTE CARLO ---
 total_configs_train = len(h0_train_list) * (n_replicas + 1)
@@ -378,7 +378,7 @@ gs.run(
     out=log,
     # On met les deux callbacks dans une liste, et SURTOUT pas de paramètre 'obs='
     callback=[
-        SaveState(run_dir, 10), 
+        SaveState(run_dir, 50), 
         ReplicaLogger(params_list, L, run_dir=run_dir, eval_every=10) # <-- MODIFICATION ICI
     ]
 )
@@ -413,10 +413,20 @@ if nkpd.is_master_process():
             n_samples=1024, chunk_size=64
         )
         
-        _e = vs_mc.expect(create_operator(pars))
-        train_results["v_score"].append(float(_e.variance / (_e.Mean.real**2 + 1e-12)))
-        train_results["r_hat"].append(float(getattr(_e, 'R_hat', np.nan)))
-
+        # Nouveau code sécurisé (Lazy evaluation) :
+        H_op = create_operator(pars)
+        
+        # On passe directement l'opérateur "Lazy" à expect() 
+        # Si ça plante encore ici, on peut extraire manuellement les stats :
+        stats = vs_mc.expect(H_op)
+        
+        # Récupération sécurisée des valeurs
+        mean_val = float(np.real(stats.Mean))
+        var_val = float(stats.variance)
+        rhat_val = float(getattr(stats, 'R_hat', np.nan))
+        
+        train_results["v_score"].append(var_val / (mean_val**2 + 1e-12))
+        train_results["r_hat"].append(rhat_val)
     v_train = np.array(train_results["v_score"])
     r_train = np.array(train_results["r_hat"])
 

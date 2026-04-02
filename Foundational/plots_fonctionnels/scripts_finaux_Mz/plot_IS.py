@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser(description="Plot IS results")
 parser.add_argument("data_path", help="Chemin vers le fichier .npz")
 parser.add_argument("--dim", type=int, default=None, help="Dimension (auto-detecte si possible)")
-parser.add_argument("--deriv-step", type=int, default=3, help="Pas pour derivee robuste (defaut: 3)")
+parser.add_argument("--deriv-step", type=int, default=1, help="Pas pour derivee robuste (defaut: 3)")
 parser.add_argument("--h0-min", type=float, default=None, help="h0 min pour max derivee (defaut: auto)")
 parser.add_argument("--h0-max", type=float, default=None, help="h0 max pour max derivee (defaut: auto)")
 parser.add_argument("--output-dir", type=str, default=None, help="Dossier de sortie (defaut: meme que data)")
