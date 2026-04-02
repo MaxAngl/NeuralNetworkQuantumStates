@@ -1,6 +1,18 @@
+"""
+Fidelity susceptibility chi_F vs h0 pour FNQS 2D.
+chi_F = (1 - |<psi(h0)|psi(h0+delta)>|^2) / delta^2
+
+Usage:
+    python plot_QFI_per_h0.py <run_dir> [--delta 1e-3] [--n-samples 4096] [--n-rep 10]
+"""
 import os
+import sys
 import json
+import argparse
+import zipfile
+import flax
 import numpy as np
+import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -8,27 +20,39 @@ from pathlib import Path
 
 import netket as nk
 import netket_foundational as nkf
-# Assure-toi d'importer ta classe ViTFNQS correctement selon l'arborescence
 from netket_foundational._src.model.vit import ViTFNQS
 
-# --- CONFIGURATION ---
-RUN_DIR = Path("/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/Foundational/rami_perso/2D_FNQS/Run_2D_L4_FNQS")  # Adapte le chemin
-CHECKPOINT_PATH = RUN_DIR / "state_390.nk"  # Adapte le nom
-META_PATH = RUN_DIR / "meta.json"
-DELTA_H = 1e-3
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
+# --- ARGUMENTS ---
+parser = argparse.ArgumentParser()
+parser.add_argument("run_dir", type=str)
+parser.add_argument("--delta", type=float, default=1e-3)
+parser.add_argument("--n-samples", type=int, default=4096)
+parser.add_argument("--n-rep", type=int, default=10)
+parser.add_argument("--h0-min", type=float, default=0.5)
+parser.add_argument("--h0-max", type=float, default=5.0)
+parser.add_argument("--h0-npts", type=int, default=40)
+args = parser.parse_args()
+
+RUN_DIR = Path(args.run_dir)
+DELTA_H = args.delta
+N_SAMPLES = args.n_samples
+N_REP = args.n_rep
 
 # --- CHARGEMENT META ---
-with open(META_PATH, 'r') as f:
+with open(RUN_DIR / "meta.json", "r") as f:
     meta = json.load(f)
 
 L = meta["L"]
-IS_2D = meta["n_dim"] == 2
-n_spins = meta["nb_spins"]
-J_val = meta["hamiltonian"]["J"]
+IS_2D = meta.get("n_dim", 1) == 2
+n_spins = meta.get("nb_spins", L)
 vit_params = meta["vit_config"]
+sigma = meta["hamiltonian"]["sigma"]
 
-# --- INITIALISATION SYSTÈME ---
+print(f"System: {n_spins} spins, {2D if IS_2D else 1D}, L={L}, sigma={sigma}")
+
+# --- INITIALISATION ---
 hi = nk.hilbert.Spin(0.5, n_spins)
 ps = nkf.ParameterSpace(N=n_spins, min=0, max=10)
 
@@ -37,107 +61,123 @@ ma = ViTFNQS(
     d_model=vit_params["d_model"],
     heads=vit_params["heads"],
     b=vit_params["b"],
-    L_eff=vit_params["L_eff"], 
-    n_coups=ps.size, 
-    complex=True, 
-    disorder=True, 
-    transl_invariant=False, 
-    two_dimensional=IS_2D, 
+    L_eff=vit_params["L_eff"],
+    n_coups=ps.size,
+    complex=True,
+    disorder=True,
+    transl_invariant=False,
+    two_dimensional=IS_2D,
 )
 
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
-vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=1)
+vs = nkf.FoundationalQuantumState(sa, ma, ps, n_replicas=1, n_samples=N_SAMPLES)
 
-import flax
-import zipfile
+# --- CHARGEMENT DES POIDS ---
+state_files = sorted(RUN_DIR.glob("state_*.nk"), key=lambda x: int(x.stem.split("_")[1]))
+CHECKPOINT_PATH = state_files[-1]
+print(f"Loading: {CHECKPOINT_PATH}")
 
 if not zipfile.is_zipfile(CHECKPOINT_PATH):
-    with open(CHECKPOINT_PATH, 'rb') as f:
+    with open(CHECKPOINT_PATH, "rb") as f:
         state_dict = flax.serialization.msgpack_restore(f.read())
 else:
-    with zipfile.ZipFile(CHECKPOINT_PATH, 'r') as zf:
-        file_list = zf.namelist()
-        # Sélectionne le fichier msgpack le plus profond/long (souvent le bon dans l'arborescence)
-        candidates = [f for f in file_list if f.endswith('.msgpack')]
+    with zipfile.ZipFile(CHECKPOINT_PATH, "r") as zf:
+        candidates = [f for f in zf.namelist() if f.endswith(".msgpack")]
         target_file = sorted(candidates, key=len)[-1]
         with zf.open(target_file) as f:
             state_dict = flax.serialization.msgpack_restore(f.read())
 
-vars_dict = state_dict.get('variables', state_dict.get('model', {}).get('variables', state_dict))
+vars_dict = state_dict.get("variables", state_dict.get("model", {}).get("variables", state_dict))
 vs.variables = flax.serialization.from_state_dict(vs.variables, vars_dict)
 
-# --- DEFINITION HAMILTONIEN ---
-def get_hamiltonian_op(h_array):
-    ha_X = sum(h_array[i] * nk.operator.spin.sigmax(hi, i) for i in range(n_spins))
-    
-    if IS_2D:
-        ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmaz(hi, (i % L + 1) % L + (i // L) * L) for i in range(n_spins))
-        ha_ZZ += sum(nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmaz(hi, (i + L) % n_spins) for i in range(n_spins))
-    else:
-        ha_ZZ = sum(nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmaz(hi, (i + 1) % n_spins) for i in range(n_spins))
-        
-    return -ha_X - J_val * ha_ZZ
+# --- OVERLAP CORRIGE ---
+# Les samples FNQS ont shape (n_samples, n_spins + n_coups)
+# x = [spins, hvals] concatenes
+# Pour l overlap croise: on garde les spins d un etat mais on injecte les hvals de l autre
 
-# --- EVALUATION DESORDONNEE ---
-h0_list = np.linspace(0.5, 4.5, 40)
-N_REP = 20 # Nombre de réalisations du désordre par point
-sigma = meta["hamiltonian"]["sigma"]
+@jax.jit
+def compute_fidelity(variables, samples_base, samples_shift, n_spins):
+    """
+    F = |<psi_base|psi_shift>|^2 via MC.
+    
+    samples_base: echantillonnes depuis psi(h0)
+    samples_shift: echantillonnes depuis psi(h0+delta)
+    
+    On construit les entrees croisees en swappant les hvals.
+    """
+    # Extraire spins et hvals
+    spins_base = samples_base[..., :n_spins]
+    hvals_base = samples_base[..., n_spins:]
+    spins_shift = samples_shift[..., :n_spins]
+    hvals_shift = samples_shift[..., n_spins:]
+    
+    # Entrees croisees: spins de base avec hvals shift, et vice versa
+    cross_base_shift = jnp.concatenate([spins_base, hvals_shift], axis=-1)
+    cross_shift_base = jnp.concatenate([spins_shift, hvals_base], axis=-1)
+    
+    # log psi evaluations
+    log_psi_base_base = ma.apply(variables, samples_base)      # psi_base(s_base)
+    log_psi_shift_base = ma.apply(variables, cross_base_shift)  # psi_shift(s_base)
+    log_psi_shift_shift = ma.apply(variables, samples_shift)    # psi_shift(s_shift)
+    log_psi_base_shift = ma.apply(variables, cross_shift_base)  # psi_base(s_shift)
+    
+    # <psi_shift|psi_base> / <psi_base|psi_base> via samples de psi_base
+    ratio_12 = jnp.exp(log_psi_shift_base - log_psi_base_base)
+    O_12 = jnp.mean(ratio_12)
+    
+    # <psi_base|psi_shift> / <psi_shift|psi_shift> via samples de psi_shift
+    ratio_21 = jnp.exp(log_psi_base_shift - log_psi_shift_shift)
+    O_21 = jnp.mean(ratio_21)
+    
+    # Fidelite = O_12 * O_21
+    return jnp.real(O_12 * O_21)
+
+# --- CALCUL ---
+h0_list = np.linspace(args.h0_min, args.h0_max, args.h0_npts)
 rng = np.random.default_rng(42)
 
-qfi_vmc_mean = []
-qfi_vmc_std = []
-qfi_exact_mean = []
+chi_F_mean = []
+chi_F_std = []
 
-for h0 in tqdm(h0_list, desc="Calcul QFI moyennée"):
-    qfi_vmc_reps = []
-    qfi_exact_reps = []
+for h0 in tqdm(h0_list, desc="Fidelity susceptibility"):
+    chi_reps = []
     
     for _ in range(N_REP):
-        # 1. Tirage du désordre
         epsilon = rng.normal(loc=0.0, scale=sigma, size=n_spins)
         pars_base = jnp.array(h0 + epsilon)
-        pars_shift = jnp.array(h0 + DELTA_H + epsilon) # On décale globalement de DELTA_H
+        pars_shift = jnp.array(h0 + DELTA_H + epsilon)
         
-        # --- VMC ---
         vs_base = vs.get_state(pars_base)
         vs_shift = vs.get_state(pars_shift)
         
-        psi_vmc_base = nk.vqs.FullSumState(hi, vs_base.model, variables=vs_base.variables).to_array()
-        psi_vmc_shift = nk.vqs.FullSumState(hi, vs_shift.model, variables=vs_shift.variables).to_array()
+        samples_base = vs_base.sample().reshape(-1, n_spins + ps.size)
+        samples_shift = vs_shift.sample().reshape(-1, n_spins + ps.size)
         
-        psi_vmc_base = psi_vmc_base / np.linalg.norm(psi_vmc_base)
-        psi_vmc_shift = psi_vmc_shift / np.linalg.norm(psi_vmc_shift)
-        
-        F_vmc = np.abs(np.vdot(psi_vmc_base, psi_vmc_shift))**2
-        qfi_vmc_reps.append((1 - F_vmc) / (DELTA_H**2))
+        F = compute_fidelity(vs.variables, samples_base, samples_shift, n_spins)
+        chi = float((1 - F) / (DELTA_H ** 2))
+        chi_reps.append(chi)
+    
+    chi_F_mean.append(np.mean(chi_reps))
+    chi_F_std.append(np.std(chi_reps))
 
-        # --- EXACT ---
-        H_base = get_hamiltonian_op(pars_base)
-        H_shift = get_hamiltonian_op(pars_shift)
-        
-        _, psi_ex_base = nk.exact.lanczos_ed(H_base, k=1, compute_eigenvectors=True)
-        _, psi_ex_shift = nk.exact.lanczos_ed(H_shift, k=1, compute_eigenvectors=True)
-        
-        F_ex = np.abs(np.vdot(psi_ex_base[:, 0], psi_ex_shift[:, 0]))**2
-        qfi_exact_reps.append((1 - F_ex) / (DELTA_H**2))
-        
-    qfi_vmc_mean.append(np.mean(qfi_vmc_reps))
-    qfi_vmc_std.append(np.std(qfi_vmc_reps))
-    qfi_exact_mean.append(np.mean(qfi_exact_reps))
+chi_F_mean = np.array(chi_F_mean)
+chi_F_std = np.array(chi_F_std)
 
 # --- PLOT ---
-qfi_vmc_mean = np.array(qfi_vmc_mean)
-qfi_vmc_std = np.array(qfi_vmc_std)
-
-plt.figure(figsize=(8, 5))
-plt.plot(h0_list, qfi_exact_mean, label="Exact Lanczos (Moyenne)", color='blue', zorder=1)
-plt.scatter(h0_list, qfi_vmc_mean, label="VMC FNQS (Moyenne)", color='red', marker='o', zorder=2)
-plt.fill_between(h0_list, qfi_vmc_mean - qfi_vmc_std, qfi_vmc_mean + qfi_vmc_std, color='red', alpha=0.2)
-
-plt.xlabel(r"Champ transverse moyen $h_0$")
-plt.ylabel(r"Susceptibilité de fidélité moyennée $\overline{\chi_F}$")
-plt.title(f"QFI désordonnée ($\sigma={sigma}$) en fonction de $h_0$ (Grille {L}x{L})")
+plt.figure(figsize=(10, 6))
+plt.errorbar(h0_list, chi_F_mean, yerr=chi_F_std, fmt="-o", color="red", capsize=3, markersize=4)
+if IS_2D:
+    plt.axvline(x=3.04, color="gray", ls="--", alpha=0.5, label=r"$h_c \approx 3.04$")
+else:
+    plt.axvline(x=1.0, color="gray", ls="--", alpha=0.5, label=r"$h_c = 1.0$")
+plt.xlabel(r"Transverse field $h_0$", fontsize=13)
+plt.ylabel(r"Fidelity susceptibility $\chi_F$", fontsize=13)
+plt.title(f"Fidelity Susceptibility ($\sigma={sigma}$) — {2D if IS_2D else 1D} L={L} ({n_spins} spins)")
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.savefig(RUN_DIR / "QFI_disorder_plot.pdf")
+
+out = RUN_DIR / f"fidelity_susceptibility_L={L}.pdf"
+plt.savefig(out, dpi=150)
+plt.savefig(str(out).replace(".pdf", ".png"), dpi=150)
+print(f"Saved: {out}")

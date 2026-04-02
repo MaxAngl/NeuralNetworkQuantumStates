@@ -1,0 +1,54 @@
+{
+    "L": 80,
+    "graph": "Hypercube 1D",
+    "n_dim": 1,
+    "pbc": true,
+    "hamiltonian": {
+        "type": "Ising Disorder",
+        "J": 1.0,
+        "h0_train_list": [
+            0.1,
+            0.4,
+            0.7,
+            0.8,
+            0.85,
+            0.9,
+            0.93,
+            0.95,
+            0.97,
+            1.0,
+            1.03,
+            1.05,
+            1.1,
+            1.2,
+            1.5,
+            2.5,
+            4.0
+        ],
+        "sigma": 0.1
+    },
+    "model": "ViTFNQS",
+    "vit_config": {
+        "num_layers": 4,
+        "d_model": 60,
+        "heads": 10,
+        "b": 4,
+        "L_eff": 20
+    },
+    "sampler": {
+        "type": "MetropolisLocal",
+        "n_chains": 748,
+        "n_samples": 1496
+    },
+    "optimizer": {
+        "type": "SGD",
+        "lr_init": 0.03,
+        "lr_end": 0.005,
+        "diag_shift": 0.0002
+    },
+    "n_iter": 600,
+    "n_replicas_per_h0": 10,
+    "total_configs_train": 187,
+    "seed": 1,
+    "execution_time_seconds": 38781.99166440964
+}

@@ -1,15 +1,19 @@
 import os
+import re
 import jax 
 
-# Initialisation du cluster JAX
-try:
-    jax.distributed.initialize()
-    print(f"JAX Cluster initialisé : Processus {jax.process_index()} / {jax.process_count()}")
-except Exception as e:
-    print(f"Simple exécution locale ou erreur d'init : {e}")
-
-# Remplace ton ancien print MPI par celui-ci, plus moderne
-print(f"👋 Bonjour depuis le noeud {jax.process_index()} sur {jax.process_count()} !")
+# Initialisation du cluster JAX (multi-GPU via SLURM)
+if 'SLURM_NTASKS' in os.environ and int(os.environ['SLURM_NTASKS']) > 1:
+    node_list = os.environ.get('SLURM_STEP_NODELIST', os.environ.get('SLURM_JOB_NODELIST', ''))
+    first_node = re.match(r'([a-z][-a-z]*)', node_list).group(1)
+    jax.distributed.initialize(
+        coordinator_address=f'{first_node}:1234',
+        num_processes=int(os.environ['SLURM_NTASKS']),
+        process_id=int(os.environ['SLURM_PROCID']),
+    )
+    print(f'JAX distributed: process {jax.process_index()}/{jax.process_count()}, devices={jax.device_count()}')
+else:
+    print(f'Mode local, {jax.device_count()} device(s)')
 
 import sys
 # Ajouter le répertoire racine du projet au chemin Python
@@ -55,12 +59,10 @@ rng = np.random.default_rng(seed)
 k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
-L = 48                                     # Taille du système
-# Si on passe un argument dans le terminal, on le prend pour L, sinon L=16 par défaut
-if len(sys.argv) > 1:
-    L = int(sys.argv[1])
+L = int(sys.argv[1]) if len(sys.argv) > 1 else 48
+n_iter = 600
 
-h0_train_list = [ 0.1, 0.4, 0.8, 0.85, 0.9, 0.925, 0.95, 0.975, 0.999, 1.0, 1.001, 1.025, 1.05, 1.075, 1.1, 1.15, 1.2, 1.3, 2.5, 4.0 ]
+h0_train_list = [0.1, 0.4, 0.7, 0.8, 0.85, 0.9, 0.93, 0.95, 0.97, 1.0, 1.03, 1.05, 1.1, 1.2, 1.5, 2.5, 4.0]
 sigma_disorder = 0.1 
 J_val = 1.0    
 n_replicas = 20                             # Nombre de réalisations de désordre
@@ -74,29 +76,28 @@ n_samples = n_chains * samples_per_chain
 prob_global_flip = 0.05  # Probabilité de flip global dans le sampler personnalisé
 
 # --- PARAMÈTRES D'OPTIMISATION ---
-n_iter = 600      
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 2e-4
 logs_path = os.path.join(foundational_dir, "logs")
 
 # --- CALCUL AUTOMATIQUE ET SYSTÉMATIQUE DU CHUNK_SIZE ---
-TARGET_CHUNK = 10 
+TARGET_CHUNK = 10
+n_devices = jax.device_count()
+n_samples_per_rank = n_samples // n_devices
 
-if n_samples <= TARGET_CHUNK:
-    chunk_size = n_samples
+if n_samples_per_rank <= TARGET_CHUNK:
+    chunk_size = n_samples_per_rank
 else:
-    # On cherche le plus grand diviseur de n_samples qui est <= TARGET_CHUNK
     chunk_size = 1
     for i in range(TARGET_CHUNK, 0, -1):
-        if n_samples % i == 0:
+        if n_samples_per_rank % i == 0:
             chunk_size = i
             break
 
-chunk_size_bwd=4
+chunk_size_bwd = 4
 
-print(f"🔹 Configuration : {n_samples} samples total.")
-print(f"🔹 Chunk size auto-calculé : {chunk_size} (Diviseur optimal <= {TARGET_CHUNK})")
+print(f"Configuration : {n_samples} samples, {n_devices} GPU(s), {n_samples_per_rank} samples/GPU, chunk_size={chunk_size}")
 
 
 # Paramètres du modèle ViT

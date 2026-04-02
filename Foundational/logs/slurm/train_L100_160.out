@@ -1,0 +1,54 @@
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py:495: SyntaxWarning: invalid escape sequence '\h'
+  plt.title(f"Convergence Diagnostics ($\hat{{R}}$): Train only (L={L})", fontsize=14)
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Simple exécution locale ou erreur d'init : 'SLURM_STEP_NODELIST'
+👋 Bonjour depuis le noeud 0 sur 1 !
+🔹 Configuration : 1496 samples total.
+🔹 Chunk size auto-calculé : 8 (Diviseur optimal <= 10)
+Forme des paramètres de désordre : (187, 100)
+Configurations de désordre sauvegardées dans : /users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/logs/run_2026-03-30_17-10-26/disorder_configs.npy
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]W0330 17:12:44.006265 1019169 bfc_allocator.cc:501] Allocator (GPU_0_bfc) ran out of memory trying to allocate 8.49GiB (rounded to 9116384256)requested by op 
+If the cause is memory fragmentation maybe the environment variable 'TF_GPU_ALLOCATOR=cuda_malloc_async' will improve the situation. 
+Current allocation summary follows.
+Current allocation summary follows.
+W0330 17:12:44.006893 1019169 bfc_allocator.cc:512] ___________________________________________________________________________________________________*
+E0330 17:12:44.006923 1019169 pjrt_stream_executor_client.cc:3314] Execution of replica 0 failed: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 9116384248 bytes. [tf-allocator-allocation-error='']
+  0%|          | 0/600 [02:17<?, ?it/s]
+Traceback (most recent call last):
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/Foundational/train_fonctionnels/1D_avec_desordre_pluri_h0.py", line 373, in <module>
+    gs.run(
+    ~~~~~~^
+        n_iter,
+        ^^^^^^^
+    ...<5 lines>...
+        ]
+        ^
+    )
+    ^
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 452, in run
+    raise error
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 413, in run
+    self._loss_stats, self._dp = self.compute_loss_and_update()
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/netket/utils/timing.py", line 292, in timed_function
+    result = fun(*args, **kwargs)  # type: ignore[misc]
+  File "/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates/netket_pro/experiments/netket_foundational/_src/driver/ngd/driver_vmc_ngd.py", line 196, in compute_loss_and_update
+    self._dp, self._old_updates, self.info = self.update_fn(
+                                             ~~~~~~~~~~~~~~^
+        afun,
+        ^^^^^
+    ...<14 lines>...
+        collect_gradient_statistics=self.collect_gradient_statistics,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/users/eleves-a/2024/max.anglade/miniconda3/lib/python3.13/site-packages/netket/utils/timing.py", line 292, in timed_function
+    result = fun(*args, **kwargs)  # type: ignore[misc]
+jaxlib._jax.XlaRuntimeError: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 9116384248 bytes.
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
