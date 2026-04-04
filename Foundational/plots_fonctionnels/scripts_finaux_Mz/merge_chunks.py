@@ -98,3 +98,59 @@ for key in ["nb_spins", "dim"]:
 np.savez(output_path, **save_dict)
 print(f"\nFusion terminee: {output_path}")
 print(f"NaN restants dans mz2_raw[:,:,0]: {np.sum(np.isnan(mz2_raw[:, :, 0]))}")
+
+# ==========================================
+# FUSION DES ECHANTILLONS MCMC (si presents)
+# ==========================================
+samples_prefix = prefix.replace("is_data_", "is_samples_")
+first_samples_path = os.path.join(RUN_DIR, f"{samples_prefix}_chunk0.npz")
+
+if os.path.exists(first_samples_path):
+    print(f"\nFusion des echantillons MCMC...")
+    first_s = np.load(first_samples_path)
+    nb_spins = int(first_s["nb_spins"])
+    n_h0_total = len(first_s["h0_grid"])
+
+    # Determiner le N_SAMPLES_IS minimal sur tous les chunks (normalise a la taille la plus petite)
+    n_samples_list = []
+    for i in range(N_CHUNKS):
+        path_s = os.path.join(RUN_DIR, f"{samples_prefix}_chunk{i}.npz")
+        if os.path.exists(path_s):
+            n_samples_list.append(int(np.load(path_s)["N_SAMPLES_IS"]))
+    N_SAMPLES_IS = min(n_samples_list)
+    print(f"  N_SAMPLES_IS normalise a {N_SAMPLES_IS} (min sur tous les chunks)")
+
+    samples_full     = np.zeros((n_h0_total, N_SAMPLES_IS, nb_spins), dtype=np.float32)
+    log_psi_ref_full = np.zeros((n_h0_total, N_SAMPLES_IS),           dtype=np.float32)
+    h_ref_full       = np.zeros((n_h0_total, nb_spins),               dtype=np.float32)
+
+    for i in range(N_CHUNKS):
+        path_s = os.path.join(RUN_DIR, f"{samples_prefix}_chunk{i}.npz")
+        if not os.path.exists(path_s):
+            print(f"  ATTENTION: {path_s} manquant!")
+            continue
+        chunk_s = np.load(path_s)
+        indices = chunk_s["h0_indices"]
+        samples_full[indices]     = chunk_s["samples"][:, :N_SAMPLES_IS, :]
+        log_psi_ref_full[indices] = chunk_s["log_psi_ref"][:, :N_SAMPLES_IS]
+        h_ref_full[indices]       = chunk_s["h_ref"]
+        if i > 0:
+            print(f"  Chunk {i}: samples fusionnes")
+
+    samples_output = os.path.join(RUN_DIR, f"{samples_prefix}_full.npz")
+    np.savez(
+        samples_output,
+        samples=samples_full,
+        log_psi_ref=log_psi_ref_full,
+        h_ref=h_ref_full,
+        h0_grid=first_s["h0_grid"],
+        N_SAMPLES_IS=N_SAMPLES_IS,
+        L=int(first_s["L"]),
+        nb_spins=nb_spins,
+        dim=int(first_s["dim"]),
+    )
+    print(f"Echantillons fusionnes: {samples_output}")
+    size_mb = os.path.getsize(samples_output) / 1e6
+    print(f"Taille fichier samples: {size_mb:.1f} MB")
+else:
+    print("\nPas de fichier d'echantillons trouve (is_samples_..._chunk0.npz absent).")

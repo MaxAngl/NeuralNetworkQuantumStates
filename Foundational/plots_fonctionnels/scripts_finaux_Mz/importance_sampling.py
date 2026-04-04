@@ -230,9 +230,19 @@ print(f"{len(chunk_indices)} h0 (chunk {CHUNK_ID}/{N_CHUNKS}) x {len(SIGMA_TEST_
 print("="*70)
 
 mz2_raw = np.full((len(SIGMA_TEST_LIST), len(H0_TEST_LIST), N_DISORDER), np.nan)
+mz2_err_raw = np.full((len(SIGMA_TEST_LIST), len(H0_TEST_LIST), N_DISORDER), np.nan)
 ess_raw = np.full((len(SIGMA_TEST_LIST), len(H0_TEST_LIST), N_DISORDER), np.nan)
 time_mcmc_ref_array = np.full(len(H0_TEST_LIST), np.nan)
 trial_chosen = np.full(len(H0_TEST_LIST), -1, dtype=int)
+
+# Stockage des echantillons MCMC pour reutilisation IS future
+# Shape : (n_h0_chunk, N_SAMPLES_IS, nb_spins) pour samples
+# et    : (n_h0_chunk, N_SAMPLES_IS) pour log_psi_ref (partie reelle)
+# et    : (n_h0_chunk, nb_spins) pour h_ref (champ de reference en chaque h0)
+n_h0_chunk = len(chunk_indices)
+samples_store     = np.zeros((n_h0_chunk, N_SAMPLES_IS, nb_spins), dtype=np.float32)
+log_psi_ref_store = np.zeros((n_h0_chunk, N_SAMPLES_IS),           dtype=np.float32)
+h_ref_store       = np.zeros((n_h0_chunk, nb_spins),               dtype=np.float32)
 
 # Pre-generer le bruit
 rng_dict = {}
@@ -243,7 +253,7 @@ for idx_s, sigma in enumerate(SIGMA_TEST_LIST):
 
 t_total_start = time.time()
 
-for idx_h in tqdm(chunk_indices, desc=f"h0 sweep (chunk {CHUNK_ID})"):
+for i_chunk, idx_h in enumerate(tqdm(chunk_indices, desc=f"h0 sweep (chunk {CHUNK_ID})")):
     h0 = H0_TEST_LIST[idx_h]
     pars_ref = np.full(nb_spins, h0)
     ref_vars = _make_vars(pars_ref)
@@ -286,6 +296,11 @@ for idx_h in tqdm(chunk_indices, desc=f"h0 sweep (chunk {CHUNK_ID})"):
     samples_flat, log_psi_ref, mz_vals, mz2_vals = best_trial_data
     print(f"  h0={h0:.3f}: best trial={trial_chosen[idx_h]}, ESS check={best_ess_mean:.0f}", flush=True)
 
+    # Sauvegarder les echantillons MCMC et le champ de reference pour cet h0
+    samples_store[i_chunk]     = np.array(samples_flat, dtype=np.float32)
+    log_psi_ref_store[i_chunk] = np.array(jnp.real(log_psi_ref), dtype=np.float32)
+    h_ref_store[i_chunk]       = pars_ref.astype(np.float32)
+
     for idx_s, sigma in enumerate(SIGMA_TEST_LIST):
         if sigma == 0.0:
             configs = [np.full(nb_spins, h0)]
@@ -298,7 +313,11 @@ for idx_h in tqdm(chunk_indices, desc=f"h0 sweep (chunk {CHUNK_ID})"):
             log_weights = 2.0 * jnp.real(log_psi_target - log_psi_ref)
             log_weights = log_weights - jnp.max(log_weights)
             weights = jnp.exp(log_weights)
-            mz2_raw[idx_s, idx_h, k] = float(jnp.sum(weights * mz2_vals) / jnp.sum(weights))
+            w_norm = weights / jnp.sum(weights)
+            mz2_est = float(jnp.sum(w_norm * mz2_vals))
+            mz2_raw[idx_s, idx_h, k] = mz2_est
+            # Erreur MC de l'estimateur IS : sqrt( sum(w_norm^2 * (f_i - <f>)^2) )
+            mz2_err_raw[idx_s, idx_h, k] = float(jnp.sqrt(jnp.sum(w_norm**2 * (mz2_vals - mz2_est)**2)))
             ess_raw[idx_s, idx_h, k] = float(jnp.sum(weights) ** 2 / jnp.sum(weights ** 2))
 
     gc.collect()
@@ -319,6 +338,7 @@ np.savez(
     h0_grid=np.array(H0_TEST_LIST),
     sigma_grid=np.array(SIGMA_TEST_LIST),
     mz2_raw=mz2_raw,
+    mz2_err_raw=mz2_err_raw,
     ess_raw=ess_raw,
     time_mcmc_ref=time_mcmc_ref_array,
     trial_chosen=trial_chosen,
@@ -331,6 +351,37 @@ np.savez(
     dim=DIM,
 )
 print(f"\nDonnees sauvegardees: {output_path}")
+
+# Sauvegarde des echantillons MCMC
+# Contenu :
+#   samples      : (n_h0_chunk, N_SAMPLES_IS, nb_spins) float32 — configurations spin
+#   log_psi_ref  : (n_h0_chunk, N_SAMPLES_IS) float32 — Re(log psi) de la distrib. de reference
+#   h_ref        : (n_h0_chunk, nb_spins) float32 — champ transverse uniforme h0 utilise
+#   h0_indices   : indices dans la grille h0 complete (pour le merge)
+#
+# Usage IS pour un nouvel observable O et un champ h_target quelconque :
+#   log_w = 2 * (log_psi(h_target, samples[i]) - log_psi_ref[i])
+#   w = exp(log_w - max(log_w));  w /= sum(w)
+#   <O> = sum(w * O(samples[i]))
+samples_prefix = f"is_samples_{dim_label}_L{L}"
+if N_CHUNKS > 1:
+    samples_path = os.path.join(RUN_DIR, f"{samples_prefix}_chunk{CHUNK_ID}.npz")
+else:
+    samples_path = os.path.join(RUN_DIR, f"{samples_prefix}_full.npz")
+
+np.savez(
+    samples_path,
+    samples=samples_store,
+    log_psi_ref=log_psi_ref_store,
+    h_ref=h_ref_store,
+    h0_indices=np.array(chunk_indices, dtype=np.int32),
+    h0_grid=np.array(H0_TEST_LIST),
+    N_SAMPLES_IS=N_SAMPLES_IS,
+    L=L,
+    nb_spins=nb_spins,
+    dim=DIM,
+)
+print(f"Echantillons sauvegardes: {samples_path}")
 
 # ==========================================
 # RESUME

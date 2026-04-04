@@ -35,6 +35,7 @@ data = np.load(args.data_path)
 sigma_grid = data["sigma_grid"]
 h0_grid = data["h0_grid"]
 mz2_raw = data["mz2_raw"]
+mz2_err_raw = data["mz2_err_raw"] if "mz2_err_raw" in data else None
 N_SAMPLES = int(data["N_SAMPLES_IS"])
 L = int(data["L"])
 nb_spins = int(data["nb_spins"]) if "nb_spins" in data else L
@@ -131,8 +132,11 @@ ax = axs[0]
 for idx, sigma in enumerate(sigma_grid):
     c = colors_mz2[idx]
     ax.plot(h0_grid, mean_of_mz2[idx], marker='.', markersize=MS, color=c, linewidth=LW, alpha=ALPHA_LINE, label=rf"$\sigma = {sigma}$")
-    ax.fill_between(h0_grid, mean_of_mz2[idx] - std_of_mz2[idx], mean_of_mz2[idx] + std_of_mz2[idx], color=c, alpha=ALPHA_FILL, edgecolor='none')
-ax.axvline(x=hc_inf, color='gray', linestyle=':', alpha=0.5, label=rf"$h_c^{{\infty}} \approx {hc_inf}$")
+    # Erreur MC (identique pour tous les k, prendre k=0)
+    if mz2_err_raw is not None:
+        mc_err = mz2_err_raw[idx, :, 0]
+        ax.fill_between(h0_grid, mean_of_mz2[idx] - mc_err, mean_of_mz2[idx] + mc_err, color=c, alpha=0.5, edgecolor='none')
+ax.axvline(x=hc_inf, color='gray', linestyle=':', alpha=0.5, label='_nolegend_')
 ax.set_xlabel(r"Transverse Field $h_0$")
 ax.set_ylabel(r"$\langle M_z^2 \rangle$")
 ax.set_title(rf"Mean Squared Magnetization — {dim_label} $L={L}$ ({nb_spins} spins)")
