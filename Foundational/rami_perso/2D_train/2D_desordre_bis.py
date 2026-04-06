@@ -94,7 +94,7 @@ chains_per_replica = 4
 samples_per_chain = 2       
 n_chains = total_configs_train * chains_per_replica
 n_samples = n_chains * samples_per_chain
-prob_global_flip = 0.2    
+prob_global_flip = 0.05    
 
 # --- PARAMÈTRES D'OPTIMISATION ---
 n_iter = 400       

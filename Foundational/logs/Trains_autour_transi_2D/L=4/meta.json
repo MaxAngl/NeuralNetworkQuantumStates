@@ -1,0 +1,56 @@
+{
+    "L": 4,
+    "nb_spins": 16,
+    "graph": "Square Grid 2D",
+    "n_dim": 2,
+    "pbc": true,
+    "hamiltonian": {
+        "type": "Ising Disorder",
+        "J": 1.0,
+        "h0_train_list": [
+            2.8,
+            2.9,
+            3.0,
+            3.05,
+            3.068181818181818,
+            3.0863636363636364,
+            3.1045454545454545,
+            3.1227272727272726,
+            3.1409090909090907,
+            3.159090909090909,
+            3.1772727272727272,
+            3.1954545454545453,
+            3.2136363636363634,
+            3.231818181818182,
+            3.25,
+            3.3
+        ],
+        "sigma": 0.1
+    },
+    "model": "ViTFNQS",
+    "vit_config": {
+        "num_layers": 4,
+        "d_model": 60,
+        "heads": 10,
+        "b": 2,
+        "L_eff": 4
+    },
+    "sampler": {
+        "type": "MetropolisSampler",
+        "n_chains": 704,
+        "n_samples": 1408,
+        "rule": "GlobalFlipRule",
+        "prob_global_flip": 0.2
+    },
+    "optimizer": {
+        "type": "SGD",
+        "lr_init": 0.03,
+        "lr_end": 0.005,
+        "diag_shift": 0.0002
+    },
+    "n_iter": 600,
+    "n_replicas_per_h0": 10,
+    "total_configs_train": 176,
+    "seed": 1,
+    "execution_time_seconds": 4962.438077449799
+}

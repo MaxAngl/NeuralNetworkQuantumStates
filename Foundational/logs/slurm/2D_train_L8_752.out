@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/2D_avec_desordre_pluri_h0.py", line 20, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'

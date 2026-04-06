@@ -1,0 +1,28 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+dim=1D, L=24, nb_spins=24, burn_in=100
+RUN_DIR: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_1D/L=24
+Checkpoint: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_1D/L=24/state_490.nk
+Poids charges.
+
+Chunk 12/20: h0 indices 12-12 (1 points)
+
+======================================================================
+IMPORTANCE SAMPLING 1D (L=24, 24 spins) -- Best of 3 MCMC trials
+IS config: 16384 samples, 256 chaines, 100 burn-in
+1 h0 (chunk 12/20) x 7 sigma x 80 disorder configs
+======================================================================
+h0 sweep (chunk 12):   0%|          | 0/1 [00:00<?, ?it/s]W0405 12:48:46.427893  881752 bfc_allocator.cc:501] Allocator (GPU_0_bfc) ran out of memory trying to allocate 1.76GiB (rounded to 1887446272)requested by op 
+If the cause is memory fragmentation maybe the environment variable 'TF_GPU_ALLOCATOR=cuda_malloc_async' will improve the situation. 
+Current allocation summary follows.
+Current allocation summary follows.
+W0405 12:48:46.428379  881752 bfc_allocator.cc:512] ___________________________________________________________________________________________________*
+E0405 12:48:46.428397  881752 pjrt_stream_executor_client.cc:3314] Execution of replica 0 failed: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 1887446032 bytes. [tf-allocator-allocation-error='']
+h0 sweep (chunk 12):   0%|          | 0/1 [01:17<?, ?it/s]
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/plots_fonctionnels/scripts_finaux_Mz/importance_sampling.py", line 270, in <module>
+    log_psi_ref = _apply_fn(ref_vars, samples_flat)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+jaxlib._jax.XlaRuntimeError: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 1887446032 bytes.
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.

@@ -1,0 +1,32 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+dim=1D, L=36, nb_spins=36, burn_in=100
+RUN_DIR: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_1D/L=36
+Checkpoint: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_1D/L=36/state_490.nk
+Poids charges.
+
+Chunk 11/20: h0 indices 11-11 (1 points)
+
+======================================================================
+IMPORTANCE SAMPLING 1D (L=36, 36 spins) -- Best of 3 MCMC trials
+IS config: 16384 samples, 256 chaines, 100 burn-in
+1 h0 (chunk 11/20) x 7 sigma x 80 disorder configs
+======================================================================
+h0 sweep (chunk 11):   0%|          | 0/1 [00:00<?, ?it/s]  h0=1.032: best trial=1, ESS check=13075
+h0 sweep (chunk 11): 100%|██████████| 1/1 [10:11<00:00, 611.21s/it]h0 sweep (chunk 11): 100%|██████████| 1/1 [10:11<00:00, 611.21s/it]
+
+Donnees sauvegardees: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_1D/L=36/is_data_1D_L36_chunk11.npz
+Echantillons sauvegardes: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_1D/L=36/is_samples_1D_L36_chunk11.npz
+
+======================================================================
+Temps total: 611.2s
+ESS moyen: 11017 / 16384
+ESS min:   1045
+======================================================================
+  sigma=0.00 : ESS moyen=16384, min=16384
+  sigma=0.05 : ESS moyen=16034, min=15380
+  sigma=0.10 : ESS moyen=14934, min=12855
+  sigma=0.15 : ESS moyen=13066, min=7425
+  sigma=0.20 : ESS moyen=11453, min=5927
+  sigma=0.30 : ESS moyen=7363, min=2353
+  sigma=0.50 : ESS moyen=3185, min=1045

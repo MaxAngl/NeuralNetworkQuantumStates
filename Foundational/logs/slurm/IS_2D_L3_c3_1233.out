@@ -1,0 +1,36 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+dim=2D, L=3, nb_spins=9, burn_in=100
+RUN_DIR: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=3
+Checkpoint: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=3/state_590.nk
+Poids charges.
+
+Chunk 3/5: h0 indices 15-19 (5 points)
+
+======================================================================
+IMPORTANCE SAMPLING 2D (L=3, 9 spins) -- Best of 3 MCMC trials
+IS config: 8192 samples, 256 chaines, 100 burn-in
+5 h0 (chunk 3/5) x 7 sigma x 80 disorder configs
+======================================================================
+h0 sweep (chunk 3):   0%|          | 0/5 [00:00<?, ?it/s]  h0=3.112: best trial=0, ESS check=8177
+h0 sweep (chunk 3):  20%|██        | 1/5 [00:58<03:54, 58.74s/it]  h0=3.133: best trial=2, ESS check=8178
+h0 sweep (chunk 3):  40%|████      | 2/5 [01:54<02:51, 57.16s/it]  h0=3.154: best trial=2, ESS check=8178
+h0 sweep (chunk 3):  60%|██████    | 3/5 [02:51<01:53, 56.84s/it]  h0=3.175: best trial=2, ESS check=8178
+h0 sweep (chunk 3):  80%|████████  | 4/5 [03:47<00:56, 56.76s/it]  h0=3.196: best trial=1, ESS check=8179
+h0 sweep (chunk 3): 100%|██████████| 5/5 [04:44<00:00, 56.73s/it]h0 sweep (chunk 3): 100%|██████████| 5/5 [04:44<00:00, 56.92s/it]
+
+Donnees sauvegardees: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=3/is_data_2D_L3_chunk3.npz
+Echantillons sauvegardes: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=3/is_samples_2D_L3_chunk3.npz
+
+======================================================================
+Temps total: 284.6s
+ESS moyen: 8134 / 8192
+ESS min:   7141
+======================================================================
+  sigma=0.00 : ESS moyen=8192, min=8192
+  sigma=0.05 : ESS moyen=8190, min=8184
+  sigma=0.10 : ESS moyen=8185, min=8171
+  sigma=0.15 : ESS moyen=8173, min=8130
+  sigma=0.20 : ESS moyen=8162, min=8090
+  sigma=0.30 : ESS moyen=8120, min=7763
+  sigma=0.50 : ESS moyen=7974, min=7141

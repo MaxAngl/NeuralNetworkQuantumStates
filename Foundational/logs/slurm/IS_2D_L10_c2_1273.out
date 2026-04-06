@@ -1,0 +1,23 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+dim=2D, L=10, nb_spins=100, burn_in=300
+RUN_DIR: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=10
+Checkpoint: /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=10/state_590.nk
+Poids charges.
+
+Chunk 2/5: h0 indices 10-14 (5 points)
+
+======================================================================
+IMPORTANCE SAMPLING 2D (L=10, 100 spins) -- Best of 3 MCMC trials
+IS config: 8192 samples, 256 chaines, 300 burn-in
+5 h0 (chunk 2/5) x 7 sigma x 80 disorder configs
+======================================================================
+h0 sweep (chunk 2):   0%|          | 0/5 [00:00<?, ?it/s]W0405 12:16:31.914248  770826 bfc_allocator.cc:310] Allocator (GPU_0_bfc) ran out of memory trying to allocate 391.00MiB with freed_by_count=0. The caller indicates that this is not a failure, but this may mean that there could be performance gains if more memory were available.
+h0 sweep (chunk 2):   0%|          | 0/5 [09:18<?, ?it/s]
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/plots_fonctionnels/scripts_finaux_Mz/importance_sampling.py", line 270, in <module>
+    log_psi_ref = _apply_fn(ref_vars, samples_flat)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+jaxlib._jax.XlaRuntimeError: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 409993216 bytes.
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
