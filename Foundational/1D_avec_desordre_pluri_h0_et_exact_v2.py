@@ -8,12 +8,13 @@ sys.path.insert(0, project_root)
 
 os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
 
-# --- JAX multi-node (SLURM) : DOIT etre avant tout import JAX ---
-if "SLURM_NTASKS" in os.environ and int(os.environ["SLURM_NTASKS"]) > 1:
-    import jax
-    jax.distributed.initialize()
-    print(f"JAX distributed: process {jax.process_index()}/{jax.process_count()}, "
-          f"local devices: {jax.local_device_count()}, total devices: {jax.device_count()}")
+# ==========================================
+# 0. ARGUMENTS
+# ==========================================
+parser = argparse.ArgumentParser(description="Train ViTFNQS 1D avec desordre pluri (v2 - architecture large)")
+parser.add_argument("--L", type=int, default=16, help="Taille du systeme (defaut: 16)")
+parser.add_argument("--n-iter", type=int, default=400, help="Nombre d'iterations (defaut: 400)")
+args = parser.parse_args()
 
 import netket as nk
 import netket_foundational as nkf
@@ -35,14 +36,6 @@ from advanced_drivers._src.callbacks.base import AbstractCallback
 import netket_pro.distributed as nkpd
 
 # ==========================================
-# 0. ARGUMENTS
-# ==========================================
-parser = argparse.ArgumentParser()
-parser.add_argument("--L", type=int, default=48)
-parser.add_argument("--n-iter", type=int, default=400)
-args = parser.parse_args()
-
-# ==========================================
 # 1. HYPERPARAMÈTRES ET CONFIGURATION
 # ==========================================
 # On définit tout ici pour que le 'meta' soit cohérent
@@ -55,29 +48,36 @@ sigma_disorder = 0.1 # Désordre
 J_val = 1.0    # Couplage Ising (défini dans create_operator)
 n_replicas = 10    # Nombre de réalisations de désordre
 total_configs_train = len(h0_train_list) * (n_replicas + 1)
-chains_per_replica = 4      # <--- ICI : Chaque réplica aura 4 chaînes indépendantes
+
+chains_per_replica = 4
 samples_per_chain = 2      # Nombre de points récoltés par chaque chaîne
-n_chains = total_configs_train * chains_per_replica 
-n_samples = n_chains * samples_per_chain             
+n_chains = total_configs_train * chains_per_replica
+n_samples = n_chains * samples_per_chain
+print(f"Devices: {n_devices}, chains_per_replica: {chains_per_replica}, "
+      f"n_chains: {n_chains}, n_samples: {n_samples}")
+
 n_iter = args.n_iter       # Nombre d'étapes d'optimisation
 lr_init = 0.03
 lr_end = 0.005
 diag_shift = 1e-4
-logs_path = "Foundational/logs"  # Dossier racine pour les logs
+logs_path = "logs"  # Dossier racine pour les logs
 
 h0_test_list = [ 0.05, 0.15, 0.3, 0.5, 0.85, 1.05, 1.3, 1.5, 3] # Valeurs d'interpolation et d'extrapolation
 N_test_per_h0 = 10  # Nombre de configurations de désordre par h0 de test
 
-# Paramètres du modèle ViT
+# Paramètres du modèle ViT — v2
+# b=4 fixe, toutes les tailles doivent etre divisibles par 4
 assert L % 4 == 0, f"L={L} doit etre divisible par 4"
+patch_size = 4
+print(f"L={L}, patch_size={patch_size} (L/patch={L // patch_size} patches)")
+
 vit_params = {
     "num_layers": 4,
     "d_model": 60,
     "heads": 10,
-    "b": 4,
-    "L_eff": L // 4,
+    "b": patch_size,
+    "L_eff": L // patch_size,
 }
-print(f"L={L}, patches={L // 4}, params ViT: {vit_params}")
 
 # ==========================================
 # 2. DEFINITION DU SYSTEME
