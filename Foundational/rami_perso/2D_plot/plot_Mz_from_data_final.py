@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # 1. CONFIGURATION
 # ==========================================
 
-DATA_PATH = f"/users/eleves-a/2024/rami.chagnaud/Documents/NeuralNetworkQuantumStates-1/Foundational/rami_perso/2D_FNQS/Run_2D_L4_FNQS"
+DATA_PATH = f"/users/eleves-a/2024/nikola.audit/NeuralNetworkQuantumStates/Foundational/rami_perso/2D_FNQS/Run_2D_L4_FNQS/is_data_2D_L4_full.npz"
 data = np.load(DATA_PATH)
 L = data.get('L', 49) # Récupère L du npz
 L_side = int(np.sqrt(L))
