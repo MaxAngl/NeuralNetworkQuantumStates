@@ -1,0 +1,36 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Mode local, 1 device(s)
+Config [5] : ref_d60_l4_h10_b1_s128_h13
+Configuration : 1664 samples, 1 GPU(s), 1664 samples/GPU, chunk_size=8
+Nombre de configs : 13 (une par h0, sans désordre)
+Run dir : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-04-09_11-24-04
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]W0409 11:26:20.487379 1310050 bfc_allocator.cc:501] Allocator (GPU_0_bfc) ran out of memory trying to allocate 12.26GiB (rounded to 13166242816)requested by op 
+If the cause is memory fragmentation maybe the environment variable 'TF_GPU_ALLOCATOR=cuda_malloc_async' will improve the situation. 
+Current allocation summary follows.
+Current allocation summary follows.
+W0409 11:26:20.487969 1310050 bfc_allocator.cc:512] ___________________________________________________________________________________________________*
+E0409 11:26:20.487998 1310050 pjrt_stream_executor_client.cc:3314] Execution of replica 0 failed: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 13166242808 bytes. [tf-allocator-allocation-error='']
+  0%|          | 0/600 [02:16<?, ?it/s]
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_sans_desordre_test_vit.py", line 341, in <module>
+    gs.run(
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 452, in run
+    raise error
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 413, in run
+    self._loss_stats, self._dp = self.compute_loss_and_update()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/utils/timing.py", line 292, in timed_function
+    result = fun(*args, **kwargs)  # type: ignore[misc]
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/driver/ngd/driver_vmc_ngd.py", line 196, in compute_loss_and_update
+    self._dp, self._old_updates, self.info = self.update_fn(
+                                             ^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/utils/timing.py", line 292, in timed_function
+    result = fun(*args, **kwargs)  # type: ignore[misc]
+             ^^^^^^^^^^^^^^^^^^^^
+jaxlib._jax.XlaRuntimeError: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 13166242808 bytes.
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.

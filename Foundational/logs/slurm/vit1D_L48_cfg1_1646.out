@@ -1,0 +1,28 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Mode local, 1 device(s)
+Config [1] : small_d32_l2_h4_b1_s128_h7
+Configuration : 896 samples, 1 GPU(s), 896 samples/GPU, chunk_size=8
+Nombre de configs : 7 (une par h0, sans désordre)
+Run dir : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-04-09_11-24-10
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:22<?, ?it/s, Energy=-35.1+0.1j ± 1.6 [σ²=1.8e+02]]  0%|          | 0/600 [00:22<?, ?it/s, Energy=-35.1+0.1j ± 1.6 [σ²=1.8e+02]]
+Package 'netket_foundational' is not installed, so you may not be able to reload this.
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_sans_desordre_test_vit.py", line 341, in <module>
+    gs.run(
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 452, in run
+    raise error
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 440, in run
+    callbacks.on_step_end(self.step_count, step_log_data, self)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/callbacks/callback_list.py", line 52, in on_step_end
+    callback.on_step_end(step, log_data, driver)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_sans_desordre_test_vit.py", line 294, in on_step_end
+    driver.state.save(path)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py", line 581, in save
+    _save({"state": self}, fileobj)
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/nqxpack/_src/api.py", line 90, in save
+    data = orjson.dumps(object_json, option=orjson_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: Type is not JSON serializable: numpy.float64

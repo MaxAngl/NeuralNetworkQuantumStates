@@ -223,7 +223,7 @@ class ReplicaLogger(AbstractCallback):
         self.energies = []
         self.variances = []
         
-    def __call__(self, step, log_data, driver):
+    def on_step_end(self, step, log_data, driver):
         if step % self.eval_every != 0:
             return True
             
@@ -399,118 +399,124 @@ with open(os.path.join(run_dir, "meta.json"), 'w') as f:
 # ==========================================
 # 4. PLOTS ET ANALYSE FINALE
 # ==========================================
-# Correction : on utilise nkpd au lieu de mpi
 if nkpd.is_master_process():
-    print('Analyse finale et génération des graphiques MCMC...')
+    print('Analyse finale et génération des graphiques...')
     train_results = {"v_score": [], "r_hat": []}
 
     for r in tqdm(range(total_configs_train)):
         pars = params_list[r]
         _vs = vs.get_state(pars)
-        
         vs_mc = nk.vqs.MCState(
-            sampler=nk.sampler.MetropolisLocal(hi, n_chains=16), 
-            model=_vs.model, variables=_vs.variables, 
+            sampler=nk.sampler.MetropolisLocal(hi, n_chains=16),
+            model=_vs.model, variables=_vs.variables,
             n_samples=1024, chunk_size=64
         )
-        
-        # Nouveau code sécurisé (Lazy evaluation) :
         H_op = create_operator(pars)
-        
-        # On passe directement l'opérateur "Lazy" à expect() 
-        # Si ça plante encore ici, on peut extraire manuellement les stats :
         stats = vs_mc.expect(H_op)
-        
-        # Récupération sécurisée des valeurs
         mean_val = float(np.real(stats.Mean))
         var_val = float(stats.variance)
         rhat_val = float(getattr(stats, 'R_hat', np.nan))
-        
         train_results["v_score"].append(var_val / (mean_val**2 + 1e-12))
         train_results["r_hat"].append(rhat_val)
+
     v_train = np.array(train_results["v_score"])
     r_train = np.array(train_results["r_hat"])
 
-    # Sauvegarde CSV
     h_mean_train_full = []
-    for h_val in h0_train_list: h_mean_train_full.extend([h_val] * (n_replicas + 1))
-    
+    for h_val in h0_train_list:
+        h_mean_train_full.extend([h_val] * (n_replicas + 1))
+
     df_train = pd.DataFrame({
-        "h_mean": h_mean_train_full[:len(v_train)], 
+        "h_mean": h_mean_train_full[:len(v_train)],
         "v_score": v_train, "r_hat": r_train
     })
     df_train.to_csv(os.path.join(run_dir, "train_results.csv"), index=False)
 
-    # --- PLOT A : Grille de Convergence V-score (Basé sur les .npy du Callback) ---
-    num_h0 = len(h0_train_list)
-    cols = 3
-    rows = (num_h0 + cols - 1) // cols
-    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 4), squeeze=False)
-    colors = plt.cm.viridis(np.linspace(0, 0.9, num_h0))
+    colors = plt.cm.viridis(np.linspace(0, 0.9, len(h0_train_list)))
 
-    try:
-        # On charge les historiques sauvegardés par notre ReplicaLogger
-        hist_iters = np.load(os.path.join(run_dir, "replica_iters.npy"))
-        hist_energies = np.load(os.path.join(run_dir, "replica_energies.npy"))
-        hist_variances = np.load(os.path.join(run_dir, "replica_variances.npy"))
-        
-        for idx, h0 in enumerate(h0_train_list):
-            ax = axes[idx // cols, idx % cols]
-            c = colors[idx]
-            start_idx = idx * (n_replicas + 1)
-            end_idx = start_idx + (n_replicas + 1)
-            
-            for rep_i in range(start_idx, end_idx):
-                rep_energies = hist_energies[:, rep_i]
-                rep_variances = hist_variances[:, rep_i]
-                
-                v_scores = rep_variances / (rep_energies**2 + 1e-12)
-                ax.plot(hist_iters, v_scores, alpha=0.4, linewidth=1.0, color=c)
-                
-            ax.set_yscale('log')
-            ax.set_title(rf"$h_0 = {h0}$", color=c, fontweight='bold')
-            ax.set_xlabel("Iteration")
-            ax.set_ylabel(r"V-score $Var(E)/E^2$")
-            ax.grid(True, which="both", ls="--", alpha=0.3)
-
-    except FileNotFoundError:
-        print("⚠️ Fichiers .npy introuvables. Le tracé de la grille de convergence a été ignoré.")
-
-    for idx in range(num_h0, rows * cols): fig.delaxes(axes[idx // cols, idx % cols])
-    plt.tight_layout()
-    plt.savefig(os.path.join(run_dir, f"vscore_convergence_grid_L={L}.pdf"))
-    plt.clf()
-
-    # --- PLOT B : Scatter plot V-score ---
+    # --- PLOT 1 : Scatter V-score (post-train MC) ---
     plt.figure(figsize=(10, 6))
-    plt.scatter(df_train["h_mean"], df_train["v_score"], alpha=0.3, color='royalblue', marker='^', label='Train Replicas')
+    plt.scatter(df_train["h_mean"], df_train["v_score"], alpha=0.3, color='royalblue', marker='^', label='Réplicas train')
     mean_vscores = df_train.groupby("h_mean")["v_score"].mean().reset_index()
-    plt.plot(mean_vscores["h_mean"], mean_vscores["v_score"], marker='s', linestyle='--', color='mediumblue', label='Train Mean', markersize=7)
+    plt.plot(mean_vscores["h_mean"], mean_vscores["v_score"], marker='s', linestyle='--', color='mediumblue', label='Moyenne train', markersize=7)
     plt.yscale('log')
-    plt.xlabel(r"Transverse Field $h_0$", fontsize=12)
-    plt.ylabel(r"V-score (MC) $\left( Var(E)/E^2 \right)$", fontsize=12)
-    plt.title(f"Accuracy Landscape (MC Est.): V-score (L={L})", fontsize=14)
+    plt.xlabel(r"Champ transverse $h_0$", fontsize=12)
+    plt.ylabel(r"V-score $Var(E)/E^2$", fontsize=12)
+    plt.title(f"V-score post-train (L={L})", fontsize=14)
     plt.grid(True, which='both', ls='--', alpha=0.4)
     plt.legend(fontsize=11)
     plt.tight_layout()
     plt.savefig(os.path.join(run_dir, f"vscore_scatter_L={L}.pdf"))
     plt.clf()
 
-    # --- PLOT C : Scatter plot R-hat ---
+    # --- PLOT 2 : Scatter R-hat (post-train MC) ---
     plt.figure(figsize=(10, 6))
-    plt.scatter(df_train["h_mean"], df_train["r_hat"], alpha=0.3, color='royalblue', marker='^', label='Train Replicas')
+    plt.scatter(df_train["h_mean"], df_train["r_hat"], alpha=0.3, color='royalblue', marker='^', label='Réplicas train')
     mean_rhats = df_train.groupby("h_mean")["r_hat"].mean().reset_index()
-    plt.plot(mean_rhats["h_mean"], mean_rhats["r_hat"], marker='s', linestyle='--', color='darkblue', label='Train Mean', markersize=7)
-    
-    plt.axhline(y=1.05, color='black', linestyle=':', linewidth=2, label='Convergence Threshold (1.05)')
-    
-    plt.xlabel(r"Transverse Field $h_0$", fontsize=12)
+    plt.plot(mean_rhats["h_mean"], mean_rhats["r_hat"], marker='s', linestyle='--', color='darkblue', label='Moyenne train', markersize=7)
+    plt.xlabel(r"Champ transverse $h_0$", fontsize=12)
     plt.ylabel(r"Gelman-Rubin $\hat{R}$", fontsize=12)
-    plt.title(f"Convergence Diagnostics ($\hat{{R}}$): Train only (L={L})", fontsize=14)
+    plt.title(rf"$\hat{{R}}$ post-train (L={L})", fontsize=14)
     plt.grid(True, which='both', ls='--', alpha=0.4)
     plt.legend(fontsize=11)
     plt.tight_layout()
     plt.savefig(os.path.join(run_dir, f"rhat_scatter_L={L}.pdf"))
     plt.clf()
 
-    print("✅ Run terminé à 100%. Graphiques et CSV générés avec succès !")
+    # --- PLOT 3 : Convergence de l'énergie (loss) avec zoom sur les 100 dernières itérations ---
+    try:
+        log_file = os.path.join(run_dir, "log_data.json.log")
+        with open(log_file, 'r') as f:
+            raw_log = json.load(f)
+        energy_iters = np.array(raw_log["Energy"]["iters"])
+        energy_mean  = np.array(raw_log["Energy"]["Mean"]["real"])
+
+        fig, (ax_main, ax_zoom) = plt.subplots(1, 2, figsize=(14, 5))
+
+        ax_main.plot(energy_iters, energy_mean, color='royalblue', linewidth=1.2)
+        ax_main.set_xlabel("Itération", fontsize=12)
+        ax_main.set_ylabel(r"$\langle E \rangle$", fontsize=12)
+        ax_main.set_title(f"Convergence de l'énergie (L={L})", fontsize=13)
+        ax_main.grid(True, ls='--', alpha=0.4)
+
+        n_zoom = min(100, len(energy_iters))
+        ax_zoom.plot(energy_iters[-n_zoom:], energy_mean[-n_zoom:], color='orangered', linewidth=1.2)
+        ax_zoom.set_xlabel("Itération", fontsize=12)
+        ax_zoom.set_ylabel(r"$\langle E \rangle$", fontsize=12)
+        ax_zoom.set_title(f"Zoom — {n_zoom} dernières itérations", fontsize=13)
+        ax_zoom.grid(True, ls='--', alpha=0.4)
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(run_dir, f"energy_convergence_L={L}.pdf"))
+        plt.clf()
+    except (FileNotFoundError, KeyError) as e:
+        print(f"⚠️ Plot de convergence d'énergie ignoré : {e}")
+
+    # --- PLOT 4 : Toutes les courbes de V-score vs step (une courbe par h0, moyennée sur les réplicas) ---
+    try:
+        hist_iters     = np.load(os.path.join(run_dir, "replica_iters.npy"))
+        hist_energies  = np.load(os.path.join(run_dir, "replica_energies.npy"))
+        hist_variances = np.load(os.path.join(run_dir, "replica_variances.npy"))
+
+        plt.figure(figsize=(12, 6))
+        for idx, h0 in enumerate(h0_train_list):
+            start_idx = idx * (n_replicas + 1)
+            end_idx   = start_idx + (n_replicas + 1)
+            rep_e = hist_energies[:, start_idx:end_idx]
+            rep_v = hist_variances[:, start_idx:end_idx]
+            v_scores_mean = (rep_v / (rep_e**2 + 1e-12)).mean(axis=1)
+            plt.plot(hist_iters, v_scores_mean, color=colors[idx], linewidth=1.5, label=rf"$h_0={h0}$")
+
+        plt.yscale('log')
+        plt.xlabel("Optimization step", fontsize=12)
+        plt.ylabel(r"V-score moyen $\langle Var(E)/E^2 \rangle$", fontsize=12)
+        plt.title(f"Convergence du V-score par $h_0$ (L={L})", fontsize=13)
+        plt.legend(fontsize=8, ncol=3, loc='upper right')
+        plt.grid(True, which='both', ls='--', alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(os.path.join(run_dir, f"vscore_convergence_all_L={L}.pdf"))
+        plt.clf()
+    except FileNotFoundError:
+        print("⚠️ Fichiers .npy introuvables. Le tracé de convergence du V-score a été ignoré.")
+
+    print("✅ Run terminé. 4 graphiques générés avec succès !")

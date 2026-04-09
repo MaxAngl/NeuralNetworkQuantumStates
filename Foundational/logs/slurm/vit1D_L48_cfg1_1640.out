@@ -1,0 +1,7 @@
+W0409 11:22:34.336094 2169050 cuda_executor.cc:1802] GPU interconnect information not available: INTERNAL: NVML doesn't support extracting fabric info or NVLink is not used by the device.
+W0409 11:22:34.341745 2168982 cuda_executor.cc:1802] GPU interconnect information not available: INTERNAL: NVML doesn't support extracting fabric info or NVLink is not used by the device.
+Mode local, 1 device(s)
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_sans_desordre_test_vit.py", line 28, in <module>
+    import netket as nk
+ModuleNotFoundError: No module named 'netket'

@@ -1,0 +1,14 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+=== Binder IS 2D — L=10, N_DISORDER=100 ===
+Run dir : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=10
+Checkpoint : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=10/state_590.nk
+Poids chargés.
+JIT compilé.
+Samples chargés : 25 points h0, h0 ∈ [2.800, 3.300]
+h0 (L=10):   0%|          | 0/25 [00:00<?, ?it/s]h0 (L=10):   4%|▍         | 1/25 [02:42<1:05:04, 162.69s/it]h0 (L=10):   8%|▊         | 2/25 [05:26<1:02:38, 163.42s/it]h0 (L=10):  12%|█▏        | 3/25 [08:10<1:00:00, 163.64s/it]h0 (L=10):  16%|█▌        | 4/25 [10:54<57:18, 163.74s/it]  h0 (L=10):  20%|██        | 5/25 [13:38<54:35, 163.79s/it]h0 (L=10):  24%|██▍       | 6/25 [16:22<51:52, 163.83s/it]h0 (L=10):  28%|██▊       | 7/25 [19:06<49:09, 163.85s/it]h0 (L=10):  32%|███▏      | 8/25 [21:49<46:25, 163.86s/it]h0 (L=10):  36%|███▌      | 9/25 [24:33<43:41, 163.86s/it]h0 (L=10):  40%|████      | 10/25 [27:17<40:58, 163.88s/it]h0 (L=10):  44%|████▍     | 11/25 [30:01<38:14, 163.90s/it]h0 (L=10):  48%|████▊     | 12/25 [32:45<35:30, 163.90s/it]h0 (L=10):  52%|█████▏    | 13/25 [35:29<32:46, 163.90s/it]h0 (L=10):  56%|█████▌    | 14/25 [38:13<30:02, 163.90s/it]h0 (L=10):  60%|██████    | 15/25 [40:57<27:19, 163.90s/it]h0 (L=10):  64%|██████▍   | 16/25 [44:11<25:56, 172.98s/it]h0 (L=10):  68%|██████▊   | 17/25 [47:17<23:36, 177.07s/it]h0 (L=10):  72%|███████▏  | 18/25 [50:11<20:32, 176.06s/it]h0 (L=10):  76%|███████▌  | 19/25 [53:05<17:32, 175.36s/it]h0 (L=10):  80%|████████  | 20/25 [55:57<14:32, 174.44s/it]h0 (L=10):  84%|████████▍ | 21/25 [1:00:02<13:02, 195.52s/it]h0 (L=10):  88%|████████▊ | 22/25 [1:04:03<10:28, 209.35s/it]h0 (L=10):  92%|█████████▏| 23/25 [1:08:08<07:19, 219.90s/it]h0 (L=10):  96%|█████████▌| 24/25 [1:12:13<03:47, 227.43s/it]h0 (L=10): 100%|██████████| 25/25 [1:16:18<00:00, 232.70s/it]h0 (L=10): 100%|██████████| 25/25 [1:16:18<00:00, 183.14s/it]
+
+Temps total : 4578.5s (76.3 min)
+Sauvegardé : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=10/binder_data_2D_L10.npz
+  mz2_raw shape : (7, 25, 100)
+  Taille fichier estimée : 0.4 MB

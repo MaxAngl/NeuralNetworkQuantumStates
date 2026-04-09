@@ -1,0 +1,54 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:409: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(self.n_samples, chunk_size)
+Mode local, 1 device(s)
+Config [1] : small_d32_l2_h4_b1_s128_h7
+Configuration : 896 samples, 1 GPU(s), 896 samples/GPU, chunk_size=8
+Nombre de configs : 7 (une par h0, sans désordre)
+Run dir : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/run_2026-04-09_11-26-16
+  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:00<?, ?it/s]  0%|          | 0/600 [00:25<?, ?it/s, Energy=-35.1+0.1j ± 1.6 [σ²=1.8e+02]]  0%|          | 0/600 [00:26<?, ?it/s, Energy=-35.1+0.1j ± 1.6 [σ²=1.8e+02]]
+Traceback (most recent call last):
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_sans_desordre_test_vit.py", line 341, in <module>
+    gs.run(
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 452, in run
+    raise error
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/driver/abstract_variational_driver.py", line 440, in run
+    callbacks.on_step_end(self.step_count, step_log_data, self)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/advanced_drivers/_src/callbacks/callback_list.py", line 52, in on_step_end
+    callback.on_step_end(step, log_data, driver)
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/train_fonctionnels/1D_sans_desordre_test_vit.py", line 243, in on_step_end
+    mc_vs = nk.vqs.MCState(
+            ^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 96, in _fun
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/vqs/mc/mc_state/state.py", line 301, in __init__
+    self.sampler = sampler
+    ^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/packages/netket_pro/_src/monkeypatch/util.py", line 133, in _fun
+    return bare_fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/vqs/mc/mc_state/state.py", line 387, in sampler
+    self.sampler_state = self.sampler.init_state(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/sampler/base.py", line 254, in init_state
+    return self._init_state(wrap_afun(machine), parameters, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/netket/sampler/metropolis.py", line 360, in _init_state
+    output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/nn/instance_wrapper.py", line 36, in __call__
+    return self.module(x_physical)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/model/vit.py", line 224, in __call__
+    coups = jnp.broadcast_to(coups, x.shape)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/lax_numpy.py", line 3070, in broadcast_to
+    return util._broadcast_to(array, shape, sharding=out_sharding)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/eleves-b/2024/nathan.dupuy/miniconda3/envs/netket_env/lib/python3.11/site-packages/jax/_src/numpy/util.py", line 292, in _broadcast_to
+    raise ValueError(msg.format(arr_shape, shape))
+ValueError: Incompatible shapes for broadcasting: (4, 48) and requested shape (4, 96)
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
