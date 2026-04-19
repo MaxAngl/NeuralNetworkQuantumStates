@@ -7,7 +7,7 @@ if 'SLURM_NTASKS' in os.environ and int(os.environ['SLURM_NTASKS']) > 1:
     node_list = os.environ.get('SLURM_STEP_NODELIST', os.environ.get('SLURM_JOB_NODELIST', ''))
     first_node = re.match(r'([a-z][-a-z]*)', node_list).group(1)
     jax.distributed.initialize(
-        coordinator_address=f'{first_node}:1234',
+        coordinator_address=f"{first_node}:29500",
         num_processes=int(os.environ['SLURM_NTASKS']),
         process_id=int(os.environ['SLURM_PROCID']),
     )
@@ -60,9 +60,13 @@ k = jax.random.key(seed)
 
 # --- PARAMÈTRES PHYSIQUES ---
 L = int(sys.argv[1]) if len(sys.argv) > 1 else 48
-n_iter = 600
+n_iter = 500
 
-h0_train_list = [0.1, 0.4, 0.7, 0.8, 0.85, 0.9, 0.93, 0.95, 0.97, 1.0, 1.03, 1.05, 1.1, 1.2, 1.5, 2.5, 4.0]
+# Grille h0 : large [0.8,1.2] + fine [0.97,1.03]
+h0_wide_low = [0.8]
+h0_fine = list(np.linspace(0.97, 1.03, 8))
+h0_wide_high = [1.2]
+h0_train_list = sorted(set([float(round(x,4)) for x in h0_wide_low + h0_fine + h0_wide_high]))
 sigma_disorder = 0.1 
 J_val = 1.0    
 n_replicas = 20                             # Nombre de réalisations de désordre
@@ -105,8 +109,8 @@ vit_params = {
     "num_layers": 4,
     "d_model": 60,
     "heads": 10,
-    "b": 4,
-    "L_eff": L//4,  #L/b
+    "b": 1,
+    "L_eff": L,  # b=1 donc L_eff=L
 }
 
 # ==========================================

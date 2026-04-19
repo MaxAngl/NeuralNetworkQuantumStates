@@ -1,3 +1,4 @@
+from functools import partial
 """
 Fidelity susceptibility chi_F vs h0 pour FNQS 2D.
 chi_F = (1 - |<psi(h0)|psi(h0+delta)>|^2) / delta^2
@@ -50,7 +51,7 @@ n_spins = meta.get("nb_spins", L)
 vit_params = meta["vit_config"]
 sigma = meta["hamiltonian"]["sigma"]
 
-print(f"System: {n_spins} spins, {2D if IS_2D else 1D}, L={L}, sigma={sigma}")
+print(f"System: {n_spins} spins, {'2D' if IS_2D else '1D'}, L={L}, sigma={sigma}")
 
 # --- INITIALISATION ---
 hi = nk.hilbert.Spin(0.5, n_spins)
@@ -95,7 +96,7 @@ vs.variables = flax.serialization.from_state_dict(vs.variables, vars_dict)
 # x = [spins, hvals] concatenes
 # Pour l overlap croise: on garde les spins d un etat mais on injecte les hvals de l autre
 
-@jax.jit
+@partial(jax.jit, static_argnums=(3,))
 def compute_fidelity(variables, samples_base, samples_shift, n_spins):
     """
     F = |<psi_base|psi_shift>|^2 via MC.
@@ -172,7 +173,7 @@ else:
     plt.axvline(x=1.0, color="gray", ls="--", alpha=0.5, label=r"$h_c = 1.0$")
 plt.xlabel(r"Transverse field $h_0$", fontsize=13)
 plt.ylabel(r"Fidelity susceptibility $\chi_F$", fontsize=13)
-plt.title(f"Fidelity Susceptibility ($\sigma={sigma}$) — {2D if IS_2D else 1D} L={L} ({n_spins} spins)")
+plt.title(f"Fidelity Susceptibility ($\sigma={sigma}$) — {'2D' if IS_2D else '1D'} L={L} ({n_spins} spins)")
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.tight_layout()

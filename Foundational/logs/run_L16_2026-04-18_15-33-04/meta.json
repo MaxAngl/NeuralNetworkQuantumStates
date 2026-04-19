@@ -1,0 +1,52 @@
+{
+    "L": 16,
+    "graph": "Hypercube 1D",
+    "n_dim": 1,
+    "pbc": true,
+    "hamiltonian": {
+        "type": "Ising Gaussian Disorder",
+        "J": 1.0,
+        "h0_range": [
+            0.8,
+            1.2
+        ],
+        "n_h0": 121,
+        "sigma_disorder": 0.1
+    },
+    "model": "ViTFNQS",
+    "vit_config": {
+        "num_layers": 4,
+        "d_model": 60,
+        "heads": 10,
+        "b": 2,
+        "L_eff": 8
+    },
+    "architecture_summary": {
+        "input": "concat([sigma, gamma]) de taille 2*16=32",
+        "patches": "16 patches de taille b=1 (spin) + b=1 (coupling)",
+        "embedding": "2 matrices s\u00e9par\u00e9es \u211d^1 \u2192 \u211d^30, concat\u00e9n\u00e9es \u2192 \u211d^60",
+        "transformer": "4 couches, 10 t\u00eates (dim/t\u00eate=6)",
+        "output": "somme des 16 vecteurs \u2192 dense \u2192 \u2102",
+        "translational_invariance": false
+    },
+    "sampler": {
+        "type": "MetropolisGlobalFlip",
+        "n_chains": 2541,
+        "n_samples": 10164,
+        "prob_global_flip": 0.05
+    },
+    "optimizer": {
+        "type": "SGD + SR (CG solver)",
+        "lr_init": 0.03,
+        "lr_end": 0.005,
+        "diag_shift": 0.0002,
+        "use_ntk": true
+    },
+    "n_iter": 1000,
+    "n_replicas_per_h0": 20,
+    "total_configs_train": 2541,
+    "M_total": 10164,
+    "M_per_system": 4.0,
+    "seed": 1,
+    "execution_time_seconds": 6332.92582988739
+}

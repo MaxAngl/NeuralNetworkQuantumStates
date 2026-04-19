@@ -2,19 +2,9 @@
 Script unifie d'importance sampling pour FNQS 1D et 2D.
 
 Usage:
-    python importance_sampling.py --dim <1|2> --L <taille> [--chunk CHUNK_ID] [--nchunks N_CHUNKS]
-                                  [--nsamples N] [--nchains N] [--burnin N] [--ndisorder N] [--ntrials N]
-                                  [--run-dir PATH] [--h0-grid 1d|2d|custom]
-
-Exemples:
-    # 1D, L=49, pas de chunking
-    python importance_sampling.py --dim 1 --L 49
-
-    # 2D, L=8, chunk 3 sur 20
-    python importance_sampling.py --dim 2 --L 8 --chunk 3 --nchunks 20
-
-    # 1D, L=25, burn-in court
-    python importance_sampling.py --dim 1 --L 25 --burnin 100 --chunk 0 --nchunks 20
+    python importance_sampling.py --dim 1 --L 48
+    python importance_sampling.py --dim 1 --L 48 --chunk 3 --nchunks 20
+    python importance_sampling.py --dim 2 --L 8 --chunk 0 --nchunks 20
 """
 import os
 import sys
@@ -36,13 +26,11 @@ import flax
 import zipfile
 from tqdm import tqdm
 
-# ==========================================
 # GRILLES H0 PRE-DEFINIES
-# ==========================================
 H0_GRID_1D = sorted(set(
-    [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]  # loin de la transition
-    + [round(0.7 + i * 0.02, 3) for i in range(31)]  # [0.7, 1.3] pas de 0.02 = 31 pts
-    + [1.4, 1.5, 1.7, 2.0, 3.0, 4.0, 5.0]  # loin de la transition
+    [0.3, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75]  # loin de la transition
+    + [round(0.8 + i * 0.005, 4) for i in range(81)]  # [0.8, 1.2] pas de 0.005 = 81 pts
+    + [1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.7, 2.0]  # loin de la transition
 ))
 
 H0_GRID_2D = [
@@ -55,42 +43,36 @@ H0_GRID_2D = [
 
 SIGMA_TEST_LIST = [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
 
-# ==========================================
 # CHEMINS PAR DEFAUT
-# ==========================================
-PROJECT_ROOT = r"/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3"
+PROJECT_ROOT = r"/users/eleves-a/2024/max.anglade/Documents/NeuralNetworkQuantumStates"
 RUN_DIR_1D = os.path.join(PROJECT_ROOT, "Foundational/logs/Trains_finaux_disordered_1D/run_L={L}")
 RUN_DIR_2D = os.path.join(PROJECT_ROOT, "Foundational/rami_perso/2D_FNQS/Run_2D_L{L}_FNQS")
 
-# ==========================================
-# PARSING ARGUMENTS
-# ==========================================
+# PARAMETRES FIXES (modifier ici)
+N_SAMPLES_IS = 16384       # Nombre de samples IS
+N_CHAINS_IS = 256           # Nombre de chaines MCMC
+BURN_IN = None              # Burn-in par chaine (None = auto)
+N_DISORDER = 80             # Nombre de realisations de desordre
+N_MCMC_TRIALS = 3           # Nombre de tirages MCMC best-of
+PROB_GLOBAL_FLIP = None     # Probabilite global flip (None = depuis meta.json ou 0.08)
+
+# ARGUMENTS (seuls ceux qui changent)
 parser = argparse.ArgumentParser(description="Importance Sampling pour FNQS 1D/2D")
-parser.add_argument("--dim", type=int, required=True, choices=[1, 2], help="Dimension (1 ou 2)")
-parser.add_argument("--L", type=int, required=True, help="Taille lineaire du systeme")
-parser.add_argument("--chunk", type=int, default=0, help="Index du chunk (defaut: 0)")
-parser.add_argument("--nchunks", type=int, default=1, help="Nombre total de chunks (defaut: 1)")
-parser.add_argument("--nsamples", type=int, default=16384, help="Nombre de samples IS (defaut: 16384)")
-parser.add_argument("--nchains", type=int, default=256, help="Nombre de chaines MCMC (defaut: 256)")
-parser.add_argument("--burnin", type=int, default=None, help="Burn-in par chaine (defaut: auto)")
-parser.add_argument("--ndisorder", type=int, default=80, help="Nombre de realisations de desordre (defaut: 80)")
-parser.add_argument("--ntrials", type=int, default=3, help="Nombre de tirages MCMC best-of (defaut: 3)")
-parser.add_argument("--run-dir", type=str, default=None, help="Chemin du run (defaut: auto)")
-parser.add_argument("--h0-grid", type=str, default=None, help="Grille h0: '1d', '2d', ou chemin vers fichier")
-parser.add_argument("--prob-flip", type=float, default=None, help="Probabilite global flip (defaut: depuis meta.json ou 0.08)")
+parser.add_argument("--dim", type=int, required=True, choices=[1, 2])
+parser.add_argument("--L", type=int, required=True)
+parser.add_argument("--chunk", type=int, default=0)
+parser.add_argument("--nchunks", type=int, default=1)
+parser.add_argument("--run-dir", type=str, default=None)
+parser.add_argument("--h0-min", type=float, default=None, help="h0 min (filtre la grille)")
+parser.add_argument("--h0-max", type=float, default=None, help="h0 max (filtre la grille)")
 args = parser.parse_args()
 
-# ==========================================
 # CONFIGURATION
-# ==========================================
 DIM = args.dim
 L = args.L
 CHUNK_ID = args.chunk
 N_CHUNKS = args.nchunks
-N_SAMPLES_IS = args.nsamples
-n_chains_is = args.nchains
-N_DISORDER = args.ndisorder
-N_MCMC_TRIALS = args.ntrials
+n_chains_is = N_CHAINS_IS
 
 # Run directory
 if args.run_dir:
@@ -101,17 +83,19 @@ else:
     RUN_DIR = RUN_DIR_2D.format(L=L)
 
 # Grille h0
-if args.h0_grid == "1d" or (args.h0_grid is None and DIM == 1):
+if DIM == 1:
     H0_TEST_LIST = H0_GRID_1D
-elif args.h0_grid == "2d" or (args.h0_grid is None and DIM == 2):
-    H0_TEST_LIST = H0_GRID_2D
 else:
-    H0_TEST_LIST = list(np.loadtxt(args.h0_grid))
+    H0_TEST_LIST = H0_GRID_2D
 
-# ==========================================
+# Filtre h0 range si specifie
+if args.h0_min is not None or args.h0_max is not None:
+    h0_lo = args.h0_min if args.h0_min is not None else -np.inf
+    h0_hi = args.h0_max if args.h0_max is not None else np.inf
+    H0_TEST_LIST = [h for h in H0_TEST_LIST if h0_lo <= h <= h0_hi]
+    print(f"Filtre h0: [{h0_lo}, {h0_hi}] -> {len(H0_TEST_LIST)} points")
+
 # SETUP ET CHARGEMENT
-# ==========================================
-sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "Foundational"))
 from flip_rules import GlobalFlipRule
 
@@ -132,14 +116,14 @@ else:
 vit_params = meta["vit_config"]
 
 # Prob global flip
-if args.prob_flip is not None:
-    prob_global_flip = args.prob_flip
+if PROB_GLOBAL_FLIP is not None:
+    prob_global_flip = PROB_GLOBAL_FLIP
 else:
     prob_global_flip = meta.get("sampler", {}).get("prob_global_flip", 0.08)
 
 # Burn-in auto
-if args.burnin is not None:
-    n_discard_per_chain_is = args.burnin
+if BURN_IN is not None:
+    n_discard_per_chain_is = BURN_IN
 elif DIM == 2:
     n_discard_per_chain_is = 100 if L <= 5 else 300
 else:
@@ -186,9 +170,7 @@ vars_dict = state_dict.get('variables', state_dict.get('model', {}).get('variabl
 vs.variables = flax.serialization.from_state_dict(vs.variables, vars_dict)
 print("Poids charges.")
 
-# ==========================================
 # Helper
-# ==========================================
 _nn_params = vs.parameters
 
 def _make_vars(pars):
@@ -197,9 +179,7 @@ def _make_vars(pars):
         "params": _nn_params,
     }
 
-# ==========================================
 # IMPORTANCE SAMPLING — BEST OF N_MCMC_TRIALS
-# ==========================================
 _init_vars = _make_vars(np.zeros(nb_spins))
 _vs_init = vs.get_state(np.zeros(nb_spins))
 
@@ -215,9 +195,7 @@ mc_is = nk.vqs.MCState(
 
 _apply_fn = jax.jit(mc_is.model.apply)
 
-# ==========================================
 # BOUCLE PRINCIPALE
-# ==========================================
 all_h0_indices = list(range(len(H0_TEST_LIST)))
 chunk_indices = np.array_split(all_h0_indices, N_CHUNKS)[CHUNK_ID].tolist()
 print(f"\nChunk {CHUNK_ID}/{N_CHUNKS}: h0 indices {chunk_indices[0]}-{chunk_indices[-1]} ({len(chunk_indices)} points)")
@@ -300,6 +278,15 @@ for i_chunk, idx_h in enumerate(tqdm(chunk_indices, desc=f"h0 sweep (chunk {CHUN
     samples_store[i_chunk]     = np.array(samples_flat, dtype=np.float32)
     log_psi_ref_store[i_chunk] = np.array(jnp.real(log_psi_ref), dtype=np.float32)
     h_ref_store[i_chunk]       = pars_ref.astype(np.float32)
+    # Sauvegarder les samples pour réutilisation (QFI, etc.)
+    samples_dir = os.path.join(RUN_DIR, "is_samples")
+    os.makedirs(samples_dir, exist_ok=True)
+    np.savez_compressed(
+        os.path.join(samples_dir, f"samples_h0={h0:.4f}.npz"),
+        samples=np.array(samples_flat),
+        log_psi_ref=np.array(log_psi_ref),
+        h0=h0,
+    )
 
     for idx_s, sigma in enumerate(SIGMA_TEST_LIST):
         if sigma == 0.0:
@@ -324,9 +311,7 @@ for i_chunk, idx_h in enumerate(tqdm(chunk_indices, desc=f"h0 sweep (chunk {CHUN
 
 t_total = time.time() - t_total_start
 
-# ==========================================
 # SAUVEGARDE
-# ==========================================
 prefix = f"is_data_{dim_label}_L{L}"
 if N_CHUNKS > 1:
     output_path = os.path.join(RUN_DIR, f"{prefix}_chunk{CHUNK_ID}.npz")
@@ -383,9 +368,7 @@ np.savez(
 )
 print(f"Echantillons sauvegardes: {samples_path}")
 
-# ==========================================
 # RESUME
-# ==========================================
 print("\n" + "="*70)
 print(f"Temps total: {t_total:.1f}s")
 print(f"ESS moyen: {np.nanmean(ess_raw):.0f} / {N_SAMPLES_IS}")
