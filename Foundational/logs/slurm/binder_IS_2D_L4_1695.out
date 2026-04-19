@@ -1,0 +1,9 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+=== Binder IS 2D — L=4, N_DISORDER=100 ===
+Run dir : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=4
+Checkpoint : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=4/state_590.nk
+Poids chargés.
+JIT compilé.
+Samples chargés : 25 points h0, h0 ∈ [2.800, 3.300]
+h0 (L=4):   0%|          | 0/25 [00:00<?, ?it/s]h0 (L=4):   4%|▍         | 1/25 [00:40<16:09, 40.41s/it]h0 (L=4):   8%|▊         | 2/25 [01:19<15:11, 39.62s/it][2026-04-11T16:45:45.215] error: *** JOB 1695 ON bengali CANCELLED AT 2026-04-11T16:45:45 DUE to SIGNAL Terminated ***

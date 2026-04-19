@@ -1,0 +1,9 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+=== Binder IS 2D — L=10, N_DISORDER=100 ===
+Run dir : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=10
+Checkpoint : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=10/state_590.nk
+Poids chargés.
+JIT compilé.
+Samples chargés : 25 points h0, h0 ∈ [2.800, 3.300]
+h0 (L=10):   0%|          | 0/25 [00:00<?, ?it/s][2026-04-11T16:45:45.215] error: *** JOB 1698 ON coucou CANCELLED AT 2026-04-11T16:45:45 DUE to SIGNAL Terminated ***

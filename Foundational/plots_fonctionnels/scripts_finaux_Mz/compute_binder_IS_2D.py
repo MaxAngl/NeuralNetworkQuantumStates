@@ -61,10 +61,24 @@ SEED       = args.seed
 BASE_2D = os.path.join(PROJECT, "Foundational/logs/Trains_autour_transi_2D")
 RUN_DIR = args.run_dir or os.path.join(BASE_2D, f"L={L}")
 
-SIGMA_GRID = np.array([0., 0.05, 0.1, 0.15, 0.2, 0.3, 0.5])
+SIGMA_GRID_FULL = np.array([0., 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.7, 0.9, 1.0])
 
 print(f"=== Binder IS 2D — L={L}, N_DISORDER={N_DISORDER} ===")
 print(f"Run dir : {RUN_DIR}")
+
+# Charge les données existantes si dispo, et ne calcule que les sigmas manquants
+out_path_check = os.path.join(RUN_DIR, f"binder_data_2D_L{L}.npz")
+existing_data = {}
+if os.path.exists(out_path_check):
+    d = np.load(out_path_check)
+    existing_sigmas = list(d["sigma_grid"])
+    existing_data = dict(d)
+    print(f"Données existantes : sigma={existing_sigmas}")
+else:
+    existing_sigmas = []
+
+SIGMA_GRID = np.array([s for s in SIGMA_GRID_FULL if not any(abs(s - es) < 1e-9 for es in existing_sigmas)])
+print(f"Sigmas à calculer  : {list(SIGMA_GRID)}")
 
 # ==========================================
 # CHARGEMENT DU MODELE
@@ -179,6 +193,7 @@ n_dis_sigma0 = 1
 mz2_raw    = np.full((n_sigma, n_h0, N_DISORDER), np.nan)
 mz4_raw    = np.full((n_sigma, n_h0, N_DISORDER), np.nan)
 binder_raw = np.full((n_sigma, n_h0, N_DISORDER), np.nan)
+ess_raw    = np.full((n_sigma, n_h0, N_DISORDER), np.nan)  # ESS/N_samples ∈ [0,1]
 
 # Pour sigma=0, on n'a qu'une seule réalisation, on la met dans la case 0
 mz2_sigma0    = np.full((n_h0,), np.nan)
@@ -207,6 +222,7 @@ for i_h, idx_h in enumerate(tqdm(h0_indices_sorted, desc=f"h0 (L={L})")):
 
         if sigma == 0.0:
             # Pas de repondération : IS weights = 1
+            N_samp     = mz2_per_sample.shape[0]
             mz2_val    = float(jnp.mean(mz2_per_sample))
             mz4_val    = float(jnp.mean(mz4_per_sample))
             binder_val = 1.0 - mz4_val / (3.0 * mz2_val ** 2)
@@ -214,9 +230,11 @@ for i_h, idx_h in enumerate(tqdm(h0_indices_sorted, desc=f"h0 (L={L})")):
             mz2_raw[i_s, i_h, 0]    = mz2_val
             mz4_raw[i_s, i_h, 0]    = mz4_val
             binder_raw[i_s, i_h, 0] = binder_val
+            ess_raw[i_s, i_h, 0]    = 1.0   # poids uniformes → ESS = N
 
         else:
             # Génère N_DISORDER tirages de désordre
+            N_samp = mz2_per_sample.shape[0]
             noise = rng.normal(loc=0.0, scale=sigma, size=(N_DISORDER, nb_spins))
             h_disorders = np.abs(h0_val + noise)   # (N_DISORDER, nb_spins)
 
@@ -230,6 +248,9 @@ for i_h, idx_h in enumerate(tqdm(h0_indices_sorted, desc=f"h0 (L={L})")):
                 w = jnp.exp(log_w)
                 w_norm = w / jnp.sum(w)
 
+                # ESS = 1/Σw_norm² normalisé par N → ∈ [1/N, 1]
+                ess_ratio = float(1.0 / (N_samp * jnp.sum(w_norm ** 2)))
+
                 mz2_val    = float(jnp.sum(w_norm * mz2_per_sample))
                 mz4_val    = float(jnp.sum(w_norm * mz4_per_sample))
                 binder_val = 1.0 - mz4_val / (3.0 * mz2_val ** 2)
@@ -237,17 +258,54 @@ for i_h, idx_h in enumerate(tqdm(h0_indices_sorted, desc=f"h0 (L={L})")):
                 mz2_raw[i_s, i_h, k]    = mz2_val
                 mz4_raw[i_s, i_h, k]    = mz4_val
                 binder_raw[i_s, i_h, k] = binder_val
+                ess_raw[i_s, i_h, k]    = ess_ratio
 
 elapsed = time.time() - t0
 print(f"\nTemps total : {elapsed:.1f}s ({elapsed/60:.1f} min)")
 
-# Pour sigma=0, répliquer la valeur unique dans toutes les colonnes k>0
-# pour avoir un tableau uniforme (n_sigma, n_h0, N_DISORDER)
-idx_s0 = 0   # sigma=0 est toujours le premier
-for k in range(1, N_DISORDER):
-    mz2_raw[idx_s0, :, k]    = mz2_raw[idx_s0, :, 0]
-    mz4_raw[idx_s0, :, k]    = mz4_raw[idx_s0, :, 0]
-    binder_raw[idx_s0, :, k] = binder_raw[idx_s0, :, 0]
+# Pour sigma=0 (si calculé maintenant), répliquer dans toutes les colonnes k>0
+if len(SIGMA_GRID) > 0 and SIGMA_GRID[0] == 0.0:
+    for k in range(1, N_DISORDER):
+        mz2_raw[0, :, k]    = mz2_raw[0, :, 0]
+        mz4_raw[0, :, k]    = mz4_raw[0, :, 0]
+        binder_raw[0, :, k] = binder_raw[0, :, 0]
+        ess_raw[0, :, k]    = ess_raw[0, :, 0]
+
+# Affichage ESS pour les grandes sigmas
+for i_s, sigma in enumerate(SIGMA_GRID):
+    if sigma >= 0.7:
+        ess_mean = np.nanmean(ess_raw[i_s])
+        ess_min  = np.nanmin(ess_raw[i_s])
+        print(f"  σ={sigma:.1f} : ESS/N moyen={ess_mean:.3f}, min={ess_min:.3f}"
+              f"  ({'OK' if ess_mean > 0.05 else 'ATTENTION bas'})")
+
+# ==========================================
+# FUSION AVEC LES DONNÉES EXISTANTES
+# ==========================================
+if existing_data:
+    old_sigma_grid = existing_data["sigma_grid"]
+    old_mz2    = existing_data["mz2_raw"]
+    old_mz4    = existing_data["mz4_raw"]
+    old_binder = existing_data["binder_raw"]
+    old_ess    = existing_data.get("ess_raw", np.ones_like(old_binder))  # compat anciens fichiers
+
+    # Concatène et retrie par sigma
+    merged_sigma  = np.concatenate([old_sigma_grid, SIGMA_GRID])
+    merged_mz2    = np.concatenate([old_mz2,    mz2_raw],    axis=0)
+    merged_mz4    = np.concatenate([old_mz4,    mz4_raw],    axis=0)
+    merged_binder = np.concatenate([old_binder, binder_raw], axis=0)
+    merged_ess    = np.concatenate([old_ess,    ess_raw],    axis=0)
+
+    sort_idx      = np.argsort(merged_sigma)
+    sigma_grid_out  = merged_sigma[sort_idx]
+    mz2_out         = merged_mz2[sort_idx]
+    mz4_out         = merged_mz4[sort_idx]
+    binder_out      = merged_binder[sort_idx]
+    ess_out         = merged_ess[sort_idx]
+    print(f"Fusion : {list(old_sigma_grid)} + {list(SIGMA_GRID)} → {list(sigma_grid_out)}")
+else:
+    sigma_grid_out = SIGMA_GRID
+    mz2_out, mz4_out, binder_out, ess_out = mz2_raw, mz4_raw, binder_raw, ess_raw
 
 # ==========================================
 # SAUVEGARDE
@@ -256,14 +314,16 @@ out_path = os.path.join(RUN_DIR, f"binder_data_2D_L{L}.npz")
 np.savez(
     out_path,
     h0_grid        = h0_grid_out,
-    sigma_grid     = SIGMA_GRID,
-    mz2_raw        = mz2_raw,      # (n_sigma, n_h0, N_DISORDER)
-    mz4_raw        = mz4_raw,
-    binder_raw     = binder_raw,
+    sigma_grid     = sigma_grid_out,
+    mz2_raw        = mz2_out,      # (n_sigma, n_h0, N_DISORDER)
+    mz4_raw        = mz4_out,
+    binder_raw     = binder_out,
+    ess_raw        = ess_out,      # ESS/N_samples ∈ [0,1]
     N_DISORDER     = N_DISORDER,
     L              = L,
     nb_spins       = nb_spins,
 )
 print(f"Sauvegardé : {out_path}")
-print(f"  mz2_raw shape : {mz2_raw.shape}")
-print(f"  Taille fichier estimée : {3 * mz2_raw.nbytes / 1e6:.1f} MB")
+print(f"  sigma_grid : {list(sigma_grid_out)}")
+print(f"  mz2_raw shape : {mz2_out.shape}")
+print(f"  Taille fichier estimée : {3 * mz2_out.nbytes / 1e6:.1f} MB")

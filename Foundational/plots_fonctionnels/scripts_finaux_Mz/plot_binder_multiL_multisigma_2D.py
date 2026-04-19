@@ -30,7 +30,9 @@ for L in L_LIST:
 if not data:
     raise FileNotFoundError("Aucun fichier binder_data trouvé.")
 
-sigma_grid = data[next(iter(data))]["sigma_grid"]
+# Union de tous les sigmas disponibles (triée)
+all_sigmas = sorted({float(s) for d in data.values() for s in d["sigma_grid"]})
+sigma_grid = np.array(all_sigmas)
 n_sigma    = len(sigma_grid)
 
 # ==========================================
@@ -50,8 +52,12 @@ for i_s, sigma in enumerate(sigma_grid):
     ax = axes_flat[i_s]
 
     for L, d in data.items():
-        h0_grid   = d["h0_grid"]                    # (n_h0,)
-        b_raw     = d["binder_raw"][i_s]             # (n_h0, n_disorder)
+        # Cherche l'index de ce sigma dans ce fichier (skip si absent)
+        idx_s_L = np.where(np.abs(d["sigma_grid"] - sigma) < 1e-9)[0]
+        if len(idx_s_L) == 0:
+            continue
+        h0_grid   = d["h0_grid"]                         # (n_h0,)
+        b_raw     = d["binder_raw"][idx_s_L[0]]          # (n_h0, n_disorder)
 
         b_mean = np.nanmean(b_raw, axis=1)           # (n_h0,)
         n_dis  = np.sum(~np.isnan(b_raw[0]))

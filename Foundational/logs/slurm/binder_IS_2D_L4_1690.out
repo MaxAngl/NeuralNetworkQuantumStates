@@ -1,0 +1,18 @@
+/users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/netket_pro/experiments/netket_foundational/_src/vqs/state.py:335: FutureWarning: Call to deprecated function 'check_chunk_size' (This function has been removed. People should be free to use the chunk size they prefer.)
+  check_chunk_size(n_samples, self.chunk_size)
+=== Binder IS 2D — L=4, N_DISORDER=100 ===
+Run dir : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=4
+Données existantes : sigma=[np.float64(0.0), np.float64(0.05), np.float64(0.1), np.float64(0.15), np.float64(0.2), np.float64(0.3), np.float64(0.4), np.float64(0.5), np.float64(0.7), np.float64(0.9), np.float64(1.0)]
+Sigmas à calculer  : []
+Checkpoint : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=4/state_590.nk
+Poids chargés.
+JIT compilé.
+Samples chargés : 25 points h0, h0 ∈ [2.800, 3.300]
+h0 (L=4):   0%|          | 0/25 [00:00<?, ?it/s]h0 (L=4): 100%|██████████| 25/25 [00:00<00:00, 252.16it/s]
+
+Temps total : 0.1s (0.0 min)
+Fusion : [np.float64(0.0), np.float64(0.05), np.float64(0.1), np.float64(0.15), np.float64(0.2), np.float64(0.3), np.float64(0.4), np.float64(0.5), np.float64(0.7), np.float64(0.9), np.float64(1.0)] + [] → [np.float64(0.0), np.float64(0.05), np.float64(0.1), np.float64(0.15), np.float64(0.2), np.float64(0.3), np.float64(0.4), np.float64(0.5), np.float64(0.7), np.float64(0.9), np.float64(1.0)]
+Sauvegardé : /users/eleves-b/2024/nathan.dupuy/NeuralNetworkQuantumStates-3/Foundational/logs/Trains_autour_transi_2D/L=4/binder_data_2D_L4.npz
+  sigma_grid : [np.float64(0.0), np.float64(0.05), np.float64(0.1), np.float64(0.15), np.float64(0.2), np.float64(0.3), np.float64(0.4), np.float64(0.5), np.float64(0.7), np.float64(0.9), np.float64(1.0)]
+  mz2_raw shape : (11, 25, 100)
+  Taille fichier estimée : 0.7 MB

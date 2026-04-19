@@ -25,7 +25,7 @@ for i in "${!SIZES[@]}"; do
            --output="$PROJECT/Foundational/logs/slurm/binder_IS_2D_L${L}_%j.out" \
            --ntasks=1 --nodelist=$NODE --exclusive \
            --cpus-per-task=8 --mem=60G \
-           --time=02:00:00 --partition=SallesInfo \
+           --time=06:00:00 --partition=SallesInfo \
            --export=ALL,NETKET_EXPERIMENTAL_SHARDING=1,XLA_PYTHON_CLIENT_PREALLOCATE=false,TMPDIR=/var/tmp \
            --wrap="
 $CONDA
