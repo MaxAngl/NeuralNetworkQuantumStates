@@ -93,6 +93,14 @@ CONFIGS = [
         "n_samples_per_config": 128, "n_h0": 13,
         "lr_init": 0.03, "lr_end": 0.005, "diag_shift": 2e-4,
     },
+    # Config 6 — L=64, b=4, ~2000 samples (182/config × 11 = 2002), 1000 iter, h0 in [0.5, 1.5]
+    {
+        "name": "d64_l4_h10_b4_s182_h11_iter1000_range0.5-1.5",
+        "num_layers": 4, "d_model": 64, "heads": 10, "b": 4,
+        "n_samples_per_config": 182, "n_h0": 11,
+        "n_iter": 1000, "h0_min": 0.5, "h0_max": 1.5,
+        "lr_init": 0.03, "lr_end": 0.005, "diag_shift": 2e-4,
+    },
 ]
 
 # ==========================================
@@ -108,9 +116,11 @@ cfg        = CONFIGS[cfg_idx]
 print(f"Config [{cfg_idx}] : {cfg['name']}")
 
 # --- PARAMÈTRES PHYSIQUES ---
-n_iter    = 600
+n_iter    = cfg.get("n_iter", 600)
 J_val     = 1.0
-h0_train_list       = list(np.round(np.linspace(0.7, 1.3, cfg["n_h0"]), 4))
+h0_min = cfg.get("h0_min", 0.7)
+h0_max = cfg.get("h0_max", 1.3)
+h0_train_list       = list(np.round(np.linspace(h0_min, h0_max, cfg["n_h0"]), 4))
 total_configs_train = len(h0_train_list)
 
 # --- PARAMÈTRES MONTE CARLO ---
@@ -210,68 +220,34 @@ ha_p = nkf.operator.ParametrizedOperator(hi, ps, create_operator)
 # ==========================================
 
 class ReplicaLogger(AbstractCallback):
-    params_list: np.ndarray = struct.field(pytree_node=False)
-    L: int                  = struct.field(pytree_node=False)
-    eval_every: int         = struct.field(pytree_node=False)
-    run_dir: str            = struct.field(pytree_node=False)
-    iters: list             = struct.field(pytree_node=False, default_factory=list)
-    energies: list          = struct.field(pytree_node=False, default_factory=list)
-    variances: list         = struct.field(pytree_node=False, default_factory=list)
+    ha_p: object    = struct.field(pytree_node=False)
+    run_dir: str    = struct.field(pytree_node=False)
+    eval_every: int = struct.field(pytree_node=False)
+    iters: list     = struct.field(pytree_node=False, default_factory=list)
+    energies: list  = struct.field(pytree_node=False, default_factory=list)
 
-    def __init__(self, params_list, L, run_dir, eval_every=10):
-        self.params_list = params_list
-        self.L           = L
-        self.run_dir     = run_dir
-        self.eval_every  = eval_every
-        self.iters       = []
-        self.energies    = []
-        self.variances   = []
+    def __init__(self, ha_p, run_dir, eval_every=10):
+        self.ha_p       = ha_p
+        self.run_dir    = run_dir
+        self.eval_every = eval_every
+        self.iters      = []
+        self.energies   = []
 
     def on_step_end(self, step, log_data, driver):
         if step % self.eval_every != 0:
             return
 
-        vs   = driver.state
-        hi   = vs.hilbert
-        sa_eval = nk.sampler.MetropolisLocal(hi, n_chains=4)
-
-        step_energies  = []
-        step_variances = []
-
-        for pars in self.params_list:
-            _vs = vs.get_state(pars)
-            mc_vs = nk.vqs.MCState(
-                sampler=sa_eval, model=_vs.model, variables=_vs.variables,
-                n_samples=256, chunk_size=16
-            )
-            mc_vs.reset()
-
-            sigma_orig = np.array(mc_vs.sampler_state.σ)
-            flat_sigma = sigma_orig.reshape(-1, sigma_orig.shape[-1])
-            half = flat_sigma.shape[0] // 2
-            flat_sigma[:half, :self.L] = 1
-            flat_sigma[half:, :self.L] = -1
-            mc_vs.sampler_state = mc_vs.sampler_state.replace(
-                **{'σ': jnp.array(flat_sigma.reshape(sigma_orig.shape))}
-            )
-
-            H_op    = create_operator(pars)
-            H_sq    = H_op @ H_op
-            stats   = mc_vs.expect(H_op)
-            stats_H2 = mc_vs.expect(H_sq)
-            mean_val = float(np.real(stats.Mean))
-            var_val  = float(np.real(stats_H2.Mean)) - mean_val**2
-            step_energies.append(mean_val)
-            step_variances.append(var_val)
+        # vs.expect(ha_p) retourne une liste de Stats, une par réplique,
+        # calculée sur les samples d'entraînement déjà en mémoire (gratuit).
+        stats_list = driver.state.expect(self.ha_p)
+        step_energies = [float(np.real(s.Mean)) for s in stats_list]
 
         self.iters.append(step)
         self.energies.append(step_energies)
-        self.variances.append(step_variances)
 
         if nkpd.is_master_process():
-            np.save(os.path.join(self.run_dir, "replica_iters.npy"),     np.array(self.iters))
-            np.save(os.path.join(self.run_dir, "replica_energies.npy"),  np.array(self.energies))
-            np.save(os.path.join(self.run_dir, "replica_variances.npy"), np.array(self.variances))
+            np.save(os.path.join(self.run_dir, "replica_iters.npy"),    np.array(self.iters))
+            np.save(os.path.join(self.run_dir, "replica_energies.npy"), np.array(self.energies))
 
 
 class SaveState(AbstractCallback):
@@ -296,7 +272,7 @@ class SaveState(AbstractCallback):
 # ==========================================
 # 5. LOGGING ET OPTIMISATION
 # ==========================================
-learning_rate = optax.linear_schedule(init_value=lr_init, end_value=lr_end, transition_steps=300)
+learning_rate = optax.linear_schedule(init_value=lr_init, end_value=lr_end, transition_steps=n_iter // 2)
 optimizer     = optax.sgd(learning_rate)
 
 def cg_solver(A, b):
@@ -343,7 +319,7 @@ gs.run(
     out=log,
     callback=[
         SaveState(run_dir, 50),
-        ReplicaLogger(params_list, L, run_dir=run_dir, eval_every=10),
+        ReplicaLogger(ha_p, run_dir=run_dir, eval_every=10),
     ]
 )
 
@@ -442,28 +418,24 @@ if nkpd.is_master_process():
     except (FileNotFoundError, KeyError) as e:
         print(f"⚠️ Plot de convergence d'énergie ignoré : {e}")
 
-    # --- PLOT 4 : Courbes de V-score vs step pour chaque h0 ---
+    # --- PLOT 4 : Courbes d'énergie vs step pour chaque h0 ---
     try:
-        hist_iters     = np.load(os.path.join(run_dir, "replica_iters.npy"))
-        hist_energies  = np.load(os.path.join(run_dir, "replica_energies.npy"))
-        hist_variances = np.load(os.path.join(run_dir, "replica_variances.npy"))
+        hist_iters    = np.load(os.path.join(run_dir, "replica_iters.npy"))
+        hist_energies = np.load(os.path.join(run_dir, "replica_energies.npy"))
 
         plt.figure(figsize=(12, 6))
         for idx, h0 in enumerate(h0_train_list):
-            e = hist_energies[:, idx]
-            v = hist_variances[:, idx]
-            plt.plot(hist_iters, v / (e**2 + 1e-12), color=colors[idx], linewidth=1.5, label=rf"$h_0={h0}$")
+            plt.plot(hist_iters, hist_energies[:, idx], color=colors[idx], linewidth=1.5, label=rf"$h_0={h0}$")
 
-        plt.yscale('log')
         plt.xlabel("Optimization step", fontsize=12)
-        plt.ylabel(r"V-score $Var(E)/E^2$", fontsize=12)
-        plt.title(f"Convergence du V-score par $h_0$ — {cfg['name']} (L={L})", fontsize=12)
+        plt.ylabel(r"$\langle E \rangle / L$", fontsize=12)
+        plt.title(f"Convergence de l'énergie par $h_0$ — {cfg['name']} (L={L})", fontsize=12)
         plt.legend(fontsize=8, ncol=3, loc='upper right')
         plt.grid(True, which='both', ls='--', alpha=0.3)
         plt.tight_layout()
-        plt.savefig(os.path.join(run_dir, f"vscore_convergence_all_L={L}.pdf"))
+        plt.savefig(os.path.join(run_dir, f"energy_convergence_all_L={L}.pdf"))
         plt.clf()
     except FileNotFoundError:
-        print("⚠️ Fichiers .npy introuvables. Le tracé de convergence du V-score a été ignoré.")
+        print("⚠️ Fichiers .npy introuvables. Le tracé de convergence d'énergie a été ignoré.")
 
     print(f"✅ Run terminé [{cfg['name']}]. 4 graphiques générés avec succès !")
